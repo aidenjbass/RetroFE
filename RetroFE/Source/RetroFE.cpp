@@ -1572,6 +1572,13 @@ bool RetroFE::run( )
                 if (l.run(nextPageItem_->collectionInfo->name, nextPageItem_, currentPage_)) // Run and check if we need to reboot
                 {
                     attract_.reset( );
+                    //Run launchExit function when unloadSDL flag is set
+                    bool unloadSDL = false;
+                    config_.getProperty("unloadSDL", unloadSDL);
+                    if (unloadSDL)
+                    {
+                        launchExit();
+                    }
                     reboot_ = true;
                     state   = RETROFE_QUIT_REQUEST;
                 }
