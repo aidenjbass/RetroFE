@@ -2674,19 +2674,18 @@ Page *RetroFE::loadSplashPage( )
 }
 
 // Load a collection
-CollectionInfo *RetroFE::getCollection(const std::string& collectionName)
+CollectionInfo* RetroFE::getCollection(const std::string& collectionName)
 {
 
-	LOG_DEBUG("getCollection collectionName: ", collectionName);
     // Check if subcollections should be merged or split
     bool subsSplit = false;
-    config_.getProperty( "subsSplit", subsSplit );
+    config_.getProperty("subsSplit", subsSplit);
 
     // Build the collection
     CollectionInfoBuilder cib(config_, *metadb_);
-    CollectionInfo *collection = cib.buildCollection( collectionName );
+    CollectionInfo* collection = cib.buildCollection(collectionName);
     collection->subsSplit = subsSplit;
-    cib.injectMetadata( collection );
+    cib.injectMetadata(collection);
 
     // Check collection folder exists 
     fs::path path = Utils::combinePath(Configuration::absolutePath, "collections", collectionName);
@@ -2694,19 +2693,19 @@ CollectionInfo *RetroFE::getCollection(const std::string& collectionName)
         LOG_ERROR("RetroFE", "Failed to load collection " + collectionName);
         return nullptr;
     }
-    std::vector<std::string> subcollectionBasenames;
 
     // Loading sub collection files
     for (const auto& entry : fs::directory_iterator(path)) {
-        if (entry.is_regular_file()) {
-            fs::path filePath = entry.path();
+        if (fs::is_regular_file(entry)) {
+            std::string file = entry.path().filename().string();
 
-            // Use filesystem library to get the stem (basename) and extension
-            std::string basename = filePath.stem().string();
-            std::string extension = filePath.extension().string();
+            size_t position = file.find_last_of(".");
+            std::string basename = (std::string::npos == position) ? file : file.substr(0, position);
 
-            // Check if the file has a ".sub" extension
-            if (extension == ".sub") {
+            std::string comparator = ".sub";
+            size_t start = file.length() >= comparator.length() ? file.length() - comparator.length() : 0;
+
+            if (file.compare(start, comparator.length(), comparator) == 0) {
                 LOG_INFO("RetroFE", "Loading subcollection into menu: " + basename);
 
                 CollectionInfo* subcollection = cib.buildCollection(basename, collectionName);
@@ -2714,16 +2713,13 @@ CollectionInfo *RetroFE::getCollection(const std::string& collectionName)
                 subcollection->subsSplit = subsSplit;
                 cib.injectMetadata(subcollection);
                 collection->hasSubs = true;
-
-                // Add the basename to the vector
-                subcollectionBasenames.push_back(basename);
             }
         }
     }
 
     // sort a collection's items
     bool menuSort = true;
-    config_.getProperty( "collections." + collectionName + ".list.menuSort", menuSort );
+    config_.getProperty("collections." + collectionName + ".list.menuSort", menuSort);
     if (menuSort) {
         config_.getProperty("collections." + collectionName + ".list.sortType", collection->sortType);
         if (!Item::validSortType(collection->sortType)) {
@@ -2751,34 +2747,13 @@ CollectionInfo *RetroFE::getCollection(const std::string& collectionName)
                     launcherVector.push_back(substr);
                 }
             }
-            // Step 1: Sort both vectors
-            std::sort(subcollectionBasenames.begin(), subcollectionBasenames.end());
-            std::sort(launcherVector.begin(), launcherVector.end());
-
-            // Step 2: Find common elements
-            std::vector<std::string> commonElements;
-            std::set_intersection(
-                subcollectionBasenames.begin(), subcollectionBasenames.end(),
-                launcherVector.begin(), launcherVector.end(),
-                std::back_inserter(commonElements)
-            );
-            // Step 3: Remove common elements from launcherVector
-            launcherVector.erase(
-                std::remove_if(
-                    launcherVector.begin(), launcherVector.end(),
-                    [&commonElements](const std::string& element) {
-                        return std::find(commonElements.begin(), commonElements.end(), element) != commonElements.end();
-                    }
-                ),
-                launcherVector.end()
-            );
-
             mp.buildMenuFromCollectionLaunchers(collection, launcherVector);
         }
         else {
             // todo log error
         }
-    } else {
+    }
+    else {
         // build collection menu if menu.txt exists
         mp.buildMenuItems(collection, menuSort);
     }
@@ -2787,7 +2762,7 @@ CollectionInfo *RetroFE::getCollection(const std::string& collectionName)
     cib.addPlaylists(collection);
     collection->sortPlaylists();
 
-   // Add extra info, if available
+    // Add extra info, if available
     for (auto& item : collection->items) {
         std::string path = Utils::combinePath(Configuration::absolutePath, "collections", collectionName, "info", item->name + ".conf");
         item->loadInfo(path);
@@ -2795,11 +2770,11 @@ CollectionInfo *RetroFE::getCollection(const std::string& collectionName)
 
 
     // Remove parenthesis and brackets, if so configured
-    bool showParenthesis    = true;
+    bool showParenthesis = true;
     bool showSquareBrackets = true;
 
-    (void)config_.getProperty( "showParenthesis", showParenthesis );
-    (void)config_.getProperty( "showSquareBrackets", showSquareBrackets );
+    (void)config_.getProperty("showParenthesis", showParenthesis);
+    (void)config_.getProperty("showSquareBrackets", showSquareBrackets);
 
     //using Playlists_T = std::map<std::string, std::vector<Item *> *>;
     for (auto const& playlistPair : collection->playlists) {
