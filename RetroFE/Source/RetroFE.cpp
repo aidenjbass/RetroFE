@@ -166,9 +166,13 @@ void RetroFE::launchEnter( )
 
     // Disable window focus
     SDL_SetWindowGrab(SDL::getWindow( 0 ), SDL_FALSE);
-    // Free the textures, and optionally take down SDL
-    //freeGraphicsMemory();
-    
+    // Free the textures, and take down SDL if unloadSDL flag is set
+    bool unloadSDL = false;
+    config_.getProperty( "unloadSDL", unloadSDL );
+    if ( unloadSDL )
+    {
+        freeGraphicsMemory();
+    }
     // If on MacOS disable relative mouse mode to handoff mouse to game/program
     #ifdef __APPLE__
         SDL_SetRelativeMouseMode(SDL_FALSE);
@@ -185,8 +189,13 @@ void RetroFE::launchEnter( )
 // Return from the launch of a game/program
 void RetroFE::launchExit( )
 {
-    // Optionally set up SDL, and load the textures
-    //allocateGraphicsMemory();
+    // Set up SDL, and load the textures if unloadSDL flag is set
+    bool unloadSDL = false;
+    config_.getProperty( "unloadSDL", unloadSDL );
+    if ( unloadSDL )
+    {
+        allocateGraphicsMemory();
+    }
 
     // Restore the SDL settings
     SDL_RestoreWindow( SDL::getWindow( 0 ) );
@@ -229,25 +238,28 @@ void RetroFE::launchExit( )
 
 
 // Free the textures, and optionall take down SDL
-void RetroFE::freeGraphicsMemory( )
+void RetroFE::freeGraphicsMemory()
 {
-
     // Free textures
-    if ( currentPage_ )
+    if (currentPage_)
     {
-        currentPage_->freeGraphicsMemory( );
+        currentPage_->freeGraphicsMemory();
     }
 
     // Close down SDL
     bool unloadSDL = false;
-    config_.getProperty( "unloadSDL", unloadSDL );
-    if ( unloadSDL )
+    config_.getProperty("unloadSDL", unloadSDL);
+    if (unloadSDL)
     {
-        currentPage_->deInitializeFonts( );
-        SDL::deInitialize( );
-        input_.clearJoysticks( );
-    }
+        // Ensure currentPage_ is not null before calling deInitializeFonts
+        if (currentPage_)
+        {
+            currentPage_->deInitializeFonts();
+        }
 
+        SDL::deInitialize();
+        input_.clearJoysticks();
+    }
 }
 
 
@@ -1560,6 +1572,13 @@ bool RetroFE::run( )
                 if (l.run(nextPageItem_->collectionInfo->name, nextPageItem_, currentPage_)) // Run and check if we need to reboot
                 {
                     attract_.reset( );
+                    //Run launchExit function when unloadSDL flag is set
+                    bool unloadSDL = false;
+                    config_.getProperty("unloadSDL", unloadSDL);
+                    if (unloadSDL)
+                    {
+                        launchExit();
+                    }
                     reboot_ = true;
                     state   = RETROFE_QUIT_REQUEST;
                 }
