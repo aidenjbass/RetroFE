@@ -2137,6 +2137,14 @@ RetroFE::RETROFE_STATE RetroFE::processUserInput( Page *page )
             keyLastTime_ = currentTime_;
             return RETROFE_MENUMODE_START_REQUEST;
         }
+        else if (input_.keystate(UserInput::KeyCodeSettingsCombo1) && input_.keystate(UserInput::KeyCodeSettingsCombo2)) {
+            attract_.reset();
+            bool controllerComboSettings = false;
+            config_.getProperty("controllerComboSettings", controllerComboSettings);
+            if (controllerComboSettings) {
+                return RETROFE_SETTINGS_REQUEST;
+            }
+        }
         else if (input_.keystate(UserInput::KeyCodeQuitCombo1) && input_.keystate(UserInput::KeyCodeQuitCombo2)) {
             attract_.reset();
             bool controllerComboExit = false;
@@ -2669,6 +2677,7 @@ Page *RetroFE::loadSplashPage( )
 CollectionInfo *RetroFE::getCollection(const std::string& collectionName)
 {
 
+	LOG_DEBUG("getCollection collectionName: ", collectionName);
     // Check if subcollections should be merged or split
     bool subsSplit = false;
     config_.getProperty( "subsSplit", subsSplit );
@@ -2685,19 +2694,19 @@ CollectionInfo *RetroFE::getCollection(const std::string& collectionName)
         LOG_ERROR("RetroFE", "Failed to load collection " + collectionName);
         return nullptr;
     }
+    std::vector<std::string> subcollectionBasenames;
 
     // Loading sub collection files
     for (const auto& entry : fs::directory_iterator(path)) {
-        if (fs::is_regular_file(entry)) {
-            std::string file = entry.path().filename().string();
+        if (entry.is_regular_file()) {
+            fs::path filePath = entry.path();
 
-            size_t position = file.find_last_of(".");
-            std::string basename = (std::string::npos == position) ? file : file.substr(0, position);
+            // Use filesystem library to get the stem (basename) and extension
+            std::string basename = filePath.stem().string();
+            std::string extension = filePath.extension().string();
 
-            std::string comparator = ".sub";
-            size_t start = file.length() >= comparator.length() ? file.length() - comparator.length() : 0;
-
-            if (file.compare(start, comparator.length(), comparator) == 0) {
+            // Check if the file has a ".sub" extension
+            if (extension == ".sub") {
                 LOG_INFO("RetroFE", "Loading subcollection into menu: " + basename);
 
                 CollectionInfo* subcollection = cib.buildCollection(basename, collectionName);
@@ -2705,6 +2714,9 @@ CollectionInfo *RetroFE::getCollection(const std::string& collectionName)
                 subcollection->subsSplit = subsSplit;
                 cib.injectMetadata(subcollection);
                 collection->hasSubs = true;
+
+                // Add the basename to the vector
+                subcollectionBasenames.push_back(basename);
             }
         }
     }
@@ -2739,6 +2751,28 @@ CollectionInfo *RetroFE::getCollection(const std::string& collectionName)
                     launcherVector.push_back(substr);
                 }
             }
+            // Step 1: Sort both vectors
+            std::sort(subcollectionBasenames.begin(), subcollectionBasenames.end());
+            std::sort(launcherVector.begin(), launcherVector.end());
+
+            // Step 2: Find common elements
+            std::vector<std::string> commonElements;
+            std::set_intersection(
+                subcollectionBasenames.begin(), subcollectionBasenames.end(),
+                launcherVector.begin(), launcherVector.end(),
+                std::back_inserter(commonElements)
+            );
+            // Step 3: Remove common elements from launcherVector
+            launcherVector.erase(
+                std::remove_if(
+                    launcherVector.begin(), launcherVector.end(),
+                    [&commonElements](const std::string& element) {
+                        return std::find(commonElements.begin(), commonElements.end(), element) != commonElements.end();
+                    }
+                ),
+                launcherVector.end()
+            );
+
             mp.buildMenuFromCollectionLaunchers(collection, launcherVector);
         }
         else {
