@@ -351,8 +351,12 @@ bool RetroFE::run( )
     // Define control configuration
     std::string controlsConfPath = Utils::combinePath( Configuration::absolutePath, "controls" );
     config_.import("controls", controlsConfPath + ".conf");
-    for (int i = 1; i < 10; i++)
-        config_.import("controls", controlsConfPath + std::to_string(i) + ".conf", false);
+    for (int i = 1; i < 10; i++) {
+        std::string numberedControlsFile = controlsConfPath + std::to_string(i) + ".conf";
+        if (fs::exists(numberedControlsFile)) {
+            config_.import("controls", numberedControlsFile, false);
+        }
+    }
 
     if (config_.propertiesEmpty())
     {
@@ -2696,24 +2700,16 @@ CollectionInfo* RetroFE::getCollection(const std::string& collectionName)
 
     // Loading sub collection files
     for (const auto& entry : fs::directory_iterator(path)) {
-        if (fs::is_regular_file(entry)) {
-            std::string file = entry.path().filename().string();
+        if (entry.is_regular_file() && entry.path().extension() == ".sub") {
+            std::string basename = entry.path().stem().string();
 
-            size_t position = file.find_last_of(".");
-            std::string basename = (std::string::npos == position) ? file : file.substr(0, position);
+            LOG_INFO("RetroFE", "Loading subcollection into menu: " + basename);
 
-            std::string comparator = ".sub";
-            size_t start = file.length() >= comparator.length() ? file.length() - comparator.length() : 0;
-
-            if (file.compare(start, comparator.length(), comparator) == 0) {
-                LOG_INFO("RetroFE", "Loading subcollection into menu: " + basename);
-
-                CollectionInfo* subcollection = cib.buildCollection(basename, collectionName);
-                collection->addSubcollection(subcollection);
-                subcollection->subsSplit = subsSplit;
-                cib.injectMetadata(subcollection);
-                collection->hasSubs = true;
-            }
+            CollectionInfo* subcollection = cib.buildCollection(basename, collectionName);
+            collection->addSubcollection(subcollection);
+            subcollection->subsSplit = subsSplit;
+            cib.injectMetadata(subcollection);
+            collection->hasSubs = true;
         }
     }
 
