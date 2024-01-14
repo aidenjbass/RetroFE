@@ -339,7 +339,9 @@ bool RetroFE::run( )
     // Initialize SDL
     if(! SDL::initialize( config_ ) ) return false;
     fontcache_.initialize( );
-
+    SDL_RestoreWindow(SDL::getWindow(0));
+    SDL_RaiseWindow(SDL::getWindow(0));
+    SDL_SetWindowGrab(SDL::getWindow(0), SDL_TRUE);
 #ifdef WIN32
     bool highPriority = false;
     config_.getProperty("highPriority", highPriority);

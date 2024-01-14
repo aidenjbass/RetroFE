@@ -83,6 +83,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - random start playlist to exclude favorites and lastplayed [@monkofthefunk](https://github.com/monkofthefunk)
 - mouse handling and fullscreen on MacOS [@aidenjbass](https://github.com/aidenjbass)
 - unloadSDL functionality fixed, for raspberry pi devices [@bluestand2006] (https://github.com/bluestang2006)
+- assert window input focus after SDL is initialized [@inigomontoya] (https://github.com/inigomontoya)
  
 ## [10.34.2] - 2023-06-29
 
