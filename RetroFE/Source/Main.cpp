@@ -184,7 +184,7 @@ int main(int argc, char** argv)
             param == "--rebuilddatabase" ||
             param == "-rbdb")
         {
-            DB::initialize()
+            return 0;
         }
         else
         {
