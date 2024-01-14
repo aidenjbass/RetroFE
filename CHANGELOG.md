@@ -39,6 +39,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - ability to build Universal2 binaries on MacOS via xcodeproj [@aidenjbass](https://github.com/aidenjbass)
 - added %COLLECTION_PATH% to launchers, resolves to full path to collection [@inigomonoya] (https://github.com/inigomontoya)
 - controllerComboSettings, controller/keyboard combo that toggles settings [@inigomonoya] (https://github.com/inigomontoya)
+- HardwareVideoAccel support on macOS (video toolbox) [@aidenjbass](https://github.com/aidenjbass)
 
 ### Changed
 - changed video pause/restart behavior, also videos will now pause by default if out of view, disablePauseOnScroll=true in settings.conf for global override. [@inigomontoya](https://github.com/inigomontoya)
