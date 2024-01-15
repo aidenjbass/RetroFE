@@ -16,6 +16,7 @@
 
 #include "Video/GStreamerVideo.h"
 #include "Database/Configuration.h"
+#include "Database/DB.h"
 #include "Collection/CollectionInfoBuilder.h"
 #include "Execute/Launcher.h"
 #include "Utility/Log.h"
@@ -158,6 +159,7 @@ std::string showusage()
 int main(int argc, char** argv)
 {
     Configuration::initialize();
+    Configuration config;
     
     // check to see if version or help was requested
     if (argc > 1)
@@ -187,6 +189,8 @@ int main(int argc, char** argv)
             param == "--rebuilddatabase" ||
             param == "-rbdb")
         {
+            DB(<#const std::string &dbFile#>);
+            MetadataDatabase(<#DB &db#>, config)
             return 0;
         }
         else
@@ -207,8 +211,6 @@ int main(int argc, char** argv)
 
     // Initialize random seed
     srand(static_cast<unsigned int>(time(nullptr)));
-
-    Configuration config;
 
     gst_init(nullptr, nullptr);
 
