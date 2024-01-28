@@ -182,11 +182,29 @@ int main(int argc, char** argv)
     Configuration config;
     std::string dbPath = Utils::combinePath(Configuration::absolutePath, "meta.db");
     
-    // check to see if version or help was requested
+    // Check to see if an argument was passed
     if (argc > 1)
     {
         std::string program = argv[0];
         std::string param = argv[1];
+        
+        if (param == "-createcollection" ||
+            param == "--createcollection" ||
+            param == "-cc")
+        {
+            if (argc == 3)
+            {
+                std::string param = argv[1];
+                std::string value = argv[2];
+                CollectionInfoBuilder::createCollectionDirectory(value);
+                return 0;
+            }
+            else
+            {
+                std::cout << "Expected 1 argument for -createcollection, got " << argc - 2 << std::endl;
+                return 0;
+            }
+        }
         
         if (argc == 3 && param == "-createcollection")
         {
@@ -238,11 +256,11 @@ int main(int argc, char** argv)
         {
             std::cout << Configuration::absolutePath << " Version: " << Version::getString() << std::endl;
             std::cout << "Usage:" << std::endl;
-            std::cout << " -help                                     Show this message" << std::endl;
-            std::cout << " -version                                  Print the version of RetroFE" << std::endl;
-            std::cout << " -createcollection <collection name>       Create a collection directory structure" << std::endl;
-            std::cout << " -rebuilddatabase                          Rebuild the database" << std::endl;
-            std::cout << " -showusage                                Print a list of all global settings" << std::endl;
+            std::cout << "-h    -help                                    Show this message" << std::endl;
+            std::cout << "-v    -version                                 Print the version of RetroFE" << std::endl;
+            std::cout << "-cc   -createcollection <collection name>      Create a collection directory structure" << std::endl;
+            std::cout << "-rdb  -rebuilddatabase                         Rebuild the database" << std::endl;
+            std::cout << "-su   -showusage                               Print a list of all global settings" << std::endl;
             return 0;
         }
     }
