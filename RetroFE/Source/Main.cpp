@@ -34,10 +34,22 @@
 #include <vector>
 
 #include <iostream>
-#include <unistd.h>
+#ifdef WIN32
+    #include <io.h>
+#else
+    #include <unistd.h>
+#endif
 
 namespace fs = std::filesystem;
 static bool ImportConfiguration(Configuration* c);
+
+bool isOutputATerminal() {
+#ifdef _WIN32
+    return _isatty(_fileno(stdout));
+#else
+    return isatty(STDOUT_FILENO);
+#endif
+}
 
 // Function to initialize the DB object
 bool initializeDB(DB*& db, const std::string& dbPath) {
@@ -273,7 +285,7 @@ int main(int argc, char** argv)
             {
                 // Exit with a heads up...
                 std::string logFile = Utils::combinePath(Configuration::absolutePath, "log.txt");
-                if(isatty(STDERR_FILENO))
+                if(isOutputATerminal())
                 {
                     fprintf(stderr, "RetroFE has failed to start due to a configuration error\nCheck the log for details: %s\n", logFile.c_str());
                 }
@@ -320,7 +332,7 @@ static bool ImportConfiguration(Configuration* c)
     
     if(!fs::exists(Utils::combinePath(Configuration::absolutePath, "settings.conf")))
     {
-        if(isatty(STDOUT_FILENO))
+        if(isOutputATerminal())
         {
             std::cout << "RetroFE failed to find a valid settings.conf in the current directory" << std::endl;
         }
