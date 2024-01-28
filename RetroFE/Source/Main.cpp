@@ -205,17 +205,6 @@ int main(int argc, char** argv)
                 return 0;
             }
         }
-        
-        if (argc == 3 && param == "-createcollection")
-        {
-            std::string param = argv[1];
-            std::string value = argv[2];
-            if (param == "-createcollection")
-            {
-                CollectionInfoBuilder::createCollectionDirectory(value);
-            }
-            return 0;
-        }
         else if (param == "-version" ||
             param == "--version" ||
             param == "-v")
