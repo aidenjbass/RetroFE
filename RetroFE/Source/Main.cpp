@@ -33,6 +33,9 @@
 #include <fstream>
 #include <vector>
 
+#include <iostream>
+#include <unistd.h>
+
 namespace fs = std::filesystem;
 static bool ImportConfiguration(Configuration* c);
 
@@ -270,8 +273,15 @@ int main(int argc, char** argv)
             {
                 // Exit with a heads up...
                 std::string logFile = Utils::combinePath(Configuration::absolutePath, "log.txt");
-                fprintf(stderr, "RetroFE has failed to start due to configuration error.\nCheck log for details: %s\n", logFile.c_str());
-                return -1;
+                if(isatty(STDERR_FILENO))
+                {
+                    fprintf(stderr, "RetroFE has failed to start due to a configuration error\nCheck the log for details: %s\n", logFile.c_str());
+                }
+                else
+                {
+                    SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Configuration Error", ("RetroFE has failed to start due to a configuration error\nCheck the log for details: \n" + logFile).c_str(), NULL);
+                }
+                exit(EXIT_FAILURE);
             }
             RetroFE p(config);
             if (p.run()) // Check if we need to reboot after running
@@ -307,6 +317,20 @@ static bool ImportConfiguration(Configuration* c)
     fs::path collectionsPath = Utils::combinePath(Configuration::absolutePath, "collections");
 
     std::string settingsConfPath = Utils::combinePath(configPath, "settings");
+    
+    if(!fs::exists(Utils::combinePath(Configuration::absolutePath, "settings.conf")))
+    {
+        if(isatty(STDOUT_FILENO))
+        {
+            std::cout << "RetroFE failed to find a valid settings.conf in the current directory" << std::endl;
+        }
+        else
+        {
+            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Configuration", "RetroFE failed to find a valid settings.conf in the current directory", NULL);
+        }
+        exit(EXIT_FAILURE);
+    }
+    
     if (!c->import("", settingsConfPath + ".conf"))
     {
         LOG_ERROR("RetroFE", "Could not import \"" + settingsConfPath + ".conf\"");
