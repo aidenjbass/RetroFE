@@ -51,7 +51,7 @@ bool CollectionInfoBuilder::createCollectionDirectory(const std::string& name)
     std::string collectionFolderPath = Utils::combinePath(Configuration::absolutePath, "collections");
     
     // Check if the collections folder doesn't exist
-    if (!fs::exists(collectionFolderPath)) {
+    if (!fs::exists(collectionFolderPath) || !fs::is_directory(collectionFolderPath)) {
         std::cout << std::endl;
         std::cout << "Collections folder not found in \"" << Configuration::absolutePath << "\"" << std::endl;
         std::cout << "Creating collections folder in \"" << Configuration::absolutePath << "/collections" << "\"" << std::endl;
