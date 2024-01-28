@@ -36,6 +36,26 @@
 namespace fs = std::filesystem;
 static bool ImportConfiguration(Configuration* c);
 
+// Function to initialize the DB object
+bool initializeDB(DB*& db, const std::string& dbPath) {
+    db = new DB(dbPath);
+    if (!db->initialize()) {
+        LOG_ERROR("RetroFE", "Could not initialize database");
+        return false;
+    }
+    return true;
+}
+
+// Function to initialize the MetadataDatabase object
+bool initializeMetadataDatabase(MetadataDatabase*& metadb, DB* db, Configuration& config) {
+    metadb = new MetadataDatabase(*db, config);
+    if (!metadb->initialize()) {
+        LOG_ERROR("RetroFE", "Could not initialize meta database");
+        return false;
+    }
+    return true;
+}
+
 std::string showusage()
 {
     return
@@ -160,13 +180,14 @@ int main(int argc, char** argv)
 {
     Configuration::initialize();
     Configuration config;
+    std::string dbPath = Utils::combinePath(Configuration::absolutePath, "meta.db");
     
     // check to see if version or help was requested
     if (argc > 1)
     {
         std::string program = argv[0];
         std::string param = argv[1];
-
+        
         if (argc == 3 && param == "-createcollection")
         {
             // Do nothing; we handle that later
@@ -175,7 +196,7 @@ int main(int argc, char** argv)
             param == "--version" ||
             param == "-v")
         {
-            std::cout << "RetroFE version " << Version::getString() << std::endl;
+            std::cout << "RetroFE version " << Version::getString() << std::endl << std::flush;
             return 0;
         }
         else if (param == "-showusage" ||
@@ -185,12 +206,26 @@ int main(int argc, char** argv)
             std::cout << showusage() << std::endl;
             return 0;
         }
-        else if(param =="-rebuilddatabase" ||
+        else if (param == "-rebuilddatabase" ||
             param == "--rebuilddatabase" ||
-            param == "-rbdb")
+            param == "-rebuilddb" ||
+            param == "-rbdb" ||
+            param == "-rdb")
         {
-            DB(<#const std::string &dbFile#>);
-            MetadataDatabase(<#DB &db#>, config)
+            DB* db = nullptr;
+            MetadataDatabase* metadb = nullptr;
+
+            if (!initializeDB(db, dbPath)) {
+                // Handle initialization error, clean up if necessary
+                return 0;
+            }
+            
+            if (!initializeMetadataDatabase(metadb, db, config)) {
+                // Handle initialization error, clean up if necessary
+                delete db; // Clean up DB object
+                return 0;
+            }
+            metadb->resetDatabase();
             return 0;
         }
         else
