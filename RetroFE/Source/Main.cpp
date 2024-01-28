@@ -190,7 +190,13 @@ int main(int argc, char** argv)
         
         if (argc == 3 && param == "-createcollection")
         {
-            // Do nothing; we handle that later
+            std::string param = argv[1];
+            std::string value = argv[2];
+            if (param == "-createcollection")
+            {
+                CollectionInfoBuilder::createCollectionDirectory(value);
+            }
+            return 0;
         }
         else if (param == "-version" ||
             param == "--version" ||
@@ -249,21 +255,8 @@ int main(int argc, char** argv)
 
     gst_init(nullptr, nullptr);
 
-    // check to see if createcollection was requested
-    if (argc == 3)
-    {
-        std::string param = argv[1];
-        std::string value = argv[2];
-
-        if (param == "-createcollection")
-        {
-            CollectionInfoBuilder::createCollectionDirectory(value);
-        }
-
-        return 0;
-    }
     try {
-
+        
         while (true)
         {
             if (!ImportConfiguration(&config))
