@@ -32,7 +32,6 @@
 #include <string>
 #include <fstream>
 #include <vector>
-
 #include <iostream>
 #ifdef WIN32
     #include <io.h>
@@ -256,15 +255,37 @@ int main(int argc, char** argv)
             metadb->resetDatabase();
             return 0;
         }
+        else if (param == "-showconfig" ||
+            param == "--showconfig" ||
+            param == "-sc")
+        {
+            // TODO; list settings.conf
+            return 0;
+        }
+        else if (param == "-createconfig" ||
+            param == "--createconfig" ||
+            param == "-C")
+        {
+            // TODO; create default settings.conf
+            return 0;
+        }
         else
         {
-            std::cout << Configuration::absolutePath << " Version: " << Version::getString() << std::endl;
+            std::cout << "Absolute Path: " << Configuration::absolutePath << std::endl;
+            std::cout << "RetroFE Version: " << Version::getString() << std::endl;
+            std::cout << std::endl;
+            std::cout << "RetroFE is a cross-platform desktop frontend designed for MAME cabinets and game centers, with a focus on simplicity and customization.\nIt's licensed under the terms of the GNU General Public License, version 3 or later (GPLv3)." << std::endl;
+            std::cout << std::endl;
             std::cout << "Usage:" << std::endl;
-            std::cout << "-h    -help                                    Show this message" << std::endl;
-            std::cout << "-v    -version                                 Print the version of RetroFE" << std::endl;
-            std::cout << "-cc   -createcollection <collection name>      Create a collection directory structure" << std::endl;
-            std::cout << "-rdb  -rebuilddatabase                         Rebuild the database" << std::endl;
-            std::cout << "-su   -showusage                               Print a list of all global settings" << std::endl;
+            std::cout << "      -h    -help                                    Show this message" << std::endl;
+            std::cout << "      -v    -version                                 Print the version of RetroFE" << std::endl;
+            std::cout << "      -cc   -createcollection <collection name>      Create a collection directory structure" << std::endl;
+            std::cout << "      -rdb  -rebuilddatabase                         Rebuild the database" << std::endl;
+            std::cout << "      -su   -showusage                               Print a list of all global settings" << std::endl;
+            std::cout << "      -sc   -showconfig                              Print a list of current settings" << std::endl;
+            std::cout << "      -C    -createconfig                            Create a settings.conf with default values" << std::endl;
+            std::cout << std::endl;
+            std::cout << "For more information, visit\nhttps://github.com/CoinOPS-Official/RetroFE/\nhttp://retrofe.nl/" << std::endl;
             return 0;
         }
     }
