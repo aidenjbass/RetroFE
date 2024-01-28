@@ -293,6 +293,8 @@ int main(int argc, char** argv)
                 {
                     SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Configuration Error", ("RetroFE has failed to start due to a configuration error\nCheck the log for details: \n" + logFile).c_str(), NULL);
                 }
+                config.setProperty("log", "ERROR,NOTICE,WARNING");
+                ImportConfiguration(&config);
                 exit(EXIT_FAILURE);
             }
             RetroFE p(config);
