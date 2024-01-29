@@ -297,6 +297,11 @@ int main(int argc, char** argv)
                 std::string CLIvalue = argv[i+1];
                 if (startsWithAndStrip(CLIkey, "-") and !startsWith(CLIvalue,"-"))
                 {
+                    if (CLIkey == "log")
+                    {
+                        config.setProperty("log", CLIvalue);
+                        config.StartLogging(&config);
+                    }
                     settingsFromCLI.push_back(CLIkey + "=" + CLIvalue + "\n");
                 }
                 else if(startsWith(CLIvalue,"-"))
@@ -415,15 +420,18 @@ static bool ImportConfiguration(Configuration* c)
     }
     for (int i = 1; i < 16; i++) {
         std::string settingsFile = settingsConfPath + std::to_string(i) + ".conf";
-        if (fs::exists(settingsFile)) {
+        if (fs::exists(settingsFile)) 
+        {
             c->import("", "", settingsFile, false);
         }
     }
     std::string savedSettingsFile = settingsConfPath + "_saved.conf";
-    if (fs::exists(savedSettingsFile)) {
+    if (fs::exists(savedSettingsFile)) 
+    {
         c->import("", "", savedSettingsFile, false);
     }
-    if (!settingsFromCLI.empty()) {
+    if (!settingsFromCLI.empty()) 
+    {
         // If settingsFromCLI isn't empty let's do something with it
         std::string result;
         for (const auto& str : settingsFromCLI) {
