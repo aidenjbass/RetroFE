@@ -178,7 +178,10 @@ void Launcher::startScript()
 #else
     std::string exe = "./start.sh";
 #endif
-    execute(exe, "", Configuration::absolutePath, false);
+    if(fs::exists(exe))
+    {
+        execute(exe, "", Configuration::absolutePath, false);
+    }
 }
 
 void Launcher::exitScript()
@@ -189,7 +192,10 @@ void Launcher::exitScript()
 #else
     std::string exe = "./exit.sh";
 #endif
-    execute(exe, "", Configuration::absolutePath, false);
+    if(fs::exists(exe))
+    {
+        execute(exe, "", Configuration::absolutePath, false);
+    }
 }
 
 void Launcher::LEDBlinky( int command, std::string collection, Item *collectionItem )
