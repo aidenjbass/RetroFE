@@ -123,37 +123,59 @@ bool Configuration::import(const std::string& collection, const std::string& key
     bool retVal = true;
     int lineCount = 0;
     std::string line;
-
-    LOG_INFO("Configuration", "Importing \"" + file + "\"");
-
-    std::ifstream ifs(file.c_str());
-
-    if (!ifs.is_open())
+    
+    // Some dupe code in here we could probably bring out of branches but not yet
+    if (keyPrefix == "CLI")
     {
-        if (mustExist)
+        LOG_INFO("Configuration", "Importing command line arguments");
+                
+        // Use an istringstream to read lines from string
+        std::istringstream iss(file);
+                        
+        while (std::getline(iss, line))
         {
-            LOG_ERROR("Configuration", "Could not open " + file + "\"");
-        }
-        else
-        {
-            LOG_WARNING("Configuration", "Could not open " + file + "\"");
-        }
+            lineCount++;
+            retVal = retVal && parseLine(collection, "", line, lineCount);
 
-        return false;
-    }
-   
-    while (std::getline(ifs, line))
-    {
-        lineCount++;
-        retVal = retVal && parseLine(collection, keyPrefix, line, lineCount);
-
-        // Check if the line contains the log level setting
-        if (properties_.find("log") != properties_.end()) {
-            StartLogging(this); // Start logging with the specified level
+            // Check if the line contains the log level setting
+            if (properties_.find("log") != properties_.end()) {
+                StartLogging(this); // Start logging with the specified level
+            }
         }
     }
+    else
+    {
+        LOG_INFO("Configuration", "Importing \"" + file + "\"");
+        
+        std::ifstream ifs(file.c_str());
 
-    ifs.close();
+        if (!ifs.is_open())
+        {
+            if (mustExist)
+            {
+                LOG_ERROR("Configuration", "Could not open " + file + "\"");
+            }
+            else
+            {
+                LOG_WARNING("Configuration", "Could not open " + file + "\"");
+            }
+
+            return false;
+        }
+       
+        while (std::getline(ifs, line))
+        {
+            lineCount++;
+            retVal = retVal && parseLine(collection, keyPrefix, line, lineCount);
+
+            // Check if the line contains the log level setting
+            if (properties_.find("log") != properties_.end()) {
+                StartLogging(this); // Start logging with the specified level
+            }
+        }
+
+        ifs.close();
+    }
 
     return retVal;
 }

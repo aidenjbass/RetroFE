@@ -41,6 +41,7 @@
 
 namespace fs = std::filesystem;
 static bool ImportConfiguration(Configuration* c);
+std::string settingsFromCLI = "";
 
 // Check if we're starting retrofe from terminal on Win or Unix
 bool isOutputATerminal() {
@@ -52,9 +53,9 @@ bool isOutputATerminal() {
 }
 
 // Check if start of fullString contains startOfString
-//bool startsWith(const std::string& fullString, const std::string& startOfString) {
-//    return fullString.substr(0, startOfString.length()) == startOfString;
-//}
+bool startsWith(const std::string& fullString, const std::string& startOfString) {
+    return fullString.substr(0, startOfString.length()) == startOfString;
+}
 
 // Check if start of fullString contains startOfString and then remove
 bool startsWithAndStrip(std::string& fullString, const std::string& startOfString) {
@@ -64,7 +65,6 @@ bool startsWithAndStrip(std::string& fullString, const std::string& startOfStrin
     }
     return false;
 }
-
 
 // Function to initialize the DB object
 bool initializeDB(DB*& db, const std::string& dbPath) {
@@ -257,12 +257,10 @@ int main(int argc, char** argv)
         {
             DB* db = nullptr;
             MetadataDatabase* metadb = nullptr;
-
             if (!initializeDB(db, dbPath)) {
                 // Handle initialization error, clean up if necessary
                 return 0;
             }
-            
             if (!initializeMetadataDatabase(metadb, db, config)) {
                 // Handle initialization error, clean up if necessary
                 delete db; // Clean up DB object
@@ -285,25 +283,34 @@ int main(int argc, char** argv)
             // TODO; create default settings.conf
             return 0;
         }
-        else if (argc % 2 != 0)
+        else if (argc % 2 != 0 or argc % 2 == 0)
         {
-            // Pass global settings via CLI, currently runs BEFORE settings.conf is read
-            // Maybe make this togglable as to before/after?
-            std::string CLIkey = argv[1];
-            std::string CLIvalue = argv[2];
-            if (startsWithAndStrip(CLIkey, "-")) {
+            // Pass global settings via CLI
+            for (int i = 1; i <= argc - 1 ; i+=2) {
                 // The odd argument should always be the key, and even will be value
-                config.setProperty(CLIkey, CLIvalue);
+                if (argv[i+1] == nullptr)
+                {
+                    // If you don't pass a value with a key we need catch that here
+                    std::cout << "Expected 1 argument for " << argv[i] << " got " << 0 << std::endl;
+                    return 0;
                 }
-            else {
-                std::cout << "To pass settings via CLI pairs use: -key value" << std::endl;
-                return 0;
+                std::string CLIkey = argv[i];
+                std::string CLIvalue = argv[i+1];
+                if (startsWithAndStrip(CLIkey, "-") and !startsWith(CLIvalue,"-"))
+                {
+                    settingsFromCLI += CLIkey + "=" + CLIvalue + "\n";
                 }
-        }
-        else if (argc % 2 == 0)
-        {
-            std::cout << "Expected 1 argument for " << argv[1] << " got " << argc - 2 << std::endl;
-            return 0;
+                else if(startsWith(CLIvalue,"-"))
+                {
+                    std::cout << "Expected 1 argument for -" << CLIkey << " got " << 0 << std::endl;
+                    return 0;
+                }
+                else
+                {
+                    std::cout << "To pass settings via CLI pairs use [-key] [value] format" << std::endl;
+                    return 0;
+                }
+            }
         }
         else
         {
@@ -416,6 +423,10 @@ static bool ImportConfiguration(Configuration* c)
     std::string savedSettingsFile = settingsConfPath + "_saved.conf";
     if (fs::exists(savedSettingsFile)) {
         c->import("", "", savedSettingsFile, false);
+    }
+    if (!settingsFromCLI.empty()) {
+        // If settingsFromCLI isn't empty let's do something with it
+        c->import("", "CLI", settingsFromCLI, false);
     }
 
     // log version
