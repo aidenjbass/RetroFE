@@ -41,8 +41,7 @@
 
 namespace fs = std::filesystem;
 static bool ImportConfiguration(Configuration* c);
-std::string settingsFromCLI = "";
-
+std::vector<std::string> settingsFromCLI;
 // Check if we're starting retrofe from terminal on Win or Unix
 bool isOutputATerminal() {
 #ifdef _WIN32
@@ -298,7 +297,7 @@ int main(int argc, char** argv)
                 std::string CLIvalue = argv[i+1];
                 if (startsWithAndStrip(CLIkey, "-") and !startsWith(CLIvalue,"-"))
                 {
-                    settingsFromCLI += CLIkey + "=" + CLIvalue + "\n";
+                    settingsFromCLI.push_back(CLIkey + "=" + CLIvalue + "\n");
                 }
                 else if(startsWith(CLIvalue,"-"))
                 {
@@ -426,7 +425,11 @@ static bool ImportConfiguration(Configuration* c)
     }
     if (!settingsFromCLI.empty()) {
         // If settingsFromCLI isn't empty let's do something with it
-        c->import("", "CLI", settingsFromCLI, false);
+        std::string result;
+        for (const auto& str : settingsFromCLI) {
+            result += str;
+        }
+        c->import("", "CLI", result, false);
     }
 
     // log version
