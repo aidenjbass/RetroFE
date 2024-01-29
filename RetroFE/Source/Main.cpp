@@ -42,6 +42,7 @@
 namespace fs = std::filesystem;
 static bool ImportConfiguration(Configuration* c);
 
+// Check if we're starting retrofe from terminal on Win or Unix
 bool isOutputATerminal() {
 #ifdef _WIN32
     return _isatty(_fileno(stdout));
@@ -49,6 +50,21 @@ bool isOutputATerminal() {
     return isatty(STDOUT_FILENO);
 #endif
 }
+
+// Check if start of fullString contains startOfString
+//bool startsWith(const std::string& fullString, const std::string& startOfString) {
+//    return fullString.substr(0, startOfString.length()) == startOfString;
+//}
+
+// Check if start of fullString contains startOfString and then remove
+bool startsWithAndStrip(std::string& fullString, const std::string& startOfString) {
+    if (fullString.substr(0, startOfString.length()) == startOfString) {
+        fullString = fullString.substr(startOfString.length());
+        return true;
+    }
+    return false;
+}
+
 
 // Function to initialize the DB object
 bool initializeDB(DB*& db, const std::string& dbPath) {
@@ -267,6 +283,26 @@ int main(int argc, char** argv)
             param == "-C")
         {
             // TODO; create default settings.conf
+            return 0;
+        }
+        else if (argc % 2 != 0)
+        {
+            // Pass global settings via CLI, currently runs BEFORE settings.conf is read
+            // Maybe make this togglable as to before/after?
+            std::string CLIkey = argv[1];
+            std::string CLIvalue = argv[2];
+            if (startsWithAndStrip(CLIkey, "-")) {
+                // The odd argument should always be the key, and even will be value
+                config.setProperty(CLIkey, CLIvalue);
+                }
+            else {
+                std::cout << "To pass settings via CLI pairs use: -key value" << std::endl;
+                return 0;
+                }
+        }
+        else if (argc % 2 == 0)
+        {
+            std::cout << "Expected 1 argument for " << argv[1] << " got " << argc - 2 << std::endl;
             return 0;
         }
         else
