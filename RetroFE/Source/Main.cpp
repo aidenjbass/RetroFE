@@ -24,6 +24,9 @@
 #include "RetroFE.h"
 #include "Version.h"
 #include "SDL.h"
+
+#include "Database/GlobalOpts.h"
+
 #include <cstdlib>
 #include <fstream>
 #include <time.h>
@@ -42,6 +45,7 @@
 namespace fs = std::filesystem;
 static bool ImportConfiguration(Configuration* c);
 std::vector<std::string> settingsFromCLI;
+
 // Check if we're starting retrofe from terminal on Win or Unix
 bool isOutputATerminal() {
 #ifdef _WIN32
