@@ -59,6 +59,7 @@
 		DF010F002B4DDDAA0062DCCA /* SDL2.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DFF91E9C2B260B5B00507957 /* SDL2.framework */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		DF07B3E52B2A14CE00B732CF /* GStreamer.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = DF07B3E42B2A14CE00B732CF /* GStreamer.framework */; };
 		DF07B3E62B2A14CE00B732CF /* GStreamer.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = DF07B3E42B2A14CE00B732CF /* GStreamer.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		DF2B282E2B683F2E00A22011 /* GlobalOpts.cpp in Sources */ = {isa = PBXBuildFile; fileRef = DF2B282C2B683F2E00A22011 /* GlobalOpts.cpp */; };
 		DF87A17A2B152AAB00548E78 /* RetroFE.png in Resources */ = {isa = PBXBuildFile; fileRef = DF87A1792B152AA400548E78 /* RetroFE.png */; };
 		EBC08A29661C4F528F9D6AC9 /* Version.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 6896574AEBD347EE888038E9 /* Version.cpp */; };
 		F979BDA3A4184905BFCA0DEA /* Configuration.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 87B7677F57FF454B953BAD59 /* Configuration.cpp */; };
@@ -170,6 +171,8 @@
 		DF010EF72B4DD8150062DCCA /* libSystem.B.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libSystem.B.tbd; path = usr/lib/libSystem.B.tbd; sourceTree = SDKROOT; };
 		DF010EF82B4DD81C0062DCCA /* libz.1.tbd */ = {isa = PBXFileReference; lastKnownFileType = "sourcecode.text-based-dylib-definition"; name = libz.1.tbd; path = usr/lib/libz.1.tbd; sourceTree = SDKROOT; };
 		DF07B3E42B2A14CE00B732CF /* GStreamer.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GStreamer.framework; path = ../ThirdPartyMac/GStreamer.framework; sourceTree = "<group>"; };
+		DF2B282C2B683F2E00A22011 /* GlobalOpts.cpp */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.cpp; name = GlobalOpts.cpp; path = Database/GlobalOpts.cpp; sourceTree = "<group>"; };
+		DF2B282D2B683F2E00A22011 /* GlobalOpts.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = GlobalOpts.h; path = Database/GlobalOpts.h; sourceTree = "<group>"; };
 		DF87A1792B152AA400548E78 /* RetroFE.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = RetroFE.png; path = ../../Package/Environment/Common/RetroFE.png; sourceTree = "<group>"; };
 		DFF91E9B2B260B5B00507957 /* SDL2_mixer.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL2_mixer.framework; path = ../ThirdPartyMac/SDL2_mixer.framework; sourceTree = "<group>"; };
 		DFF91E9C2B260B5B00507957 /* SDL2.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SDL2.framework; path = ../ThirdPartyMac/SDL2.framework; sourceTree = "<group>"; };
@@ -232,6 +235,7 @@
 		4C418535FD0A487485FDF907 /* Header Files */ = {
 			isa = PBXGroup;
 			children = (
+				DF2B282D2B683F2E00A22011 /* GlobalOpts.h */,
 				7FD09C6A782A4B69B37697F1 /* Animation.h */,
 				90AC9A42897248FB8AB8E13D /* AnimationEvents.h */,
 				D32E8F4A73994068B6107132 /* AttractMode.h */,
@@ -345,6 +349,7 @@
 				C4C549D5C3734D7BBA76E450 /* Launcher.cpp */,
 				F32833E0282342C1805836F1 /* Log.cpp */,
 				A6ADBAB04B50445294D975DF /* Main.cpp */,
+				DF2B282C2B683F2E00A22011 /* GlobalOpts.cpp */,
 				DB8250A9EDC247899F1AD712 /* Menu.cpp */,
 				F23BC20492D84B5F8ACB6AA0 /* MenuParser.cpp */,
 				77848D7AD6354A199ED9DEAF /* MetadataDatabase.cpp */,
@@ -445,6 +450,7 @@
 				3A79AF90C851485D9467B03A /* JoyHatHandler.cpp in Sources */,
 				AB12D5CB78C4408689820561 /* KeyboardHandler.cpp in Sources */,
 				FAAFCC77A92B455787428238 /* MouseButtonHandler.cpp in Sources */,
+				DF2B282E2B683F2E00A22011 /* GlobalOpts.cpp in Sources */,
 				16B13AAAEBE04826AEBD9489 /* UserInput.cpp in Sources */,
 				F979BDA3A4184905BFCA0DEA /* Configuration.cpp in Sources */,
 				11A19CAEB5354B479C6EA236 /* DB.cpp in Sources */,
