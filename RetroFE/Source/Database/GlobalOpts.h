@@ -21,16 +21,18 @@
 //**************************************************************************
 
 // LOGGING OPTIONS
-#define OPTION_LOGGING               "log"
+#define OPTION_LOG                   "log"
 
 // DISPLAY OPTIONS
 #define OPTION_NUMSCREENS            "numScreens"
 #define OPTION_FULLSCREEN            "fullscreen"
 #define OPTION_HORIZONTAL            "horizontal"
 #define OPTION_VERTICAL              "vertical"
+#define OPTION_SCREENNUM             "screenNum"
 #define OPTION_FULLSCREENX           "fullscreenx"
 #define OPTION_HORIZONTALX           "horizontalx"
 #define OPTION_VERTICALX             "verticalx"
+#define OPTION_SCREENNUMX            "screenNumx"
 #define OPTION_MIRRORX               "mirrorx"
 #define OPTION_ROTATIONX             "rotationx"
 
@@ -127,8 +129,8 @@ public:
         INTEGER,         // integer option
         FLOAT,           // floating-point option
         STRING,          // string option
+        MSTRING,         // comma-delimited string option
         PATH,            // single path option
-        MULTIPATH        // semicolon-delimited paths option
     };
     
     // Definition of options_entry describing a single option with its description and default value
@@ -147,14 +149,16 @@ public:
     int int_value(std::string_view option) const;
     float float_value(std::string_view option) const;
     
-    const char *log() const { return value(OPTION_LOGGING); }
+    const char *log() const { return value(OPTION_LOG); }
     int numscreens() const { return int_value(OPTION_NUMSCREENS); }
     bool fullscreen() const { return bool_value(OPTION_FULLSCREEN); }
     int horizontal() const { return int_value(OPTION_HORIZONTAL); }
     int vertical() const { return int_value(OPTION_VERTICAL); }
+    int screennum() const { return int_value(OPTION_SCREENNUM); }
     bool fullscreenx() const { return bool_value(OPTION_FULLSCREENX); }
     int horizontalx() const { return int_value(OPTION_HORIZONTALX); }
     int verticalx() const { return int_value(OPTION_VERTICALX); }
+    int screennumx() const { return int_value(OPTION_SCREENNUMX); }
     bool mirrorx() const { return bool_value(OPTION_MIRRORX); }
     int rotationx() const { return int_value(OPTION_ROTATIONX); }
     bool windowborder() const { return bool_value(OPTION_WINDOWBORDER); }

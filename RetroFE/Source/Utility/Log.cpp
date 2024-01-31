@@ -91,7 +91,7 @@ bool Logger::isLevelEnabled(const std::string& zone) {
     if (!config_) return false;
 
     if (!isInitialized) {
-        Logger::config_->getProperty(OPTION_LOGGING, level);
+        Logger::config_->getProperty(OPTION_LOG, level);
         isInitialized = true;
 
         std::stringstream ss(level);

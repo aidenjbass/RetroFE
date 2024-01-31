@@ -118,9 +118,9 @@ bool SDL::initialize( Configuration &config )
         if ( windowResize )
             windowFlags |= SDL_WINDOW_RESIZABLE;
 
-        if ( !config.getProperty( "screenNum" + screenIndex, screenNum ) && screenNum != mainScreen)
+        if ( !config.getProperty( OPTION_SCREENNUM + screenIndex, screenNum ) && screenNum != mainScreen)
         {
-            LOG_ERROR("SDL", "screenNum" + screenIndex + " parameter not defined.");
+            LOG_ERROR("SDL", OPTION_SCREENNUM + screenIndex + " parameter not defined.");
             return false;
         }
 
