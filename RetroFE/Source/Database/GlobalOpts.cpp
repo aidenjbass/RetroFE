@@ -26,7 +26,7 @@ const global_options::options_entry global_options::s_option_entries[] =
 {
     
     { nullptr,                        nullptr,     global_options::option_type::HEADER,   "LOGGING OPTIONS" },
-    { OPTION_LOGGING,                 "NONE",      global_options::option_type::STRING,   "Set logging level, any combo of ERROR,INFO,NOTICE,WARNING,DEBUG,FILECACHE or ALL" },
+    { OPTION_LOGGING,                 "NONE",      global_options::option_type::STRING,   "Set logging level, any combo of ERROR,INFO,NOTICE,WARNING,DEBUG,FILECACHE or ALL or NONE" },
 
     { nullptr,                        nullptr,     global_options::option_type::HEADER,   "DISPLAY OPTIONS" },
     { OPTION_NUMSCREENS,              "",          global_options::option_type::INTEGER,  "Defines the number of monitors used" },
@@ -58,7 +58,7 @@ const global_options::options_entry global_options::s_option_entries[] =
     { OPTION_HARDWAREVIDEOACCEL,       "",         global_options::option_type::BOOLEAN,  "Hardware decoding" },
     { OPTION_AVDECMAXTHREADS,          "",         global_options::option_type::INTEGER,  "Number of threads for avdec software decoding" },
     { OPTION_MUTEVIDEO,                "",         global_options::option_type::BOOLEAN,  "Video playback is muted" },
-    { OPTION_SDLRENDERDRIVER,          "",         global_options::option_type::STRING,   "SDL Render Driver (direct3d, direct3d11, direct3d12, opengl, opengles2, opengles, metal, and software)" },
+    { OPTION_SDLRENDERDRIVER,          "",         global_options::option_type::STRING,   "Set renderer (direct3d, direct3d11, direct3d12, opengl, opengles2, opengles, metal, and software)" },
     { OPTION_SCALEQUALITY,             "",         global_options::option_type::INTEGER,  "Scaling quality (0, 1, 2)" },
     { OPTION_HIGHPRIORITY,             "",         global_options::option_type::BOOLEAN,  "RetroFE Windows process priority" },
     { OPTION_UNLOADSDL,                "",         global_options::option_type::BOOLEAN,  "Close SDL when launching a game, needed for RPI" },
@@ -108,8 +108,8 @@ const global_options::options_entry global_options::s_option_entries[] =
     { nullptr,                         nullptr,    global_options::option_type::HEADER,   "METADATA OPTIONS" },
     { OPTION_METALOCK,                 "",         global_options::option_type::BOOLEAN,  "Locks RetroFE from looking for XML changes and uses meta.db, faster loading when true" },
     { OPTION_OVERWRITEXML,             "",         global_options::option_type::BOOLEAN,  "Allows metadata XMLs to be overwritten by files in a collection" },
-    { OPTION_SHOWPARENTHESIS,          "",         global_options::option_type::BOOLEAN,  "Hide item information between ()" },
-    { OPTION_SHOWSQUAREBRACKETS,       "",         global_options::option_type::BOOLEAN,  "Hide item information between []" },
+    { OPTION_SHOWPARENTHESIS,          "",         global_options::option_type::BOOLEAN,  "Show item information between ()" },
+    { OPTION_SHOWSQUAREBRACKETS,       "",         global_options::option_type::BOOLEAN,  "Show item information between []" },
 
     { nullptr,                         nullptr,    global_options::option_type::HEADER,   "WINDOWS ONLY OPTIONS" },
     { OPTION_LEDBLINKYDIRECTORY,       "",         global_options::option_type::STRING,   "Path to LEDBlinky installation" },

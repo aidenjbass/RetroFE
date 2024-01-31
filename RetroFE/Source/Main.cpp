@@ -90,21 +90,15 @@ bool initializeMetadataDatabase(MetadataDatabase*& metadb, DB* db, Configuration
     return true;
 }
 
-void printOptions(const global_options::options_entry* options) {
+// Function to format and print contents of global_options::options_entry
+void showUsage(const global_options::options_entry* options) {
     for (int i = 0; options[i].name || options[i].description; ++i) {
         if (options[i].name) {
             std::cout << "-" << std::setw(30) << std::left << options[i].name << options[i].description << std::endl;
-//            std::cout << "Name: " << options[i].name << std::endl;
-//            std::cout << "Default Value: " << options[i].defvalue << std::endl;
-//            std::cout << "Type: " << static_cast<int>(options[i].type) << std::endl;
         }
         else {
-            std::cout <<
-                "\n"  <<
-                "#\n" <<
-                "# "  << options[i].description << "\n"
-                "#\n" <<
-            std::endl;
+            // Category headers have nullptr names, so we print separate
+            std::cout << "\n#\n# " << options[i].description << "\n#\n" << std::endl;
         }
     }
     std::cout << std::endl;
@@ -150,7 +144,7 @@ int main(int argc, char** argv)
             param == "--showusage" ||
             param == "-su")
         {
-            printOptions(global_options::s_option_entries);
+            showUsage(global_options::s_option_entries);
             return 0;
         }
         else if (param == "-rebuilddatabase" ||
@@ -187,7 +181,7 @@ int main(int argc, char** argv)
             // TODO; create default settings.conf
             return 0;
         }
-        else if ((argc % 2 != 0 or argc % 2 == 0) and param != "help" and param != "-help")
+        else if ((argc % 2 != 0 or argc % 2 == 0) and param != "-help" and param != "-h")
         {
             // Pass global settings via CLI
             for (int i = 1; i <= argc - 1 ; i+=2) {
@@ -223,21 +217,29 @@ int main(int argc, char** argv)
         }
         else
         {
+            // Display information about RetroFE
             std::cout << "Absolute Path: " << Configuration::absolutePath << std::endl;
             std::cout << "RetroFE Version: " << Version::getString() << std::endl;
             std::cout << std::endl;
-            std::cout << "RetroFE is a cross-platform desktop frontend designed for MAME cabinets and game centers, with a focus on simplicity and customization.\nIt's licensed under the terms of the GNU General Public License, version 3 or later (GPLv3)." << std::endl;
+            std::cout << "RetroFE is a cross-platform desktop frontend designed for MAME cabinets and game centers, with a focus on simplicity and customization." << std::endl;
+            std::cout << "It's licensed under the terms of the GNU General Public License, version 3 or later (GPLv3)." << std::endl;
             std::cout << std::endl;
+
+            // Display usage information
             std::cout << "Usage:" << std::endl;
-            std::cout << "      -h    -help                                    Show this message" << std::endl;
-            std::cout << "      -v    -version                                 Print the version of RetroFE" << std::endl;
-            std::cout << "      -cc   -createcollection <collection name>      Create a collection directory structure" << std::endl;
-            std::cout << "      -rdb  -rebuilddatabase                         Rebuild the database" << std::endl;
-            std::cout << "      -su   -showusage                               Print a list of all global settings" << std::endl;
-            std::cout << "      -sc   -showconfig                              Print a list of current settings" << std::endl;
-            std::cout << "      -C    -createconfig                            Create a settings.conf with default values" << std::endl;
+            std::cout << "  -h   -help               Show this message" << std::endl;
+            std::cout << "  -v   -version            Print the version of RetroFE" << std::endl;
+            std::cout << "  -cc  -createcollection   Create a collection directory structure" << std::endl;
+            std::cout << "  -rdb -rebuilddatabase    Rebuild the database from /meta subfolder" << std::endl;
+            std::cout << "  -su  -showusage          Print a list of all global settings" << std::endl;
+            std::cout << "  -sc  -showconfig         Print a list of current settings" << std::endl;
+            std::cout << "  -C   -createconfig       Create a settings.conf with default values" << std::endl;
             std::cout << std::endl;
-            std::cout << "For more information, visit\nhttps://github.com/CoinOPS-Official/RetroFE/\nhttp://retrofe.nl/" << std::endl;
+
+            // Provide additional information and references
+            std::cout << "For more information, visit" << std::endl;
+            std::cout << "https://github.com/CoinOPS-Official/RetroFE/" << std::endl;
+            std::cout << "http://retrofe.nl/" << std::endl;
             return 0;
         }
     }
