@@ -119,8 +119,7 @@ struct options_entry;
 class global_options
 {
 public:
-    enum class option_type
-    {
+    enum class option_type {
         INVALID,         // invalid
         HEADER,          // a header item
         COMMAND,         // a command
@@ -131,6 +130,15 @@ public:
         PATH,            // single path option
         MULTIPATH        // semicolon-delimited paths option
     };
+    
+    // Definition of options_entry describing a single option with its description and default value
+    struct options_entry {
+        const char *                name;               // name on the command line
+        const char *                defvalue;           // default value of this argument
+        option_type                 type;               // type of option
+        const char *                description;        // description for -showusage
+    };
+
     
     // reading
     const char *value(std::string_view option) const noexcept;
@@ -211,16 +219,7 @@ public:
     const char *basemediapath() const { return value(OPTION_BASEMEDIAPATH); }
     const char *baseitempath() const { return value(OPTION_BASEITEMPATH); }
     
-private:
     // static list of options entries
     static const options_entry s_option_entries[];
 };
 
-// Definition of options_entry describing a single option with its description and default value
-struct options_entry
-{
-    const char *                name;               // name on the command line
-    const char *                defvalue;           // default value of this argument
-    global_options::option_type type;               // type of option
-    const char *                description;        // description for -showusage
-};

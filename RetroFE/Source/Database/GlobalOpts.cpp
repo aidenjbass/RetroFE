@@ -22,7 +22,7 @@
 #include <iostream>
 #include <string>
 
-const options_entry global_options::s_option_entries[] =
+const global_options::options_entry global_options::s_option_entries[] =
 {
     
     { nullptr,                        nullptr,     global_options::option_type::HEADER,   "LOGGING OPTIONS" },

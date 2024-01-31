@@ -89,124 +89,23 @@ bool initializeMetadataDatabase(MetadataDatabase*& metadb, DB* db, Configuration
     return true;
 }
 
-std::string showusage()
-{
-    return
-    "#\n"
-    "# LOGGING OPTIONS\n"
-    "#\n"
-    "-log                           any combo of ERROR,INFO,NOTICE,WARNING,DEBUG,FILECACHE or ALL\n"
-    "\n"
-    "#\n"
-    "# DISPLAY OPTIONS\n"
-    "#\n"
-    "-numScreens                    defines the number of monitors used (int)\n"
-    "-fullscreen                    run the frontend in fullscreen (bool)\n"
-    "-horizontal                    pixel width (int)\n"
-    "-vertical                      pixel height (int)\n"
-    "-fullscreenx                   runs the frontend in fullscreen for monitor x (int)\n"
-    "-horizontalx                   pixel width for monitor x (int)\n"
-    "-verticalx                     pixel height for monitor x (int)\n"
-    "-mirrorx                       divides monitor x into two halves (bool)\n"
-    "-rotationx                     rotation of monitor x (1,2,3,4)\n"
-    "\n"
-    "#\n"
-    "# WINDOW OPTIONS\n"
-    "#\n"
-    "-windowBorder                  show window border (bool)\n"
-    "-windowResize                  allow window to be resized (bool)\n"
-    "-fps                           requested FPS while in an active state (int)\n"
-    "-fpsIdle                       request FPS while in an idle state (int)\n"
-    "-hideMouse                     defines whether the mouse cursor is hidden (bool)\n"
-    "-animateDuringGame             pause animated marquees while in the game to reserve processing (bool)\n"
-    "\n"
-    "#\n"
-    "# VIDEO OPTIONS\n"
-    "#\n"
-    "-videoEnable                   defines whether video is rendered (bool)\n"
-    "-videoLoop                     number of times to play video, 0 forever (int)\n"
-    "-disableVideoRestart           pauses video while scrolling (bool)\n"
-    "-disablePauseOnScroll          restart video when selected (bool)\n"
-    "\n"
-    "#\n"
-    "# RENDERER OPTIONS\n"
-    "#\n"
-    "-vSync                         vertical synchronization (bool)\n"
-    "-HardwareVideoAccel            hardware decoding (bool)\n"
-    "-AvdecMaxThreads               number of threads for avdec software decoding (int)\n"
-    "-MuteVideo                     video playback is muted (bool)\n"
-    "-SDLRenderDriver               direct3d, direct3d11, direct3d12, opengl, opengles2, opengles, metal, and software\n"
-    "-ScaleQuality                  scaling quality (0,1,2)\n"
-    "-highPriority                  retrofe windows process priority (bool)\n"
-    "-unloadSDL                     close SDL when launching a game, needed for RPI (bool)\n"
-    "-minimize_on_focus_loss        minimize retrofe when focus is lost (bool)\n"
-    "\n"
-    "#\n"
-    "# CUSTOMIZATION OPTIONS\n"
-    "#\n"
-    "-layout                        theme to be used in RetroFE, a folder name in /layouts (string)\n"
-    "-randomLayout                  randomly choose a layout on launch, CSV list of layout names \n"
-    "-firstPlaylist                 start on this playlist if available (string)\n"
-    "-cyclePlaylist                 set of playlists that can be cycled through, CSV list of playlist names\n"
-    "-firstCollection               start on this collection if available (string)\n"
-    "-cycleCollection               set of collections that can be cycled through, CSV list of collection names\n"
-    "-lastplayedSize                size of the auto-generated last played playlist, 0 to disable (int)\n"
-    "-lastplayedSkipCollection      exclude a collection from being added to last played, settings for example (string)\n"
-    "-enterOnCollection             enter the collection when using collection up/down controls (bool)\n"
-    "-startCollectionEnter          enter the first collection on RetroFE boot (bool)\n"
-    "-exitOnFirstPageBack           exit RetroFE when the back button is pressed on the first page (bool)\n"
-    "-rememberMenu                  remember the last highlighted item if re-entering a menu (bool)\n"
-    "-subsSplit                     split merged collections based on subs(true) or sort as one list(false) (bool)\n"
-    "-cfwLetterSub                  jump subs in a collection by sub instead of by the letter of the item (bool)\n"
-    "-prevLetterSubToCurrent        jump to the start of the current letter instead of the previous letter if jump to letter enabled (bool)\n"
-    "-randomStart                   start on a random item when RetroFE boots (bool)\n"
-    "-kiosk                         start on the first playlist in cyclePlaylist with navigation and favorites locked, can be toggled with a setting in controls.conf (bool)\n"
-    "-globalFavLast                 save last played and favorites to a new collection (bool)\n"
-    "-infoExitOnScroll              hide info text boxes when scrolling (bool)\n"
-    "\n"
-    "#\n"
-    "# ATTRACT MODE OPTIONS\n"
-    "#\n"
-    "-attractModeCyclePlaylist      cycle through all playlists or defined in cyclePlaylist (bool)\n"
-    "-attractModeTime               number of seconds to wait before scrolling to another random point (int)\n"
-    "-attractModeNextTime           number of seconds to wait before scrolling to another random point while attract mode is active (int)\n"
-    "-attractModePlaylistTime       number of seconds to wait before attract mode jumps to another playlist, 0 to lock (int)\n"
-    "-attractModeSkipPlaylist       skip CSV list of playlists while in attract mode\n"
-    "-attractModeCollectionTime     number of seconds before attract mode switches to the next collection, 0 to lock (int)\n"
-    "-attractModeSkipCollection     skip CSV list of collections while in attract mode\n"
-    "-attractModeMinTime            minimum number of milliseconds attract mode will scroll (int)\n"
-    "-attractModeMaxTime            maximum number of milliseconds attract mode will scroll (int)\n"
-    "-attractModeFast               scroll(false) or jump(true) to the next random point while in attract mode (bool)\n"
-    "\n"
-    "#\n"
-    "# INPUT OPTIONS\n"
-    "#\n"
-    "-collectionInputClear          clear input queue on collection change (bool)\n"
-    "-playlistInputClear            clear input queue on playlist change (bool)\n"
-    "-jumpInputClear                clear input queue while jumping through the menu (bool)\n"
-    "-controllerComboExit           close retrofe with the controller combo set in controls.conf (bool)\n"
-    "-controllerComboSettings       open settings playlist with the controller combo set in controls.conf (bool)\n"
-    "-settingsCollectionPlaylist    used by settings toggle to go to the playlist in collection:playlist format, defaults to settings.txt in the current collection\n"
-    "\n"
-    "#\n"
-    "# METADATA OPTIONS\n"
-    "#\n"
-    "-metaLock                      locks retrofe from looking for XML changes and uses meta.db, faster loading when true (bool)\n"
-    "-overwriteXML                  allows metadata XMLs to be overwritten by files in a collection (bool)\n"
-    "-showParenthesis               hide item information between () (bool)\n"
-    "-showSquareBrackets            hide item information between [] (bool)\n"
-    "\n"
-    "#\n"
-    "# WINDOWS ONLY OPTIONS\n"
-    "#\n"
-    "-LEDBlinkyDirectory            path to LEDBlinky installation (string)\n"
-    "\n"
-    "#\n"
-    "# MEDIA SEARCH PATH OPTIONS\n"
-    "#\n"
-    "-baseMediaPath                 path to media if stored outside the build (string)\n"
-    "-baseItemPath                  path to items if stored outside the build (string)\n"
-    ;
+void printOptions(const global_options::options_entry* options) {
+    for (int i = 0; options[i].name || options[i].description; ++i) {
+        if (options[i].name) {
+            std::cout << "-" << options[i].name << "\t\t\t\t" << options[i].description << std::endl;
+//            std::cout << "Name: " << options[i].name << std::endl;
+//            std::cout << "Default Value: " << options[i].defvalue << std::endl;
+//            std::cout << "Type: " << static_cast<int>(options[i].type) << std::endl;
+        }
+        else {
+            std::cout <<
+                "\n"  <<
+                "#\n" <<
+                "# "  << options[i].description << "\n"
+                "#\n" <<
+            std::endl;
+        }
+    }
 }
 
 int main(int argc, char** argv)
@@ -249,7 +148,7 @@ int main(int argc, char** argv)
             param == "--showusage" ||
             param == "-su")
         {
-            std::cout << showusage() << std::endl;
+            printOptions(global_options::s_option_entries);
             return 0;
         }
         else if (param == "-rebuilddatabase" ||
