@@ -18,3 +18,5 @@ BP Files/RetroFE.cpp
 .vscode/settings.json
 RetroFE/ThirdPartyMac/*
 RetroFE/xcode/CMakeFiles/3.27.8/*
+*.xcuserstate
+
