@@ -325,9 +325,9 @@ bool SDL::initialize( Configuration &config )
 
 
 
-    if (bool minimize_on_focus_loss_;  config.getProperty( "minimize_on_focus_loss", minimize_on_focus_loss_ ) )
+    if (bool minimizeOnFocusLoss;  config.getProperty( "minimizeOnFocusLoss", minimizeOnFocusLoss ) )
     {
-        if ( minimize_on_focus_loss_ )
+        if ( minimizeOnFocusLoss )
         {
             SDL_SetHintWithPriority( SDL_HINT_VIDEO_MINIMIZE_ON_FOCUS_LOSS, "1", SDL_HINT_OVERRIDE );
         }

@@ -57,7 +57,7 @@
 #define OPTION_SCALEQUALITY          "ScaleQuality"
 #define OPTION_HIGHPRIORITY          "highPriority"
 #define OPTION_UNLOADSDL             "unloadSDL"
-#define OPTION_MINIMIZE_ON_FOCUS_LOSS "minimize_on_focus_loss"
+#define OPTION_MINIMIZEONFOCUSLOSS   "minimizeOnFocusLoss"
 
 // CUSTOMIZATION OPTIONS
 #define OPTION_LAYOUT                "layout"
@@ -175,7 +175,7 @@ public:
     int scalequality() const { return int_value(OPTION_SCALEQUALITY); }
     bool highpriority() const { return bool_value(OPTION_HIGHPRIORITY); }
     bool unloadsdl() const { return bool_value(OPTION_UNLOADSDL); }
-    bool minimizeonfocusloss() const { return bool_value(OPTION_MINIMIZE_ON_FOCUS_LOSS); }
+    bool minimizeonfocusloss() const { return bool_value(OPTION_MINIMIZEONFOCUSLOSS); }
     const char *layout() const { return value(OPTION_LAYOUT); }
     const char *randomlayout() const { return value(OPTION_RANDOMLAYOUT); }
     const char *firstplaylist() const { return value(OPTION_FIRSTPLAYLIST); }

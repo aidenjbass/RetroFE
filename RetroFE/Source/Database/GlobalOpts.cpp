@@ -62,7 +62,7 @@ const global_options::options_entry global_options::s_option_entries[] =
     { OPTION_SCALEQUALITY,             "",         global_options::option_type::INTEGER,  "Scaling quality (0, 1, 2)" },
     { OPTION_HIGHPRIORITY,             "",         global_options::option_type::BOOLEAN,  "RetroFE Windows process priority" },
     { OPTION_UNLOADSDL,                "",         global_options::option_type::BOOLEAN,  "Close SDL when launching a game, needed for RPI" },
-    { OPTION_MINIMIZE_ON_FOCUS_LOSS,   "",         global_options::option_type::BOOLEAN,  "Minimize RetroFE when focus is lost" },
+    { OPTION_MINIMIZEONFOCUSLOSS,   "",         global_options::option_type::BOOLEAN,  "Minimize RetroFE when focus is lost" },
 
     { nullptr,                         nullptr,    global_options::option_type::HEADER,   "CUSTOMIZATION OPTIONS" },
     { OPTION_LAYOUT,                   "",         global_options::option_type::STRING,   "Theme to be used in RetroFE, a folder name in /layouts" },
