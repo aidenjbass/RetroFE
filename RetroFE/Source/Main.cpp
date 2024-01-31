@@ -286,7 +286,7 @@ int main(int argc, char** argv)
             // TODO; create default settings.conf
             return 0;
         }
-        else if (argc % 2 != 0 or argc % 2 == 0)
+        else if ((argc % 2 != 0 or argc % 2 == 0) and param != "help" and param != "-help")
         {
             // Pass global settings via CLI
             for (int i = 1; i <= argc - 1 ; i+=2) {
