@@ -36,6 +36,7 @@
 #include <fstream>
 #include <vector>
 #include <iostream>
+#include <iomanip>
 #ifdef WIN32
     #include <io.h>
 #else
@@ -92,7 +93,7 @@ bool initializeMetadataDatabase(MetadataDatabase*& metadb, DB* db, Configuration
 void printOptions(const global_options::options_entry* options) {
     for (int i = 0; options[i].name || options[i].description; ++i) {
         if (options[i].name) {
-            std::cout << "-" << options[i].name << "\t\t\t\t" << options[i].description << std::endl;
+            std::cout << "-" << std::setw(30) << std::left << options[i].name << options[i].description << std::endl;
 //            std::cout << "Name: " << options[i].name << std::endl;
 //            std::cout << "Default Value: " << options[i].defvalue << std::endl;
 //            std::cout << "Type: " << static_cast<int>(options[i].type) << std::endl;
@@ -106,6 +107,7 @@ void printOptions(const global_options::options_entry* options) {
             std::endl;
         }
     }
+    std::cout << std::endl;
 }
 
 int main(int argc, char** argv)
