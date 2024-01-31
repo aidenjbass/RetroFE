@@ -19,6 +19,7 @@
 #include "Collection/CollectionInfoBuilder.h"
 #include "Collection/CollectionInfo.h"
 #include "Database/Configuration.h"
+#include "Database/GlobalOpts.h"
 #include "Collection/Item.h"
 #include "Execute/Launcher.h"
 #include "Menu/Menu.h"
@@ -168,7 +169,7 @@ void RetroFE::launchEnter( )
     SDL_SetWindowGrab(SDL::getWindow( 0 ), SDL_FALSE);
     // Free the textures, and take down SDL if unloadSDL flag is set
     bool unloadSDL = false;
-    config_.getProperty( "unloadSDL", unloadSDL );
+    config_.getProperty( OPTION_UNLOADSDL, unloadSDL );
     if ( unloadSDL )
     {
         freeGraphicsMemory();
@@ -191,7 +192,7 @@ void RetroFE::launchExit( )
 {
     // Set up SDL, and load the textures if unloadSDL flag is set
     bool unloadSDL = false;
-    config_.getProperty( "unloadSDL", unloadSDL );
+    config_.getProperty( OPTION_UNLOADSDL, unloadSDL );
     if ( unloadSDL )
     {
         allocateGraphicsMemory();
@@ -248,7 +249,7 @@ void RetroFE::freeGraphicsMemory()
 
     // Close down SDL
     bool unloadSDL = false;
-    config_.getProperty("unloadSDL", unloadSDL);
+    config_.getProperty(OPTION_UNLOADSDL, unloadSDL);
     if (unloadSDL)
     {
         // Ensure currentPage_ is not null before calling deInitializeFonts
@@ -269,7 +270,7 @@ void RetroFE::allocateGraphicsMemory( )
 
     // Reopen SDL
     bool unloadSDL = false;
-    config_.getProperty( "unloadSDL", unloadSDL );
+    config_.getProperty( OPTION_UNLOADSDL, unloadSDL );
     if ( unloadSDL )
     {
         SDL::initialize( config_ );
@@ -344,7 +345,7 @@ bool RetroFE::run( )
     SDL_SetWindowGrab(SDL::getWindow(0), SDL_TRUE);
 #ifdef WIN32
     bool highPriority = false;
-    config_.getProperty("highPriority", highPriority);
+    config_.getProperty(OPTION_HIGHPRIORITY, highPriority);
     if (highPriority) {
         SetPriorityClass(GetCurrentProcess(), ABOVE_NORMAL_PRIORITY_CLASS);
     }
@@ -372,8 +373,8 @@ bool RetroFE::run( )
     // Initialize video
     bool videoEnable = true;
     int  videoLoop   = 0;
-    config_.getProperty( "videoEnable", videoEnable );
-    config_.getProperty( "videoLoop", videoLoop );
+    config_.getProperty( OPTION_VIDEOENABLE, videoEnable );
+    config_.getProperty( OPTION_VIDEOLOOP, videoLoop );
     VideoFactory::setEnabled( videoEnable );
     VideoFactory::setNumLoops( videoLoop );
 
@@ -397,14 +398,14 @@ bool RetroFE::run( )
     bool running                  = true;
     RETROFE_STATE state           = RETROFE_NEW;
 
-    config_.getProperty( "attractModeTime", attractModeTime );
-    config_.getProperty( "attractModeNextTime", attractModeNextTime );
-    config_.getProperty( "attractModePlaylistTime", attractModePlaylistTime );
-    config_.getProperty( "attractModeCollectionTime", attractModeCollectionTime );
-    config_.getProperty( "attractModeMinTime", attractModeMinTime );
-    config_.getProperty( "attractModeMaxTime", attractModeMaxTime );
-    config_.getProperty( "firstCollection", firstCollection );
-    config_.getProperty("attractModeFast", attractModeFast);
+    config_.getProperty( OPTION_ATTRACTMODETIME, attractModeTime );
+    config_.getProperty( OPTION_ATTRACTMODENEXTTIME, attractModeNextTime );
+    config_.getProperty( OPTION_ATTRACTMODEPLAYLISTTIME, attractModePlaylistTime );
+    config_.getProperty( OPTION_ATTRACTMODECOLLECTIONTIME, attractModeCollectionTime );
+    config_.getProperty( OPTION_ATTRACTMODEMINTIME, attractModeMinTime );
+    config_.getProperty( OPTION_ATTRACTMODEMAXTIME, attractModeMaxTime );
+    config_.getProperty( OPTION_FIRSTCOLLECTION, firstCollection );
+    config_.getProperty( OPTION_ATTRACTMODEFAST, attractModeFast);
 
     attract_.idleTime           = static_cast<float>(attractModeTime);
     attract_.idleNextTime       = static_cast<float>(attractModeNextTime);
@@ -416,12 +417,12 @@ bool RetroFE::run( )
 
     int fps     = 60;
     int fpsIdle = 60;
-    config_.getProperty( "fps", fps );
-    config_.getProperty( "fpsIdle", fpsIdle );
+    config_.getProperty( OPTION_FPS, fps );
+    config_.getProperty( OPTION_FPSIDLE, fpsIdle );
     double fpsTime     = 1000.0 / static_cast<double>(fps);
     double fpsIdleTime = 1000.0 / static_cast<double>(fpsIdle);
 	bool vSync = false;
-	config_.getProperty("vSync", vSync);
+	config_.getProperty( OPTION_VSYNC, vSync);
 
     int initializeStatus = 0;
     bool inputClear      = false;
@@ -441,13 +442,13 @@ bool RetroFE::run( )
 
     l.LEDBlinky( 1 );
     l.startScript();
-    config_.getProperty("kiosk", kioskLock_);
+    config_.getProperty(OPTION_KIOSK, kioskLock_);
 
     // settings button
     std::string settingsCollection = "";
     std::string settingsPlaylist = "settings";
     std::string settingsCollectionPlaylist;
-    config_.getProperty("settingsCollectionPlaylist", settingsCollectionPlaylist);
+    config_.getProperty(OPTION_SETTINGSCOLLECTIONPLAYLIST, settingsCollectionPlaylist);
     size_t position = settingsCollectionPlaylist.find(":");
     if (position != std::string::npos) {
         settingsCollection = settingsCollectionPlaylist.substr(0, position);
@@ -551,7 +552,7 @@ bool RetroFE::run( )
             if ( currentPage_->isIdle( ) )
             {
                 bool startCollectionEnter = false;
-                config_.getProperty( "startCollectionEnter", startCollectionEnter );
+                config_.getProperty( OPTION_STARTCOLLECTIONENTER, startCollectionEnter );
                 nextPageItem_ = currentPage_->getSelectedItem( );
                 if ( !splashMode && startCollectionEnter && !nextPageItem_->leaf )
                 {
@@ -574,7 +575,7 @@ bool RetroFE::run( )
 
                 // find first collection
                 std::string firstCollection = "Main";
-                config_.getProperty("firstCollection", firstCollection);
+                config_.getProperty(OPTION_FIRSTCOLLECTION, firstCollection);
                 currentPage_ = loadPage(firstCollection);
                 splashMode = false;
                 if ( currentPage_ )
@@ -583,7 +584,7 @@ bool RetroFE::run( )
 
                     // add collections to cycle
                     std::string cycleString;
-                    config_.getProperty("cycleCollection", cycleString);
+                    config_.getProperty(OPTION_CYCLECOLLECTION, cycleString);
                     Utils::listToVector(cycleString, collectionCycle_, ',');
                     collectionCycleIt_ = collectionCycle_.begin();
 
@@ -599,7 +600,7 @@ bool RetroFE::run( )
                     }
                     currentPage_->pushCollection(info);
 
-                    config_.getProperty("firstPlaylist", firstPlaylist_);
+                    config_.getProperty(OPTION_FIRSTPLAYLIST, firstPlaylist_);
                     // use the global setting as overide if firstCollection == current
                     if (firstPlaylist_ == "" || firstCollection != currentPage_->getCollectionName()) {
                         // check collection for setting
@@ -618,7 +619,7 @@ bool RetroFE::run( )
                         currentPage_->selectPlaylist( "all" );
 
                     bool randomStart = false;
-                    config_.getProperty("randomStart", randomStart);
+                    config_.getProperty(OPTION_RANDOMSTART, randomStart);
                     if (screensaver || randomStart) {
                         currentPage_->selectRandomPlaylist(info, getPlaylistCycle());
                         currentPage_->selectRandom();
@@ -714,7 +715,7 @@ bool RetroFE::run( )
                     // return to last playlist
                     // todo move to function for re-use
                     bool rememberMenu = false;
-                    config_.getProperty("rememberMenu", rememberMenu);
+                    config_.getProperty(OPTION_REMEMBERMENU, rememberMenu);
 
                     std::string autoPlaylist = "all";
 
@@ -773,7 +774,7 @@ bool RetroFE::run( )
         // Switch playlist; start onHighlightExit animation
         case RETROFE_PLAYLIST_REQUEST:
             inputClear = false;
-            config_.getProperty( "playlistInputClear", inputClear );
+            config_.getProperty( OPTION_PLAYLISTINPUTCLEAR, inputClear );
             if (  inputClear  )
             {
                 // Empty event queue
@@ -811,7 +812,7 @@ bool RetroFE::run( )
             if (currentPage_->isIdle( ))
             {
                 bool rememberMenu = false;
-                config_.getProperty("rememberMenu", rememberMenu);
+                config_.getProperty(OPTION_REMEMBERMENU, rememberMenu);
                 if (rememberMenu && currentPage_->getPlaylistName() != "lastplayed") {
                     currentPage_->returnToRememberSelectedItem();
                 }
@@ -835,7 +836,7 @@ bool RetroFE::run( )
         // Jump in menu; start onMenuJumpExit animation
         case RETROFE_MENUJUMP_REQUEST:
             inputClear = false;
-            config_.getProperty( "jumpInputClear", inputClear );
+            config_.getProperty( OPTION_JUMPINPUTCLEAR, inputClear );
             if (  inputClear  )
             {
                 // Empty event queue
@@ -1029,7 +1030,7 @@ bool RetroFE::run( )
                     std::string layoutName;
                     config_.getProperty("collections." + nextPageItem_->name + ".layout", layoutName);
                     if (layoutName == "") {
-                        config_.getProperty("layout", layoutName);
+                        config_.getProperty(OPTION_LAYOUT, layoutName);
                     }
                     PageBuilder pb( layoutName, getLayoutFileName(), config_, &fontcache_ );
 
@@ -1073,7 +1074,7 @@ bool RetroFE::run( )
                 }
 
                 bool rememberMenu = false;
-                config_.getProperty("rememberMenu", rememberMenu);
+                config_.getProperty(OPTION_REMEMBERMENU, rememberMenu);
                 bool returnToRememberedPlaylist = rememberMenu && lastMenuPlaylists_.find(nextPageName) != lastMenuPlaylists_.end();
                 if (returnToRememberedPlaylist)
                 {
@@ -1129,7 +1130,7 @@ bool RetroFE::run( )
             if ( currentPage_->isIdle( ) )
             {
                 inputClear = false;
-                config_.getProperty( "collectionInputClear", inputClear );
+                config_.getProperty( OPTION_COLLECTIONINPUTCLEAR, inputClear );
                 if (  inputClear  )
                 {
                     // Empty event queue
@@ -1223,7 +1224,7 @@ bool RetroFE::run( )
                 }
 
                 bool rememberMenu = false;
-                config_.getProperty("rememberMenu", rememberMenu);
+                config_.getProperty(OPTION_REMEMBERMENU, rememberMenu);
                 bool returnToRememberedPlaylist = rememberMenu && lastMenuPlaylists_.find(collectionName) != lastMenuPlaylists_.end();
                 if (returnToRememberedPlaylist)
                 {
@@ -1298,7 +1299,7 @@ bool RetroFE::run( )
             if ( currentPage_->isMenuIdle( ) )
             {
                 std::string attractModeSkipCollection = "";
-                config_.getProperty( "attractModeSkipCollection", attractModeSkipCollection );
+                config_.getProperty( OPTION_ATTRACTMODESKIPCOLLECTION, attractModeSkipCollection );
                 // Check if we need to skip this collection in attract mode or if we can select it
                 if ( attractMode_ && currentPage_->getSelectedItem()->name == attractModeSkipCollection )
                 {
@@ -1323,7 +1324,7 @@ bool RetroFE::run( )
                         nextPageItem_ = currentPage_->getSelectedItem( );
 
                         bool enterOnCollection = true;
-                        config_.getProperty( "enterOnCollection", enterOnCollection );
+                        config_.getProperty( OPTION_ENTERONCOLLECTION, enterOnCollection );
                         if (nextPageItem_->leaf || (!attractMode_ && !enterOnCollection) ) // Current selection is a game or enterOnCollection is not set
                         {
                             state = RETROFE_HIGHLIGHT_REQUEST;
@@ -1446,7 +1447,7 @@ bool RetroFE::run( )
                 }
 
                 bool rememberMenu = false;
-                config_.getProperty("rememberMenu", rememberMenu);
+                config_.getProperty(OPTION_REMEMBERMENU, rememberMenu);
                 bool returnToRememberedPlaylist = rememberMenu && lastMenuPlaylists_.find(collectionName) != lastMenuPlaylists_.end();
                 if (returnToRememberedPlaylist)
                 {
@@ -1509,7 +1510,7 @@ bool RetroFE::run( )
                     currentPage_->setScrolling(Page::ScrollDirectionIdle); // Stop scrolling
                     nextPageItem_ = currentPage_->getSelectedItem( );
                     bool enterOnCollection = true;
-                    config_.getProperty( "enterOnCollection", enterOnCollection );
+                    config_.getProperty( OPTION_ENTERONCOLLECTION, enterOnCollection );
                     if ( currentPage_->getSelectedItem( )->leaf || !enterOnCollection ) // Current selection is a game or enterOnCollection is not set
                     {
                         state = RETROFE_HIGHLIGHT_REQUEST;
@@ -1565,8 +1566,8 @@ bool RetroFE::run( )
                 CollectionInfoBuilder cib(config_, *metadb_);
                 std::string lastPlayedSkipCollection = "";
                 int         size = 0;
-                config_.getProperty( "lastPlayedSkipCollection", lastPlayedSkipCollection );
-                config_.getProperty( "lastplayedSize", size );
+                config_.getProperty( OPTION_LASTPLAYEDSKIPCOLLECTION, lastPlayedSkipCollection );
+                config_.getProperty( OPTION_LASTPLAYEDSIZE, size );
 
                 if (nextPageItem_->collectionInfo->name != lastPlayedSkipCollection)
                 {
@@ -1580,7 +1581,7 @@ bool RetroFE::run( )
                     attract_.reset( );
                     //Run launchExit function when unloadSDL flag is set
                     bool unloadSDL = false;
-                    config_.getProperty("unloadSDL", unloadSDL);
+                    config_.getProperty(OPTION_UNLOADSDL, unloadSDL);
                     if (unloadSDL)
                     {
                         launchExit();
@@ -1676,7 +1677,7 @@ bool RetroFE::run( )
                 }
 
                 bool rememberMenu = false;
-                config_.getProperty("rememberMenu", rememberMenu);
+                config_.getProperty(OPTION_REMEMBERMENU, rememberMenu);
                 bool returnToRememberedPlaylist = rememberMenu && lastMenuPlaylists_.find(collectionName) != lastMenuPlaylists_.end();
                 if (returnToRememberedPlaylist)
                 {
@@ -1713,7 +1714,7 @@ bool RetroFE::run( )
             if ( currentPage_->isIdle( ) )
             {
                 bool collectionInputClear = false;
-                config_.getProperty( "collectionInputClear", collectionInputClear );
+                config_.getProperty( OPTION_COLLECTIONINPUTCLEAR, collectionInputClear );
                 if (  collectionInputClear  )
                 {
                     // Empty event queue
@@ -1737,7 +1738,7 @@ bool RetroFE::run( )
                 std::string layoutName;
                 config_.getProperty("collections." + collectionName + ".layout", layoutName);
                 if (layoutName == "") {
-                    config_.getProperty("layout", layoutName);
+                    config_.getProperty(OPTION_LAYOUT, layoutName);
                 }
                 PageBuilder pb( layoutName, getLayoutFileName(), config_, &fontcache_, true );
                 if (Page *page = pb.buildPage( ))
@@ -1915,9 +1916,9 @@ bool RetroFE::getAttractModeCyclePlaylist()
     std::string settingPrefix = "collections." + currentPage_->getCollectionName() + ".";
     std::string firstCollection = "";
     std::string cycleString = "";
-    config_.getProperty("firstCollection", firstCollection);
-    config_.getProperty("attractModeCyclePlaylist", attractModeCyclePlaylist);
-    config_.getProperty("cyclePlaylist", cycleString);
+    config_.getProperty(OPTION_FIRSTCOLLECTION, firstCollection);
+    config_.getProperty(OPTION_ATTRACTMODECYCLEPLAYLIST, attractModeCyclePlaylist);
+    config_.getProperty(OPTION_CYCLEPLAYLIST, cycleString);
     // use the global setting as overide if firstCollection == current
     if (cycleString == "" || firstCollection != currentPage_->getCollectionName()) {
         // check if collection has different setting
@@ -1937,8 +1938,8 @@ std::vector<std::string> RetroFE::getPlaylistCycle()
 
         std::string firstCollection = "";
         std::string cycleString = "";
-        config_.getProperty("firstCollection", firstCollection);
-        config_.getProperty("cyclePlaylist", cycleString);
+        config_.getProperty(OPTION_FIRSTCOLLECTION, firstCollection);
+        config_.getProperty(OPTION_CYCLEPLAYLIST, cycleString);
         // use the global setting as overide if firstCollection == current
         if (cycleString == "" || firstCollection != collectionName) {
             // check if collection has different setting
@@ -1958,7 +1959,7 @@ void RetroFE::selectRandomOnFirstCycle()
     if (!playlistCycledOnce_) {
         playlistCycledOnce_ = true;
         bool randomStart = false;
-        config_.getProperty("randomStart", randomStart);
+        config_.getProperty(OPTION_RANDOMSTART, randomStart);
         if (randomStart) {
             currentPage_->selectRandom();
         }
@@ -1970,7 +1971,7 @@ bool RetroFE::back(bool &exit)
 {
     bool canGoBack  = false;
     bool exitOnBack = false;
-    config_.getProperty( "exitOnFirstPageBack", exitOnBack );
+    config_.getProperty( OPTION_EXITONFIRSTPAGEBACK, exitOnBack );
     exit = false;
 
     if ( currentPage_->getMenuDepth( ) <= 1 && pages_.empty( ) )
@@ -1999,13 +2000,13 @@ bool RetroFE::isInAttractModeSkipPlaylist(std::string playlist)
         std::string attractModeSkipPlaylist = "";
         std::string settingPrefix = "collections." + currentPage_->getCollectionName() + ".";
         std::string firstCollection = "";
-        config_.getProperty("firstCollection", firstCollection);
-        config_.getProperty("attractModeSkipPlaylist", attractModeSkipPlaylist);
+        config_.getProperty(OPTION_FIRSTCOLLECTION, firstCollection);
+        config_.getProperty(OPTION_ATTRACTMODESKIPPLAYLIST, attractModeSkipPlaylist);
         // use the global setting as overide if firstCollection == current
         if (attractModeSkipPlaylist == "" || firstCollection != currentPage_->getCollectionName()) {
             // check if collection has different setting
-            if (config_.propertyExists(settingPrefix + "attractModeSkipPlaylist")) {
-                config_.getProperty(settingPrefix + "attractModeSkipPlaylist", attractModeSkipPlaylist);
+            if (config_.propertyExists(settingPrefix + OPTION_ATTRACTMODESKIPPLAYLIST)) {
+                config_.getProperty(settingPrefix + OPTION_ATTRACTMODESKIPPLAYLIST, attractModeSkipPlaylist);
             }
         }
 
@@ -2051,7 +2052,7 @@ RetroFE::RETROFE_STATE RetroFE::processUserInput( Page *page )
     config_.getProperty("screensaver", screensaver);
 
     bool infoExitOnScroll = false;
-    config_.getProperty("infoExitOnScroll", infoExitOnScroll);
+    config_.getProperty(OPTION_INFOEXITONSCROLL, infoExitOnScroll);
 
     std::map<unsigned int, bool> ssExitInputs = {
         {SDL_MOUSEMOTION,true},
@@ -2146,7 +2147,7 @@ RetroFE::RETROFE_STATE RetroFE::processUserInput( Page *page )
         else if (input_.keystate(UserInput::KeyCodeSettingsCombo1) && input_.keystate(UserInput::KeyCodeSettingsCombo2)) {
             attract_.reset();
             bool controllerComboSettings = false;
-            config_.getProperty("controllerComboSettings", controllerComboSettings);
+            config_.getProperty(OPTION_CONTROLLERCOMBOSETTINGS, controllerComboSettings);
             if (controllerComboSettings) {
                 return RETROFE_SETTINGS_REQUEST;
             }
@@ -2154,7 +2155,7 @@ RetroFE::RETROFE_STATE RetroFE::processUserInput( Page *page )
         else if (input_.keystate(UserInput::KeyCodeQuitCombo1) && input_.keystate(UserInput::KeyCodeQuitCombo2)) {
             attract_.reset();
             bool controllerComboExit = false;
-            config_.getProperty("controllerComboExit", controllerComboExit);
+            config_.getProperty(OPTION_CONTROLLERCOMBOEXIT, controllerComboExit);
             if (controllerComboExit) {
 #ifdef WIN32
                 Utils::postMessage("MediaplayerHiddenWindow", 0x8001, 51, 0);
@@ -2313,7 +2314,7 @@ RetroFE::RETROFE_STATE RetroFE::processUserInput( Page *page )
                 }
                 else {
                     bool cfwLetterSub;
-                    config_.getProperty("cfwLetterSub", cfwLetterSub);
+                    config_.getProperty(OPTION_CFWLETTERSUB, cfwLetterSub);
                     if (cfwLetterSub && page->hasSubs())
                         page->cfwLetterSubScroll(Page::ScrollDirectionBack);
                     else
@@ -2333,7 +2334,7 @@ RetroFE::RETROFE_STATE RetroFE::processUserInput( Page *page )
                 }
                 else {
                     bool cfwLetterSub;
-                    config_.getProperty("cfwLetterSub", cfwLetterSub);
+                    config_.getProperty(OPTION_CFWLETTERSUB, cfwLetterSub);
                     if (cfwLetterSub && page->hasSubs())
                         page->cfwLetterSubScroll(Page::ScrollDirectionForward);
                     else
@@ -2558,8 +2559,8 @@ RetroFE::RETROFE_STATE RetroFE::processUserInput( Page *page )
                     CollectionInfoBuilder cib(config_, *metadb_);
                     std::string lastPlayedSkipCollection = "";
                     int         size = 0;
-                    config_.getProperty( "lastPlayedSkipCollection", lastPlayedSkipCollection );
-                    config_.getProperty("lastplayedCollectionSize", size);
+                    config_.getProperty( OPTION_LASTPLAYEDSKIPCOLLECTION, lastPlayedSkipCollection );
+                    config_.getProperty(OPTION_LASTPLAYEDSIZE, size);
 
                     if (!isInAttractModeSkipPlaylist(currentPage_->getPlaylistName()) &&
                         nextPageItem_->collectionInfo->name != lastPlayedSkipCollection) 
@@ -2644,7 +2645,7 @@ Page* RetroFE::loadPage(const std::string& collectionName)
     std::string layoutName;
     config_.getProperty("collections." + collectionName + ".layout", layoutName);
     if (layoutName == "") {
-        config_.getProperty("layout", layoutName);
+        config_.getProperty(OPTION_LAYOUT, layoutName);
     }
     PageBuilder pb(layoutName, getLayoutFileName(), config_, &fontcache_);
     Page* page = pb.buildPage(collectionName);
@@ -2666,7 +2667,7 @@ Page* RetroFE::loadPage(const std::string& collectionName)
 Page *RetroFE::loadSplashPage( )
 {
     std::string layoutName;
-    config_.getProperty( "layout", layoutName );
+    config_.getProperty( OPTION_LAYOUT, layoutName );
 
     PageBuilder pb( layoutName, "splash", config_, &fontcache_ );
     Page * page = pb.buildPage( );
@@ -2685,7 +2686,7 @@ CollectionInfo* RetroFE::getCollection(const std::string& collectionName)
 
     // Check if subcollections should be merged or split
     bool subsSplit = false;
-    config_.getProperty("subsSplit", subsSplit);
+    config_.getProperty(OPTION_SUBSSPLIT, subsSplit);
 
     // Build the collection
     CollectionInfoBuilder cib(config_, *metadb_);
@@ -2771,8 +2772,8 @@ CollectionInfo* RetroFE::getCollection(const std::string& collectionName)
     bool showParenthesis = true;
     bool showSquareBrackets = true;
 
-    (void)config_.getProperty("showParenthesis", showParenthesis);
-    (void)config_.getProperty("showSquareBrackets", showSquareBrackets);
+    (void)config_.getProperty(OPTION_SHOWPARENTHESIS, showParenthesis);
+    (void)config_.getProperty(OPTION_SHOWSQUAREBRACKETS, showSquareBrackets);
 
     //using Playlists_T = std::map<std::string, std::vector<Item *> *>;
     for (auto const& playlistPair : collection->playlists) {
@@ -2867,7 +2868,7 @@ std::string RetroFE::getLayoutFileName()
 {
     std::string layoutName = "layout";
     std::string randomLayoutNames;
-    config_.getProperty("randomLayout", randomLayoutNames);
+    config_.getProperty(OPTION_RANDOMLAYOUT, randomLayoutNames);
     if (randomLayoutNames != "") {
         LOG_INFO("RetroFE", "Choosing random layout from: " + randomLayoutNames);
         std::vector<std::string> randomLayoutVector;

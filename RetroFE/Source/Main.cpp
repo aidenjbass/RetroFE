@@ -196,9 +196,9 @@ int main(int argc, char** argv)
                 std::string CLIvalue = argv[i+1];
                 if (startsWithAndStrip(CLIkey, "-") and !startsWith(CLIvalue,"-"))
                 {
-                    if (CLIkey == "log")
+                    if (CLIkey == OPTION_LOGGING)
                     {
-                        config.setProperty("log", CLIvalue);
+                        config.setProperty(OPTION_LOGGING, CLIvalue);
                         config.StartLogging(&config);
                     }
                     settingsFromCLI.push_back(CLIkey + "=" + CLIvalue + "\n");
@@ -268,7 +268,7 @@ int main(int argc, char** argv)
                 {
                     SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Configuration Error", ("RetroFE has failed to start due to a configuration error\nCheck the log for details: \n" + logFile).c_str(), NULL);
                 }
-                config.setProperty("log", "ERROR,NOTICE,WARNING");
+                config.setProperty(OPTION_LOGGING, "ERROR,NOTICE,WARNING");
                 ImportConfiguration(&config);
                 exit(EXIT_FAILURE);
             }

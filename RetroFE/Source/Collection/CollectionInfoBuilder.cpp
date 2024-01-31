@@ -19,6 +19,7 @@
 #include "../Database/Configuration.h"
 #include "../Database/MetadataDatabase.h"
 #include "../Database/DB.h"
+#include "../Database/GlobalOpts.h"
 #include "../Utility/Log.h"
 #include "../Utility/Utils.h"
 
@@ -476,7 +477,7 @@ void CollectionInfoBuilder::addPlaylists(CollectionInfo *info)
 
     // find and load favorites from global playlist if enabled
     bool globalFavLast = false;
-    (void)conf_.getProperty("globalFavLast", globalFavLast);
+    (void)conf_.getProperty(OPTION_GLOBALFAVLAST, globalFavLast);
     if (globalFavLast) {
         std::map<std::string, Item*> tmpPlaylistItems;
         // don't use collection's playlist
@@ -500,8 +501,8 @@ void CollectionInfoBuilder::addPlaylists(CollectionInfo *info)
     std::string settingPrefix = "collections." + info->name + ".";
     std::string cycleString;
     std::string firstCollection = "";
-    conf_.getProperty("firstCollection", firstCollection);
-    conf_.getProperty("cyclePlaylist", cycleString);
+    conf_.getProperty(OPTION_FIRSTCOLLECTION, firstCollection);
+    conf_.getProperty(OPTION_CYCLEPLAYLIST, cycleString);
     // use the global setting as overide if firstCollection == current
     if (cycleString == "" || firstCollection != info->name) {
         // check if collection has different setting
@@ -554,8 +555,8 @@ void CollectionInfoBuilder::loadPlaylistItems(CollectionInfo* info, std::map<std
     std::string settingPrefix = "collections." + info->name + ".";
     std::string cycleString;
     std::string firstCollection = "";
-    conf_.getProperty("firstCollection", firstCollection);
-    conf_.getProperty("cyclePlaylist", cycleString);
+    conf_.getProperty(OPTION_FIRSTCOLLECTION, firstCollection);
+    conf_.getProperty(OPTION_CYCLEPLAYLIST, cycleString);
 
     if (cycleString.empty() || firstCollection != info->name) {
         if (conf_.propertyExists(settingPrefix + "cyclePlaylist")) {
@@ -648,7 +649,7 @@ void CollectionInfoBuilder::updateLastPlayedPlaylist(CollectionInfo *info, Item 
 {
     std::string playlistCollectionName = info->name;
     bool globalFavLast = false;
-    (void)conf_.getProperty("globalFavLast", globalFavLast);
+    (void)conf_.getProperty(OPTION_GLOBALFAVLAST, globalFavLast);
     if (globalFavLast) {
         playlistCollectionName = "Favorites";
     }

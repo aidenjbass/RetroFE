@@ -24,9 +24,10 @@
 #include "../Sound/Sound.h"
 #include "ComponentItemBindingBuilder.h"
 #include "PageBuilder.h"
+#include "../Utility/Utils.h"
+#include "../Database/GlobalOpts.h"
 #include <algorithm>
 #include <sstream>
-#include "../Utility/Utils.h"
 
 
 Page::Page(Configuration &config, int layoutWidth, int layoutHeight)
@@ -1356,7 +1357,7 @@ void Page::removePlaylist()
         }
     }
     bool globalFavLast = false;
-    (void)config_.getProperty("globalFavLast", globalFavLast);
+    (void)config_.getProperty(OPTION_GLOBALFAVLAST, globalFavLast);
     if (globalFavLast && collection->name != "Favorites") {
         collection->saveRequest = true;
         collection->saveFavorites(selectedItem_);

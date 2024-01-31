@@ -28,6 +28,7 @@
 #include "ReloadableMedia.h"
 #include "Text.h"
 #include "../../Database/Configuration.h"
+#include "../../Database/GlobalOpts.h"
 #include "../../Collection/Item.h"
 #include "../../Utility/Utils.h"
 #include "../../Utility/Log.h"
@@ -351,7 +352,7 @@ void ScrollingList::letterChange(bool increment)
     if (!increment)
     {
         bool prevLetterSubToCurrent = false;
-        config_.getProperty("prevLetterSubToCurrent", prevLetterSubToCurrent);
+        config_.getProperty(OPTION_PREVLETTERSUBTOCURRENT, prevLetterSubToCurrent);
         if (!prevLetterSubToCurrent || (*items_)[(itemIndex_ + 1 + selectedOffsetIndex_) % itemSize] == startItem)
         {
             startname = (*items_)[(itemIndex_ + selectedOffsetIndex_) % itemSize]->lowercaseFullTitle();
@@ -410,7 +411,7 @@ void ScrollingList::metaChange(bool increment, const std::string& attribute)
     if (!increment)
     {
         bool prevLetterSubToCurrent = false;
-        config_.getProperty("prevLetterSubToCurrent", prevLetterSubToCurrent);
+        config_.getProperty(OPTION_PREVLETTERSUBTOCURRENT, prevLetterSubToCurrent);
         if (!prevLetterSubToCurrent || (*items_)[(itemIndex_ + 1 + selectedOffsetIndex_) % itemSize] == startItem)
         {
             startValue = (*items_)[(itemIndex_ + selectedOffsetIndex_) % itemSize]->getMetaAttribute(attribute);
@@ -457,7 +458,7 @@ void ScrollingList::subChange(bool increment)
     if (!increment) // For decrement, find the first game of the new sub
     {
         bool prevLetterSubToCurrent = false;
-        config_.getProperty("prevLetterSubToCurrent", prevLetterSubToCurrent);
+        config_.getProperty(OPTION_PREVLETTERSUBTOCURRENT, prevLetterSubToCurrent);
         if (!prevLetterSubToCurrent || (*items_)[(itemIndex_ + 1 + selectedOffsetIndex_) % itemSize] == startItem)
         {
             startname = (*items_)[(itemIndex_ + selectedOffsetIndex_) % itemSize]->collectionInfo->lowercaseName();
@@ -745,7 +746,7 @@ bool ScrollingList::allocateTexture( unsigned int index, const Item *item )
     VideoBuilder videoBuild{};
 
     std::string layoutName;
-    config_.getProperty( "layout", layoutName );
+    config_.getProperty( OPTION_LAYOUT, layoutName );
 
     std::string typeLC = Utils::toLower( imageType_ );
 

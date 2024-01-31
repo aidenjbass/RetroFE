@@ -21,6 +21,7 @@
 #include "../Utility/Utils.h"
 #include "../RetroFE.h"
 #include "../SDL.h"
+#include "../Database/GlobalOpts.h"
 #include <cstdlib>
 #include <locale>
 #include <sstream>
@@ -201,7 +202,7 @@ void Launcher::exitScript()
 void Launcher::LEDBlinky( int command, std::string collection, Item *collectionItem )
 {
 	std::string LEDBlinkyDirectory = "";
-	config_.getProperty( "LEDBlinkyDirectory", LEDBlinkyDirectory );
+	config_.getProperty( OPTION_LEDBLINKYDIRECTORY, LEDBlinkyDirectory );
 	if (LEDBlinkyDirectory == "") {
         return;
     }
@@ -293,7 +294,7 @@ bool Launcher::execute(std::string executable, std::string args, std::string cur
     std::thread proc_thread;
     bool multiple_display = SDL::getScreenCount() > 1;
     bool animateDuringGame = true;
-    config_.getProperty("animateDuringGame", animateDuringGame);
+    config_.getProperty(OPTION_ANIMATEDURINGGAME, animateDuringGame);
     if (animateDuringGame && multiple_display && currentPage != nullptr) {
         stop_thread = false;
         proc_thread = std::thread([this, &stop_thread, &currentPage]() {
@@ -352,7 +353,7 @@ bool Launcher::execute(std::string executable, std::string args, std::string cur
 
         //resume priority
         bool highPriority = false;
-        config_.getProperty("highPriority", highPriority);
+        config_.getProperty(OPTION_HIGHPRIORITY, highPriority);
         if (highPriority) {
             SetPriorityClass(GetCurrentProcess(), ABOVE_NORMAL_PRIORITY_CLASS);
         }

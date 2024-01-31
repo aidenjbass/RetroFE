@@ -32,6 +32,7 @@
 #include "../SDL.h"
 #include "../Utility/Log.h"
 #include "../Utility/Utils.h"
+#include "../Database/GlobalOpts.h"
 #include <algorithm>
 #include <cfloat>
 #include <fstream>
@@ -245,7 +246,7 @@ Page *PageBuilder::buildPage( const std::string& collectionName, bool defaultToC
                     std::string layoutName;
                     config_.getProperty("collections." + collectionName + ".layout", layoutName);
                     if (layoutName == "") {
-                        config_.getProperty("layout", layoutName);
+                        config_.getProperty(OPTION_LAYOUT, layoutName);
                     }
                     std::string altfile = Utils::combinePath(Configuration::absolutePath, "layouts", layoutName, std::string(src->value()));
                     if (!type)
@@ -444,7 +445,7 @@ bool PageBuilder::buildComponents(xml_node<>* layout, Page* page, const std::str
             std::string layoutName;
             config_.getProperty("collections." + collectionName + ".layout", layoutName);
             if (layoutName == "") {
-                config_.getProperty("layout", layoutName);
+                config_.getProperty(OPTION_LAYOUT, layoutName);
             }
             std::string altImagePath;
             altImagePath = Utils::combinePath(Configuration::absolutePath, "layouts", layoutName, std::string(src->value()));
@@ -501,7 +502,7 @@ bool PageBuilder::buildComponents(xml_node<>* layout, Page* page, const std::str
             std::string layoutName;
             config_.getProperty("collections." + collectionName + ".layout", layoutName);
             if (layoutName.empty()) {
-                config_.getProperty("layout", layoutName);
+                config_.getProperty(OPTION_LAYOUT, layoutName);
             }
             std::string altVideoPath = Utils::combinePath(Configuration::absolutePath, "layouts", layoutName, std::string(srcXml->value()));
             int numLoops = numLoopsXml ? Utils::convertInt(numLoopsXml->value()) : 1;
@@ -1496,12 +1497,12 @@ void PageBuilder::buildViewInfo(xml_node<> *componentXml, ViewInfo &info, xml_no
     bool disablePauseOnScroll = false;
 
     // Check if the property exists and is set to true
-    if (config_.getProperty("disableVideoRestart", disableVideoRestart) && disableVideoRestart) {
+    if (config_.getProperty(OPTION_DISABLEVIDEORESTART, disableVideoRestart) && disableVideoRestart) {
         info.Restart = false;
     }
 
     // Check if the property exists and is set to true
-    if (config_.getProperty("disablePauseOnScroll", disablePauseOnScroll) && disablePauseOnScroll) {
+    if (config_.getProperty(OPTION_DISABLEPAUSEONSCROLL, disablePauseOnScroll) && disablePauseOnScroll) {
         info.PauseOnScroll = false;
     }
 

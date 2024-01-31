@@ -16,6 +16,7 @@
 #include "Configuration.h"
 #include "../Utility/Log.h"
 #include "../Utility/Utils.h"
+#include "GlobalOpts.h"
 #include <algorithm>
 #include <locale>
 #include <fstream>
@@ -138,7 +139,7 @@ bool Configuration::import(const std::string& collection, const std::string& key
             retVal = retVal && parseLine(collection, "", line, lineCount);
 
             // Check if the line contains the log level setting
-            if (properties_.find("log") != properties_.end()) {
+            if (properties_.find(OPTION_LOGGING) != properties_.end()) {
                 StartLogging(this); // Start logging with the specified level
             }
         }
@@ -169,7 +170,7 @@ bool Configuration::import(const std::string& collection, const std::string& key
             retVal = retVal && parseLine(collection, keyPrefix, line, lineCount);
 
             // Check if the line contains the log level setting
-            if (properties_.find("log") != properties_.end()) {
+            if (properties_.find(OPTION_LOGGING) != properties_.end()) {
                 StartLogging(this); // Start logging with the specified level
             }
         }
