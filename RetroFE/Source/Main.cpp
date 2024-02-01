@@ -47,20 +47,6 @@ namespace fs = std::filesystem;
 static bool ImportConfiguration(Configuration* c);
 std::vector<std::string> settingsFromCLI;
 
-// Check if start of fullString contains startOfString
-bool startsWith(const std::string& fullString, const std::string& startOfString) {
-    return fullString.substr(0, startOfString.length()) == startOfString;
-}
-
-// Check if start of fullString contains startOfString and then remove
-bool startsWithAndStrip(std::string& fullString, const std::string& startOfString) {
-    if (fullString.substr(0, startOfString.length()) == startOfString) {
-        fullString = fullString.substr(startOfString.length());
-        return true;
-    }
-    return false;
-}
-
 // Function to initialize the DB object
 bool initializeDB(DB*& db, const std::string& dbPath) {
     db = new DB(dbPath);
@@ -234,7 +220,7 @@ int main(int argc, char** argv)
                 }
                 std::string CLIkey = argv[i];
                 std::string CLIvalue = argv[i+1];
-                if (startsWithAndStrip(CLIkey, "-") and !startsWith(CLIvalue,"-"))
+                if (Utils::startsWithAndStrip(CLIkey, "-") and ! Utils::startsWith(CLIvalue,"-"))
                 {
                     if (CLIkey == OPTION_LOG)
                     {
@@ -243,7 +229,7 @@ int main(int argc, char** argv)
                     }
                     settingsFromCLI.push_back(CLIkey + "=" + CLIvalue + "\n");
                 }
-                else if(startsWith(CLIvalue,"-"))
+                else if(Utils::startsWith(CLIvalue,"-"))
                 {
                     std::cout << "Expected 1 argument for -" << CLIkey << " got " << 0 << std::endl;
                     return 0;

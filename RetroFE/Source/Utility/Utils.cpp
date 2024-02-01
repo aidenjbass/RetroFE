@@ -336,3 +336,17 @@ bool Utils::isOutputATerminal() {
         return isatty(STDOUT_FILENO);
     #endif
 }
+
+// Check if start of fullString contains startOfString
+bool Utils::startsWith(const std::string& fullString, const std::string& startOfString) {
+    return fullString.substr(0, startOfString.length()) == startOfString;
+}
+
+// Check if start of fullString contains startOfString and then remove
+bool Utils::startsWithAndStrip(std::string& fullString, const std::string& startOfString) {
+    if (fullString.substr(0, startOfString.length()) == startOfString) {
+        fullString = fullString.substr(startOfString.length());
+        return true;
+    }
+    return false;
+}

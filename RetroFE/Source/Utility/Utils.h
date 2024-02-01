@@ -59,7 +59,9 @@ public:
     static std::string trim(std::string& str);
     static std::string removeAbsolutePath(const std::string& fullPath);
     static bool isOutputATerminal();
-
+    static bool startsWith(const std::string& fullString, const std::string& startOfString);
+    static bool startsWithAndStrip(std::string& fullString, const std::string& startOfString);
+    
     template <typename... Paths>
     static std::string combinePath(Paths... paths) {
         std::filesystem::path combinedPath;
