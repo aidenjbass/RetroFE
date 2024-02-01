@@ -46,7 +46,7 @@ namespace fs = std::filesystem;
 
 CollectionInfoBuilder::~CollectionInfoBuilder() = default;
 
-bool CollectionInfoBuilder::createCollectionDirectory(const std::string& name)
+bool CollectionInfoBuilder::createCollectionDirectory(const std::string& name, const std::string& collectionType, const std::string& osType)
 {
     std::string collectionPath = Utils::combinePath(Configuration::absolutePath, "collections", name);
     std::string collectionFolderPath = Utils::combinePath(Configuration::absolutePath, "collections");
@@ -80,13 +80,23 @@ bool CollectionInfoBuilder::createCollectionDirectory(const std::string& name)
         paths.push_back(Utils::combinePath(collectionPath, "medium_artwork", "artwork_front"));
         paths.push_back(Utils::combinePath(collectionPath, "medium_artwork", "bezel"));
         paths.push_back(Utils::combinePath(collectionPath, "medium_artwork", "logo"));
+        paths.push_back(Utils::combinePath(collectionPath, "medium_artwork", "marquee"));
         paths.push_back(Utils::combinePath(collectionPath, "medium_artwork", "medium_back"));
         paths.push_back(Utils::combinePath(collectionPath, "medium_artwork", "medium_front"));
         paths.push_back(Utils::combinePath(collectionPath, "medium_artwork", "screenshot"));
         paths.push_back(Utils::combinePath(collectionPath, "medium_artwork", "screentitle"));
         paths.push_back(Utils::combinePath(collectionPath, "medium_artwork", "video"));
+        paths.push_back(Utils::combinePath(collectionPath, "medium_artwork", "videoPlayer"));
+        paths.push_back(Utils::combinePath(collectionPath, "medium_artwork", "videoSD"));
         paths.push_back(Utils::combinePath(collectionPath, "roms"));
         paths.push_back(Utils::combinePath(collectionPath, "system_artwork"));
+        paths.push_back(Utils::combinePath(collectionPath, "launchers"));
+        
+        // Folders for local launchers
+        if (collectionType == "local")
+        {
+            paths.push_back(Utils::combinePath(collectionPath, "launchers." + osType + ".local"));
+        }
 
         for(auto it = paths.begin(); it != paths.end(); it++)
         {
@@ -142,7 +152,10 @@ bool CollectionInfoBuilder::createCollectionDirectory(const std::string& name)
         settingsFile << "list.extensions = zip" << std::endl;
         settingsFile << "list.menuSort = yes" << std::endl;
         settingsFile << std::endl;
-        settingsFile << "launcher = mame" << std::endl;
+        if (collectionType == " ")
+        {
+            settingsFile << "launcher = mame" << std::endl;
+        }
         settingsFile << "#metadata.type = MAME" << std::endl;
         settingsFile << std::endl;
         settingsFile << std::endl;
@@ -158,12 +171,21 @@ bool CollectionInfoBuilder::createCollectionDirectory(const std::string& name)
         settingsFile << "#media.video           = " << Utils::combinePath("%BASE_MEDIA_PATH%", "%ITEM_COLLECTION_NAME%", "medium_artwork", "video") << std::endl;
         settingsFile << "#media.system_artwork  = " << Utils::combinePath("%BASE_MEDIA_PATH%", "%ITEM_COLLECTION_NAME%", "system_artwork") << std::endl;
         settingsFile.close();
-
-        filename = Utils::combinePath(collectionPath, "menu.txt");
-        std::cout << "Creating file \"" << filename << "\"" << std::endl;
-        std::ofstream menuFile;
-        menuFile.open(filename.c_str());
-        menuFile.close();
+        
+        if (collectionType == "local")
+        {
+            filename = Utils::combinePath(collectionPath, "launcher." + osType + ".conf");
+            std::cout << "Creating file \"" << filename << "\"" << std::endl;
+            std::ofstream localFile;
+            localFile.open(filename.c_str());
+            localFile.close();
+        }
+        
+//        filename = Utils::combinePath(collectionPath, "menu.txt");
+//        std::cout << "Creating file \"" << filename << "\"" << std::endl;
+//        std::ofstream menuFile;
+//        menuFile.open(filename.c_str());
+//        menuFile.close();
     }
     else {
         std::cout << "A collection called " << name << " at " << "\"" << collectionPath << "\"" << " already exists" << std::endl;

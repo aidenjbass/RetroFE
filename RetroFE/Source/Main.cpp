@@ -110,6 +110,14 @@ int main(int argc, char** argv)
     Configuration config;
     std::string dbPath = Utils::combinePath(Configuration::absolutePath, "meta.db");
     
+#ifdef WIN32
+    std::string osType = "windows";
+#elif __APPLE__
+    std::string osType = "apple";
+#else
+    std::string osType = "linux";
+#endif
+    
     // Check to see if an argument was passed
     if (argc > 1)
     {
@@ -120,11 +128,16 @@ int main(int argc, char** argv)
             param == "--createcollection" ||
             param == "-cc")
         {
+            std::string param = argv[1];
+            std::string value = argv[2];
             if (argc == 3)
             {
-                std::string param = argv[1];
-                std::string value = argv[2];
-                CollectionInfoBuilder::createCollectionDirectory(value);
+                CollectionInfoBuilder::createCollectionDirectory(value, "", osType);
+                return 0;
+            }
+            else if (argc == 4 and std::string(argv[3]) == "local")
+            {
+                CollectionInfoBuilder::createCollectionDirectory(value, argv[3], osType);
                 return 0;
             }
             else
