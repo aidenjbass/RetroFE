@@ -30,6 +30,12 @@
     #include <Windows.h>
 #endif
 
+#ifdef WIN32
+    #include <io.h>
+#else
+    #include <unistd.h>
+#endif
+
 std::unordered_map<std::filesystem::path, std::unordered_set<std::string>, PathHash> Utils::fileCache;
 std::unordered_set<std::filesystem::path, PathHash> Utils::nonExistingDirectories;
 
@@ -320,4 +326,13 @@ std::string Utils::removeAbsolutePath(const std::string& fullPath) {
         return fullPath.substr(0, found) + "." + fullPath.substr(found + rootPath.length());
     }
     return fullPath; // Return the original path if root is not found
+}
+
+// Check if we're starting retrofe from terminal on Win or Unix
+bool Utils::isOutputATerminal() {
+    #ifdef _WIN32
+        return _isatty(_fileno(stdout));
+    #else
+        return isatty(STDOUT_FILENO);
+    #endif
 }

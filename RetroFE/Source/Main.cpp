@@ -47,15 +47,6 @@ namespace fs = std::filesystem;
 static bool ImportConfiguration(Configuration* c);
 std::vector<std::string> settingsFromCLI;
 
-// Check if we're starting retrofe from terminal on Win or Unix
-bool isOutputATerminal() {
-#ifdef _WIN32
-    return _isatty(_fileno(stdout));
-#else
-    return isatty(STDOUT_FILENO);
-#endif
-}
-
 // Check if start of fullString contains startOfString
 bool startsWith(const std::string& fullString, const std::string& startOfString) {
     return fullString.substr(0, startOfString.length()) == startOfString;
@@ -311,7 +302,7 @@ int main(int argc, char** argv)
             {
                 // Exit with a heads up...
                 std::string logFile = Utils::combinePath(Configuration::absolutePath, "log.txt");
-                if(isOutputATerminal())
+                if(Utils::isOutputATerminal())
                 {
                     fprintf(stderr, "RetroFE has failed to start due to a configuration error\nCheck the log for details: %s\n", logFile.c_str());
                 }
@@ -359,7 +350,7 @@ static bool ImportConfiguration(Configuration* c)
     if(!fs::exists(Utils::combinePath(Configuration::absolutePath, "settings.conf")))
     {
         std::string logFile = "\nCheck the log for details: \n" + Utils::combinePath(Configuration::absolutePath, "log.txt");
-        if(isOutputATerminal())
+        if(Utils::isOutputATerminal())
         {
             std::cout << "RetroFE failed to find a valid settings.conf in the current directory" + logFile << std::endl;
         }

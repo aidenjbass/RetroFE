@@ -58,6 +58,7 @@ public:
     static int gcd(int a, int b);
     static std::string trim(std::string& str);
     static std::string removeAbsolutePath(const std::string& fullPath);
+    static bool isOutputATerminal();
 
     template <typename... Paths>
     static std::string combinePath(Paths... paths) {
