@@ -70,7 +70,7 @@
 #define OPTION_FIRSTCOLLECTION       "firstCollection"
 #define OPTION_CYCLECOLLECTION       "cycleCollection"
 #define OPTION_LASTPLAYEDSIZE         "lastplayedSize"
-#define OPTION_LASTPLAYEDSKIPCOLLECTION "lastplayedSkipCollection"
+#define OPTION_LASTPLAYEDSKIPCOLLECTION "lastPlayedSkipCollection"
 #define OPTION_ENTERONCOLLECTION      "enterOnCollection"
 #define OPTION_STARTCOLLECTIONENTER   "startCollectionEnter"
 #define OPTION_EXITONFIRSTPAGEBACK    "exitOnFirstPageBack"
