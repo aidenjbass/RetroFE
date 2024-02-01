@@ -104,6 +104,23 @@ void showUsage(const global_options::options_entry* options) {
     std::cout << std::endl;
 }
 
+// Function to format and print contents of global_options::options_entry
+void makeSettings(const global_options::options_entry* options) {
+    std::string filename = Utils::combinePath(Configuration::absolutePath, "settings.conf");
+    std::ofstream settingsFile;
+    settingsFile.open(filename.c_str());
+    for (int i = 0; options[i].name || options[i].description; ++i) {
+        if (options[i].name) {
+            settingsFile << options[i].name << "=" << options[i].defvalue << std::endl;
+        }
+        else {
+            // Category headers have nullptr names, so we print separate
+            settingsFile << "\n#\n# " << options[i].description << "\n#\n" << std::endl;
+        }
+    }
+    settingsFile.close();
+}
+
 int main(int argc, char** argv)
 {
     Configuration::initialize();
@@ -210,6 +227,7 @@ int main(int argc, char** argv)
             param == "-C")
         {
             // TODO; create default settings.conf
+            makeSettings(global_options::s_option_entries);
             return 0;
         }
         else if ((argc % 2 != 0 or argc % 2 == 0) and param != "-help" and param != "-h")
