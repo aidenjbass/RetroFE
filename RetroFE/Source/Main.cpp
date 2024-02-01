@@ -171,7 +171,8 @@ int main(int argc, char** argv)
             param == "--showconfig" ||
             param == "-sc")
         {
-            // TODO; list settings.conf
+            ImportConfiguration(&config);
+            config.printProperties();
             return 0;
         }
         else if (param == "-createconfig" ||
@@ -256,6 +257,8 @@ int main(int argc, char** argv)
         
         while (true)
         {
+            // We need to set OPTION_LOG = "ERROR,WARNING,DEBUG" if ImportConfiguration fails
+            // but StartLogging is called within ImportConfiguration, too timey wimey for me
             if (!ImportConfiguration(&config))
             {
                 // Exit with a heads up...
@@ -268,8 +271,6 @@ int main(int argc, char** argv)
                 {
                     SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Configuration Error", ("RetroFE has failed to start due to a configuration error\nCheck the log for details: \n" + logFile).c_str(), NULL);
                 }
-                config.setProperty(OPTION_LOG, "ERROR,NOTICE,WARNING");
-                ImportConfiguration(&config);
                 exit(EXIT_FAILURE);
             }
             RetroFE p(config);

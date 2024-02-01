@@ -478,3 +478,34 @@ bool Configuration::StartLogging(Configuration* config)
 
     return true;
 }
+
+void Configuration::printProperties() const {
+    
+    // Separate items with and without prefixes
+    std::vector<std::pair<std::string, std::string>> withPrefix, withoutPrefix;
+    for (const auto& pair : properties_) {
+        if (pair.first.find('.') != std::string::npos) {
+            withPrefix.push_back(pair);
+        }
+        else {
+            withoutPrefix.push_back(pair);
+        }
+    }
+    
+    // Sort each group
+    std::sort(withoutPrefix.begin(), withoutPrefix.end(),
+        [](const auto& a, const auto& b) {
+            return Utils::toLower(a.first) < Utils::toLower(b.first);
+        });
+    std::sort(withPrefix.begin(), withPrefix.end(),
+        [](const auto& a, const auto& b) {
+            return Utils::toLower(a.first) < Utils::toLower(b.first);
+        });
+
+    for (const auto& pair : withoutPrefix) {
+        std::cout << pair.first << "=" << pair.second << std::endl;
+    }
+    for (const auto& pair : withPrefix) {
+        std::cout << pair.first << "=" << pair.second << std::endl;
+    }
+}
