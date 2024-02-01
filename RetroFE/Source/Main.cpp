@@ -175,6 +175,23 @@ int main(int argc, char** argv)
             config.printProperties();
             return 0;
         }
+        else if (param == "-dumpproperties" ||
+                 param == "--dumpproperties" ||
+                 param == "-dump")
+        {
+            if (argc == 3)
+            {
+                ImportConfiguration(&config);
+                config.dumpPropertiesToFile(argv[2]);
+                fprintf(stdout, "Dumping to: %s/%s\n", Configuration::absolutePath.c_str(), argv[2]);
+                return 0;
+            }
+            else
+            {
+                std::cout << "Expected 1 argument for -dump, got " << argc - 2 << std::endl;
+                return 0;
+            }
+        }
         else if (param == "-createconfig" ||
             param == "--createconfig" ||
             param == "-C")
@@ -230,11 +247,13 @@ int main(int argc, char** argv)
             std::cout << "Usage:" << std::endl;
             std::cout << "  -h   -help               Show this message" << std::endl;
             std::cout << "  -v   -version            Print the version of RetroFE" << std::endl;
+            std::cout << std::endl;
             std::cout << "  -cc  -createcollection   Create a collection directory structure" << std::endl;
             std::cout << "  -rdb -rebuilddatabase    Rebuild the database from /meta subfolder" << std::endl;
             std::cout << "  -su  -showusage          Print a list of all global settings" << std::endl;
             std::cout << "  -sc  -showconfig         Print a list of current settings" << std::endl;
             std::cout << "  -C   -createconfig       Create a settings.conf with default values" << std::endl;
+            std::cout << "       -dump               Dump current settings to a file" << std::endl;
             std::cout << std::endl;
 
             // Provide additional information and references

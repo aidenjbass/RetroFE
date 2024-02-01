@@ -45,6 +45,7 @@ public:
     void getCollectionAbsolutePath(const std::string& collectionName, std::string &value);
     bool StartLogging(Configuration* config);
     void printProperties() const;
+    void dumpPropertiesToFile(const std::string& filename);
     static std::string absolutePath;
 	static int AvdecMaxThreads;
 	static bool HardwareVideoAccel; // Declare HardwareVideoAccel as a static member variable
