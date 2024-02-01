@@ -82,6 +82,7 @@
 #define OPTION_KIOSK                  "kiosk"
 #define OPTION_GLOBALFAVLAST          "globalFavLast"
 #define OPTION_INFOEXITONSCROLL       "infoExitOnScroll"
+#define OPTION_JUKEBOX                "jukebox"
 
 // ATTRACT MODE OPTIONS
 #define OPTION_ATTRACTMODECYCLEPLAYLIST "attractModeCyclePlaylist"
@@ -206,6 +207,7 @@ public:
     bool kiosk() const { return bool_value(OPTION_KIOSK); }
     bool globalfavlast() const { return bool_value(OPTION_GLOBALFAVLAST); }
     bool infoexitonscroll() const { return bool_value(OPTION_INFOEXITONSCROLL); }
+    bool jukebox() const { return bool_value(OPTION_JUKEBOX); }
     
     bool attractmodecycleplaylist() const { return bool_value(OPTION_ATTRACTMODECYCLEPLAYLIST); }
     int attractmodetime() const { return int_value(OPTION_ATTRACTMODETIME); }

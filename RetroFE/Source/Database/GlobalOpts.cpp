@@ -86,6 +86,7 @@ const global_options::options_entry global_options::s_option_entries[] =
     { OPTION_KIOSK,                    "false",    global_options::option_type::BOOLEAN,  "Start on the first playlist in cyclePlaylist with navigation and favorites locked, can be toggled with a setting in controls.conf" },
     { OPTION_GLOBALFAVLAST,            "false",    global_options::option_type::BOOLEAN,  "Save last played and favorites to a new collection" },
     { OPTION_INFOEXITONSCROLL,         "false",    global_options::option_type::BOOLEAN,  "Hide info text boxes when scrolling" },
+    { OPTION_JUKEBOX,                  "false",    global_options::option_type::BOOLEAN,  "Enables mapping of jukebox controls" },
 
     { nullptr,                         nullptr,    global_options::option_type::HEADER,   "ATTRACT MODE OPTIONS" },
     { OPTION_ATTRACTMODECYCLEPLAYLIST, "",         global_options::option_type::BOOLEAN,  "Cycle through all playlists or defined in cyclePlaylist" },
