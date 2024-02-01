@@ -60,6 +60,7 @@
 #define OPTION_HIGHPRIORITY          "highPriority"
 #define OPTION_UNLOADSDL             "unloadSDL"
 #define OPTION_MINIMIZEONFOCUSLOSS   "minimizeOnFocusLoss"
+#define OPTION_AVDECTHREADTYPE       "AvdecThreadType"
 
 // CUSTOMIZATION OPTIONS
 #define OPTION_LAYOUT                "layout"
@@ -150,6 +151,7 @@ public:
     float float_value(std::string_view option) const;
     
     const char *log() const { return value(OPTION_LOG); }
+    
     int numscreens() const { return int_value(OPTION_NUMSCREENS); }
     bool fullscreen() const { return bool_value(OPTION_FULLSCREEN); }
     int horizontal() const { return int_value(OPTION_HORIZONTAL); }
@@ -161,16 +163,19 @@ public:
     int screennumx() const { return int_value(OPTION_SCREENNUMX); }
     bool mirrorx() const { return bool_value(OPTION_MIRRORX); }
     int rotationx() const { return int_value(OPTION_ROTATIONX); }
+    
     bool windowborder() const { return bool_value(OPTION_WINDOWBORDER); }
     bool windowresize() const { return bool_value(OPTION_WINDOWRESIZE); }
     int fps() const { return int_value(OPTION_FPS); }
     int fpsidle() const { return int_value(OPTION_FPSIDLE); }
     bool hidemouse() const { return bool_value(OPTION_HIDEMOUSE); }
     bool animateduringgame() const { return bool_value(OPTION_ANIMATEDURINGGAME); }
+    
     bool videoenable() const { return bool_value(OPTION_VIDEOENABLE); }
     int videoloop() const { return int_value(OPTION_VIDEOLOOP); }
     bool disablevideorestart() const { return bool_value(OPTION_DISABLEVIDEORESTART); }
     bool disablepauseonscroll() const { return bool_value(OPTION_DISABLEPAUSEONSCROLL); }
+    
     bool vsync() const { return bool_value(OPTION_VSYNC); }
     bool hardwarevideoaccel() const { return bool_value(OPTION_HARDWAREVIDEOACCEL); }
     int avdecmaxthreads() const { return int_value(OPTION_AVDECMAXTHREADS); }
@@ -180,6 +185,8 @@ public:
     bool highpriority() const { return bool_value(OPTION_HIGHPRIORITY); }
     bool unloadsdl() const { return bool_value(OPTION_UNLOADSDL); }
     bool minimizeonfocusloss() const { return bool_value(OPTION_MINIMIZEONFOCUSLOSS); }
+    int avdecthreadtype() const {return int_value(OPTION_AVDECTHREADTYPE); }
+    
     const char *layout() const { return value(OPTION_LAYOUT); }
     const char *randomlayout() const { return value(OPTION_RANDOMLAYOUT); }
     const char *firstplaylist() const { return value(OPTION_FIRSTPLAYLIST); }
@@ -199,6 +206,7 @@ public:
     bool kiosk() const { return bool_value(OPTION_KIOSK); }
     bool globalfavlast() const { return bool_value(OPTION_GLOBALFAVLAST); }
     bool infoexitonscroll() const { return bool_value(OPTION_INFOEXITONSCROLL); }
+    
     bool attractmodecycleplaylist() const { return bool_value(OPTION_ATTRACTMODECYCLEPLAYLIST); }
     int attractmodetime() const { return int_value(OPTION_ATTRACTMODETIME); }
     int attractmodenexttime() const { return int_value(OPTION_ATTRACTMODENEXTTIME); }
@@ -209,17 +217,21 @@ public:
     int attractmodemintime() const { return int_value(OPTION_ATTRACTMODEMINTIME); }
     int attractmodemaxtime() const { return int_value(OPTION_ATTRACTMODEMAXTIME); }
     bool attractmodefast() const { return bool_value(OPTION_ATTRACTMODEFAST); }
+    
     bool collectioninputclear() const { return bool_value(OPTION_COLLECTIONINPUTCLEAR); }
     bool playlistinputclear() const { return bool_value(OPTION_PLAYLISTINPUTCLEAR); }
     bool jumpinputclear() const { return bool_value(OPTION_JUMPINPUTCLEAR); }
     bool controllercomboexit() const { return bool_value(OPTION_CONTROLLERCOMBOEXIT); }
     bool controllercombosettings() const { return bool_value(OPTION_CONTROLLERCOMBOSETTINGS); }
     const char *settingscollectionplaylist() const { return value(OPTION_SETTINGSCOLLECTIONPLAYLIST); }
+    
     bool metalock() const { return bool_value(OPTION_METALOCK); }
     bool overwritexml() const { return bool_value(OPTION_OVERWRITEXML); }
     bool showparenthesis() const { return bool_value(OPTION_SHOWPARENTHESIS); }
     bool showsquarebrackets() const { return bool_value(OPTION_SHOWSQUAREBRACKETS); }
+    
     const char *ledblinkydirectory() const { return value(OPTION_LEDBLINKYDIRECTORY); }
+    
     const char *basemediapath() const { return value(OPTION_BASEMEDIAPATH); }
     const char *baseitempath() const { return value(OPTION_BASEITEMPATH); }
     
