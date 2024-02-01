@@ -336,6 +336,21 @@ bool RetroFE::deInitialize( )
 // Run RetroFE
 bool RetroFE::run( )
 {
+    
+    std::string controlsConfPath = Utils::combinePath( Configuration::absolutePath, "controls" );
+    if(! fs::exists(controlsConfPath + ".conf"))
+    {
+        std::string logFile = Utils::combinePath(Configuration::absolutePath, "log.txt");
+        if(Utils::isOutputATerminal())
+        {
+            fprintf(stderr, "RetroFE failed to find a valid controls.conf in the current directory\nCheck the log for details: %s\n", logFile.c_str());
+        }
+        else
+        {
+            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Configuration Error", ("RetroFE failed to find a valid controls.conf in the current directory\nCheck the log for details: " + logFile).c_str(), NULL);
+        }
+        exit(EXIT_FAILURE);
+    }
 
     // Initialize SDL
     if(! SDL::initialize( config_ ) ) return false;
@@ -352,7 +367,6 @@ bool RetroFE::run( )
 #endif
 
     // Define control configuration
-    std::string controlsConfPath = Utils::combinePath( Configuration::absolutePath, "controls" );
     config_.import("controls", controlsConfPath + ".conf");
     for (int i = 1; i < 10; i++) {
         std::string numberedControlsFile = controlsConfPath + std::to_string(i) + ".conf";
