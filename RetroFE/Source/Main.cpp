@@ -257,8 +257,6 @@ int main(int argc, char** argv)
         
         while (true)
         {
-            // We need to set OPTION_LOG = "ERROR,WARNING,DEBUG" if ImportConfiguration fails
-            // but StartLogging is called within ImportConfiguration, too timey wimey for me
             if (!ImportConfiguration(&config))
             {
                 // Exit with a heads up...
@@ -310,13 +308,14 @@ static bool ImportConfiguration(Configuration* c)
     
     if(!fs::exists(Utils::combinePath(Configuration::absolutePath, "settings.conf")))
     {
+        std::string logFile = "\nCheck the log for details: \n" + Utils::combinePath(Configuration::absolutePath, "log.txt");
         if(isOutputATerminal())
         {
-            std::cout << "RetroFE failed to find a valid settings.conf in the current directory" << std::endl;
+            std::cout << "RetroFE failed to find a valid settings.conf in the current directory" + logFile << std::endl;
         }
         else
         {
-            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Configuration", "RetroFE failed to find a valid settings.conf in the current directory", NULL);
+            SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Configuration", ("RetroFE failed to find a valid settings.conf in the current directory" + logFile).c_str(), NULL);
         }
         exit(EXIT_FAILURE);
     }
