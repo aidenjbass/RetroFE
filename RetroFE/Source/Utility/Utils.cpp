@@ -200,9 +200,6 @@ float Utils::convertFloat(const std::string_view& content) {
         retVal = 0.0f; // Handle error or set default value
     }
 #endif
-    if (result.ec == std::errc::invalid_argument || result.ec == std::errc::result_out_of_range) {
-        retVal = 0.0f; // Handle error or set default value
-    }
     return retVal;
 }
 
@@ -219,10 +216,6 @@ int Utils::convertInt(const std::string_view& content) {
         retVal = 0;
     }
 #endif
-    if (result.ec == std::errc::invalid_argument || result.ec == std::errc::result_out_of_range) {
-        // Handle error or set default value
-        retVal = 0;
-    }
     return retVal;
 }
 
