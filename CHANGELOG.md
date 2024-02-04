@@ -11,13 +11,20 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 [@arghs15](https://github.com/arghs15)
 [@bluestang2006](https://github.com/bluestang2006)
 
-## [Unreleased] - YYYY-MM-DD
+## [10.34.4] - 2024-02-03
 
 ### Added
-
+- local launchers that are restricted to their own collections [@inigomontoya](https://github.com/inigomontoya)
+- thread pool to speed up page updates and scrolling (Windows only) [@inigomontoya](https://github.com/inigomontoya)
 ### Changed
-
+- assert window focus after SDL initialization [@inigomontoya](https://github.com/inigomontoya)
 ### Fixed
+- refined behavior of video restart/pause logic [@inigomontoya](https://github.com/inigomontoya)
+- general optimization pass [@inigomontoya](https://github.com/inigomontoya)
+- layouts will no longer try and load images/videos/menus on monitors that don't exist [@inigomontoya](https://github.com/inigomontoya)
+- ensured when splash video ends, frontend will be entered [@inigomontoya](https://github.com/inigomontoya)
+- fixed letterUp/letterDown to do what they say [@inigomontoya](https://github.com/inigomontoya)
+- fixed sizable memory leak [@inigomontoya](https://github.com/inigomontoya)
 
 ## [10.34.3] - 2023-08-27
 

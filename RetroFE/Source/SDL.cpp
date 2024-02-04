@@ -84,6 +84,9 @@ bool SDL::initialize( Configuration &config )
 	int AvdecMaxThreads = 2;
 	config.getProperty(OPTION_AVDECMAXTHREADS, AvdecMaxThreads);
 	Configuration::AvdecMaxThreads = AvdecMaxThreads;
+    int AvdecThreadType = 2;
+    config.getProperty("AvdecThreadType", AvdecThreadType);
+    Configuration::AvdecThreadType = AvdecThreadType;
 	bool MuteVideo = false;
 	config.getProperty(OPTION_MUTEVIDEO, MuteVideo);
 	Configuration::MuteVideo = MuteVideo;
