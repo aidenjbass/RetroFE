@@ -1567,11 +1567,26 @@ bool RetroFE::run( )
                 config_.getProperty( "lastPlayedSkipCollection", lastPlayedSkipCollection );
                 config_.getProperty( "lastplayedSize", size );
 
-                if (nextPageItem_->collectionInfo->name != lastPlayedSkipCollection)
-                {
-                    cib.updateLastPlayedPlaylist(currentPage_->getCollection(), nextPageItem_, size); // Update last played playlist if not currently in the skip playlist (e.g. settings)
-                    currentPage_->updateReloadables(0);
-                }
+                if (lastPlayedSkipCollection != "") {
+                    // see if any of the comma seperated match current playlist
+                    std::stringstream ss(lastPlayedSkipCollection);
+                    std::string playlist = "";
+                    bool updateLastPlayed = true;
+                    while (ss.good())
+                    {
+                        getline(ss, playlist, ',');
+                        // Check if the current playlist matches any playlist in lastPlayedSkipCollection
+                        if (nextPageItem_->collectionInfo->name == playlist) {
+                            updateLastPlayed = false;
+                            break;  // No need to check further, as we found a match
+                        }
+                    }
+                    // Update last played playlist if not found in the skip playlist
+                    if (updateLastPlayed) {
+                        cib.updateLastPlayedPlaylist(currentPage_->getCollection(), nextPageItem_, size);
+                        currentPage_->updateReloadables(0);
+                        }
+                    }
 
                 l.LEDBlinky( 3, nextPageItem_->collectionInfo->name, nextPageItem_ );
                 if (l.run(nextPageItem_->collectionInfo->name, nextPageItem_, currentPage_)) // Run and check if we need to reboot
