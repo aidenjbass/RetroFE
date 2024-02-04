@@ -109,7 +109,7 @@ Page *PageBuilder::buildPage( const std::string& collectionName, bool defaultToC
             std::to_string(screenWidth_ / Utils::gcd(screenWidth_, screenHeight_)) + "x" +
             std::to_string(screenHeight_ / Utils::gcd(screenWidth_, screenHeight_)) + layouts[layout] +
             ".xml");
-
+        // TODO put this behind a key fixedResLayouts
         LOG_INFO("Layout", "Initializing " + layoutFileAspect);
 
         rapidxml::xml_document<> doc;
@@ -255,6 +255,7 @@ Page *PageBuilder::buildPage( const std::string& collectionName, bool defaultToC
                     }
                     else
                     {
+                        // TODO MuteSound key, also this is such a mess
                         auto* sound = new Sound(file, altfile);
                         std::string soundType = type->value();
 

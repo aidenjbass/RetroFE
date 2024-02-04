@@ -189,6 +189,7 @@ int main(int argc, char** argv)
             if (argc == 3)
             {
                 ImportConfiguration(&config);
+                // Need to get controls. prefix and launcher. prefix
                 config.dumpPropertiesToFile(argv[2]);
                 fprintf(stdout, "Dumping to: %s/%s\n", Configuration::absolutePath.c_str(), argv[2]);
                 return 0;
