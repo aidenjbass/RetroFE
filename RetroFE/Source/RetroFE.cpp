@@ -1568,20 +1568,20 @@ bool RetroFE::run( )
                 config_.getProperty( "lastplayedSize", size );
 
                 if (lastPlayedSkipCollection != "") {
-                    // see if any of the comma seperated match current playlist
+                    // see if any of the comma seperated match current collection
                     std::stringstream ss(lastPlayedSkipCollection);
-                    std::string playlist = "";
+                    std::string collection = "";
                     bool updateLastPlayed = true;
                     while (ss.good())
                     {
-                        getline(ss, playlist, ',');
-                        // Check if the current playlist matches any playlist in lastPlayedSkipCollection
-                        if (nextPageItem_->collectionInfo->name == playlist) {
+                        getline(ss, collection, ',');
+                        // Check if the current collection matches any collection in lastPlayedSkipCollection
+                        if (nextPageItem_->collectionInfo->name == collection) {
                             updateLastPlayed = false;
                             break;  // No need to check further, as we found a match
                         }
                     }
-                    // Update last played playlist if not found in the skip playlist
+                    // Update last played collection if not found in the skip collection
                     if (updateLastPlayed) {
                         cib.updateLastPlayedPlaylist(currentPage_->getCollection(), nextPageItem_, size);
                         currentPage_->updateReloadables(0);
