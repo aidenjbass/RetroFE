@@ -74,7 +74,7 @@ const global_options::options_entry global_options::s_option_entries[] =
     { OPTION_FIRSTCOLLECTION,          "",         global_options::option_type::STRING,   "Start on this collection if available" },
     { OPTION_CYCLECOLLECTION,          "",         global_options::option_type::MSTRING,  "Set of collections that can be cycled through, CSV list of collection names" },
     { OPTION_LASTPLAYEDSIZE,           "10",       global_options::option_type::INTEGER,  "Size of the auto-generated last played playlist, 0 to disable" },
-    { OPTION_LASTPLAYEDSKIPCOLLECTION, "",         global_options::option_type::STRING,   "Exclude a collection from being added to last played, settings for example" },
+    { OPTION_LASTPLAYEDSKIPCOLLECTION, "",         global_options::option_type::MSTRING,  "Skip CSV list of collections being added to last played" },
     { OPTION_ENTERONCOLLECTION,        "",         global_options::option_type::BOOLEAN,  "Enter the collection when using collection up/down controls" },
     { OPTION_STARTCOLLECTIONENTER,     "",         global_options::option_type::BOOLEAN,  "Enter the first collection on RetroFE boot" },
     { OPTION_EXITONFIRSTPAGEBACK,      "false",    global_options::option_type::BOOLEAN,  "Exit RetroFE when the back button is pressed on the first page" },
