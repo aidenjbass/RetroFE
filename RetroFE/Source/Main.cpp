@@ -415,7 +415,7 @@ static bool ImportConfiguration(Configuration* c)
                 if (filePath.extension() == ".conf")
                 {
                     std::string basename = filePath.stem().string();
-                    std::string prefix = "launchers." + Utils::toLower(basename);
+                    std::string prefix = "launchers." + basename;
                     std::string importFile = filePath.string();
 
                     if (!c->import(prefix, importFile))
@@ -473,6 +473,10 @@ static bool ImportConfiguration(Configuration* c)
             if (!importFile.empty()) {
                 c->import(collection, launcherKey, importFile, false);
                 LOG_INFO("RetroFE", "Imported collection-specific launcher for: " + collection);
+                if (!c->propertyExists("collections." + collection + ".launcher"))
+                {
+                    c->setProperty("collections." + collection + ".launcher", collection);
+                }
             }
 
             fs::path localLaunchersPath = Utils::combinePath(collectionsPath, collection, "launchers." + osType + ".local");
@@ -490,7 +494,7 @@ static bool ImportConfiguration(Configuration* c)
                         fs::path filePath = launcherEntry.path();
                         if (filePath.extension() == ".conf") {
                             std::string basename = filePath.stem().string();
-                            std::string prefix = "localLaunchers." + collection + "." + Utils::toLower(basename);
+                            std::string prefix = "localLaunchers." + collection + "." + basename;
                             std::string importFile = filePath.string();
 
                             if (!c->import(collection, prefix, importFile)) {
@@ -533,5 +537,10 @@ static bool ImportConfiguration(Configuration* c)
     }
 
     LOG_INFO("RetroFE", "Imported configuration");
+    bool dumpProperties = false;
+    c->getProperty("dumpProperties", dumpProperties);
+    if (dumpProperties) {
+            c->dumpPropertiesToFile(Utils::combinePath(Configuration::absolutePath, "properties.txt"));
+    }
     return true;
 }
