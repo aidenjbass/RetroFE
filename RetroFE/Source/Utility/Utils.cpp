@@ -359,3 +359,15 @@ bool Utils::startsWithAndStrip(std::string& fullString, const std::string& start
     }
     return false;
 }
+
+
+std::string Utils::getOSType(){
+    #ifdef WIN32
+        std::string osType = "windows";
+    #elif __APPLE__
+        std::string osType = "apple";
+    #else
+        std::string osType = "linux";
+    #endif
+    return osType;
+}

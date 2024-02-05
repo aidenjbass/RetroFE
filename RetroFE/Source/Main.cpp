@@ -47,6 +47,10 @@ namespace fs = std::filesystem;
 static bool ImportConfiguration(Configuration* c);
 std::vector<std::string> settingsFromCLI;
 
+//
+// CLI option functions
+//
+
 // Function to initialize the DB object
 bool initializeDB(DB*& db, const std::string& dbPath) {
     db = new DB(dbPath);
@@ -81,7 +85,7 @@ void showUsage(const global_options::options_entry* options) {
     std::cout << std::endl;
 }
 
-// Function to format and print contents of global_options::options_entry
+// Function to format and print contents of global_options::options_entry to a settings file
 void makeSettings(const global_options::options_entry* options) {
     std::string filename = Utils::combinePath(Configuration::absolutePath, "settings.conf");
     std::ofstream settingsFile;
@@ -98,20 +102,16 @@ void makeSettings(const global_options::options_entry* options) {
     settingsFile.close();
 }
 
+//
+// Main starts here
+//
+
 int main(int argc, char** argv)
 {
     Configuration::initialize();
     Configuration config;
     std::string dbPath = Utils::combinePath(Configuration::absolutePath, "meta.db");
-    
-#ifdef WIN32
-    std::string osType = "windows";
-#elif __APPLE__
-    std::string osType = "apple";
-#else
-    std::string osType = "linux";
-#endif
-    
+
     // Check to see if an argument was passed
     if (argc > 1)
     {
@@ -126,12 +126,12 @@ int main(int argc, char** argv)
             std::string value = argv[2];
             if (argc == 3)
             {
-                CollectionInfoBuilder::createCollectionDirectory(value, "", osType);
+                CollectionInfoBuilder::createCollectionDirectory(value, "", Utils::getOSType());
                 return 0;
             }
             else if (argc == 4 and std::string(argv[3]) == "local")
             {
-                CollectionInfoBuilder::createCollectionDirectory(value, argv[3], osType);
+                CollectionInfoBuilder::createCollectionDirectory(value, argv[3], Utils::getOSType());
                 return 0;
             }
             else
@@ -204,7 +204,6 @@ int main(int argc, char** argv)
             param == "--createconfig" ||
             param == "-C")
         {
-            // TODO; create default settings.conf
             makeSettings(global_options::s_option_entries);
             return 0;
         }
@@ -318,21 +317,10 @@ int main(int argc, char** argv)
 
 static bool ImportConfiguration(Configuration* c)
 {
-    std::string configPath = Configuration::absolutePath;
-
-#ifdef WIN32
-    std::string osType = "windows";
-#elif __APPLE__
-    std::string osType = "apple";
-#else
-    std::string osType = "linux";
-#endif
-
-    fs::path launchersPath = Utils::combinePath(Configuration::absolutePath, "launchers." + osType);
-
-    fs::path collectionsPath = Utils::combinePath(Configuration::absolutePath, "collections");
-
-    std::string settingsConfPath = Utils::combinePath(configPath, "settings");
+    std::string configPath = Configuration::absolutePath; // Gets working directory
+    fs::path launchersPath = Utils::combinePath(Configuration::absolutePath, "launchers." + Utils::getOSType()); // Gets launchers directory
+    fs::path collectionsPath = Utils::combinePath(Configuration::absolutePath, "collections"); // Gets collections directory
+    std::string settingsConfPath = Utils::combinePath(configPath, "settings"); // Gets root settings
     
     if(!fs::exists(Utils::combinePath(Configuration::absolutePath, "settings.conf")))
     {
@@ -461,7 +449,7 @@ static bool ImportConfiguration(Configuration* c)
             }
 
             // Process collection-specific launcher overrides
-            std::string osSpecificLauncherFile = Utils::combinePath(collectionsPath, collection, "launcher." + osType + ".conf");
+            std::string osSpecificLauncherFile = Utils::combinePath(collectionsPath, collection, "launcher." + Utils::getOSType() + ".conf");
             std::string defaultLauncherFile = Utils::combinePath(collectionsPath, collection, "launcher.conf");
             std::string launcherKey = "collectionLaunchers." + collection; // Unique key for collection-specific launchers
 
@@ -479,7 +467,7 @@ static bool ImportConfiguration(Configuration* c)
                 }
             }
 
-            fs::path localLaunchersPath = Utils::combinePath(collectionsPath, collection, "launchers." + osType + ".local");
+            fs::path localLaunchersPath = Utils::combinePath(collectionsPath, collection, "launchers." + Utils::getOSType() + ".local");
             fs::path defaultLocalLaunchersPath = Utils::combinePath(collectionsPath, collection, "launchers.local");
 
             // Check if OS-specific launchers directory exists, otherwise use the default launchers directory
