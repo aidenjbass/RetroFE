@@ -76,6 +76,13 @@ Page *PageBuilder::buildPage( const std::string& collectionName, bool defaultToC
     std::string layoutFileAspect;
     std::string layoutName = layoutKey;
     std::string layoutPathDefault = Utils::combinePath(Configuration::absolutePath, "layouts", layoutName);
+    bool fixedResLayouts;
+    config_.getProperty(OPTION_FIXEDRESLAYOUTS, fixedResLayouts);
+    namespace fs = std::filesystem;
+    
+    // These just prevented repeated logging
+    bool splashInitialized = false;
+    bool fixedResLayoutsInitialized = false;
 
     if ( isMenu_ )
     {
@@ -104,47 +111,77 @@ Page *PageBuilder::buildPage( const std::string& collectionName, bool defaultToC
     int monitor=0;
     for ( unsigned int layout = 0; layout < layouts.size(); layout++ )
     {
-        layoutFile       = Utils::combinePath(layoutPath, layouts[layout] + ".xml");
-        layoutFileAspect = Utils::combinePath(layoutPath, "layout " +
-            std::to_string(screenWidth_ / Utils::gcd(screenWidth_, screenHeight_)) + "x" +
-            std::to_string(screenHeight_ / Utils::gcd(screenWidth_, screenHeight_)) + layouts[layout] +
-            ".xml");
-        // TODO put this behind a key fixedResLayouts
-        LOG_INFO("Layout", "Initializing " + layoutFileAspect);
-
         rapidxml::xml_document<> doc;
-        std::ifstream file(layoutFileAspect.c_str());
-        // aspect layout
-        if ( !file.good( ) )
+        std::ifstream file;
+        
+        layoutFile = Utils::combinePath(layoutPath, layouts[layout] + ".xml");
+        
+        if(fixedResLayouts)
         {
-            LOG_INFO("Layout", "could not find layout file: " + layoutFileAspect );
-            LOG_INFO("Layout", "Initializing " + layoutFile );
-            
-            // collection or default layout
-            file.open( layoutFile.c_str( ) );
-            if ( !file.good( ) )
+            // Use fixed resolution layout ie layout1920x1080.xml
+            if (!fixedResLayoutsInitialized)
             {
-                LOG_INFO("Layout", "could not find layout file: " + layoutFile );
-
-                // try default layout
-                if (layoutPath != layoutPathDefault) {
-                    layoutFile = Utils::combinePath(layoutPathDefault, layouts[layout] + ".xml");
-                    LOG_INFO("Layout", "Initializing " + layoutFile);
-
-                    file.open(layoutFile.c_str());
-                    if (!file.good())
+                LOG_INFO("Layout", "Fixed resolution layouts have been enabled");
+                fixedResLayoutsInitialized = true;
+            }
+            layoutFileAspect = Utils::combinePath(layoutPathDefault,
+                std::to_string(screenWidth_ / Utils::gcd(screenWidth_, screenHeight_)) + "x" +
+                std::to_string(screenHeight_ / Utils::gcd(screenWidth_, screenHeight_)) + layouts[layout] +
+                ".xml");
+            if (fs::exists(layoutFileAspect))
+            {
+                layoutFile = layoutFileAspect;
+            }
+            else
+            {
+                LOG_ERROR("Layout", "Unable to find fixed resolution layout: " + layoutFileAspect);
+                exit(EXIT_FAILURE);
+            }
+        }
+        
+        if (fs::exists(layoutFile))
+        {
+            // Check for layouts/<layout>/collections/<collectionName>/layout
+            LOG_INFO("Layout", "Attempting to initialize collection layout: " + layoutFile);
+            file.open( layoutFile.c_str() );
+            std::ifstream file(layoutFile.c_str());
+            file.close();
+        }
+        else
+        {
+            if (layoutPath != layoutPathDefault)
+            {
+                if ( layouts[layout] != "splash")
+                {
+                    if ( layoutFile = Utils::combinePath(layoutPathDefault, layouts[layout] + ".xml"); fs::exists(layoutFile) )
                     {
-                        // try next layout
+                        // Check for layouts/<layout>/layout
+                        LOG_INFO("Layout", "Attempting to initialize default layout: " + layoutFile);
+                        file.open( layoutFile.c_str() );
+                        std::ifstream file(layoutFile.c_str());
+                        file.close();
+                    }
+                    else if(!fs::exists(layoutFile))
+                    {
+                        // If layouts/<layout>/layout - x.xml doesn't exist log here but continue
+                        LOG_WARNING("Layout", "Layout not found: " + layoutFile);
                         continue;
                     }
                 }
-                else {
-                    // try next layout
-                    continue;
+                else if (!splashInitialized && fs::exists(Utils::combinePath(layoutPathDefault, "splash.xml")))
+                {
+                    // Check for splash page then don't check again
+                    std::string layoutSplashFile;
+                    layoutSplashFile = Utils::combinePath(layoutPathDefault, "splash.xml");
+                    LOG_INFO("Layout", "Attempting to initialize splash: " + layoutSplashFile);
+                    file.open( layoutSplashFile.c_str() );
+                    std::ifstream file(layoutSplashFile.c_str());
+                    file.close();
+                    splashInitialized = true;
                 }
             }
         }
-
+        
         std::vector<char> buffer((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 
         try
@@ -306,7 +343,14 @@ Page *PageBuilder::buildPage( const std::string& collectionName, bool defaultToC
 
         if(page)
         {
-            LOG_INFO("Layout", "Initialized");
+            if(fixedResLayouts)
+            {
+                LOG_INFO("Layout", "Initialized " + layoutFileAspect);
+            }
+            else
+            {
+                LOG_INFO("Layout", "Initialized " + layoutFile);
+            }
         }
         else
         {

@@ -84,6 +84,7 @@
 #define OPTION_GLOBALFAVLAST          "globalFavLast"
 #define OPTION_INFOEXITONSCROLL       "infoExitOnScroll"
 #define OPTION_JUKEBOX                "jukebox"
+#define OPTION_FIXEDRESLAYOUTS        "fixedResLayouts"
 
 // ATTRACT MODE OPTIONS
 #define OPTION_ATTRACTMODECYCLEPLAYLIST "attractModeCyclePlaylist"
