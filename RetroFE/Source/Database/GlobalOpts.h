@@ -145,99 +145,99 @@ public:
     };
 
     
-    // reading
-    const char *value(std::string_view option) const noexcept;
-    const char *description(std::string_view option) const noexcept;
-    bool bool_value(std::string_view option) const { return int_value(option) != 0; }
-    int int_value(std::string_view option) const;
-    float float_value(std::string_view option) const;
-    
-    const char *log() const { return value(OPTION_LOG); }
-    bool dumpproperties() const { return bool_value(OPTION_DUMPPROPERTIES); }
-    
-    int numscreens() const { return int_value(OPTION_NUMSCREENS); }
-    bool fullscreen() const { return bool_value(OPTION_FULLSCREEN); }
-    int horizontal() const { return int_value(OPTION_HORIZONTAL); }
-    int vertical() const { return int_value(OPTION_VERTICAL); }
-    int screennum() const { return int_value(OPTION_SCREENNUM); }
-    bool fullscreenx() const { return bool_value(OPTION_FULLSCREENX); }
-    int horizontalx() const { return int_value(OPTION_HORIZONTALX); }
-    int verticalx() const { return int_value(OPTION_VERTICALX); }
-    int screennumx() const { return int_value(OPTION_SCREENNUMX); }
-    bool mirrorx() const { return bool_value(OPTION_MIRRORX); }
-    int rotationx() const { return int_value(OPTION_ROTATIONX); }
-    
-    bool windowborder() const { return bool_value(OPTION_WINDOWBORDER); }
-    bool windowresize() const { return bool_value(OPTION_WINDOWRESIZE); }
-    int fps() const { return int_value(OPTION_FPS); }
-    int fpsidle() const { return int_value(OPTION_FPSIDLE); }
-    bool hidemouse() const { return bool_value(OPTION_HIDEMOUSE); }
-    bool animateduringgame() const { return bool_value(OPTION_ANIMATEDURINGGAME); }
-    
-    bool videoenable() const { return bool_value(OPTION_VIDEOENABLE); }
-    int videoloop() const { return int_value(OPTION_VIDEOLOOP); }
-    bool disablevideorestart() const { return bool_value(OPTION_DISABLEVIDEORESTART); }
-    bool disablepauseonscroll() const { return bool_value(OPTION_DISABLEPAUSEONSCROLL); }
-    
-    bool vsync() const { return bool_value(OPTION_VSYNC); }
-    bool hardwarevideoaccel() const { return bool_value(OPTION_HARDWAREVIDEOACCEL); }
-    int avdecmaxthreads() const { return int_value(OPTION_AVDECMAXTHREADS); }
-    bool mutevideo() const { return bool_value(OPTION_MUTEVIDEO); }
-    int sdlrenderdriver() const { return int_value(OPTION_SDLRENDERDRIVER); }
-    int scalequality() const { return int_value(OPTION_SCALEQUALITY); }
-    bool highpriority() const { return bool_value(OPTION_HIGHPRIORITY); }
-    bool unloadsdl() const { return bool_value(OPTION_UNLOADSDL); }
-    bool minimizeonfocusloss() const { return bool_value(OPTION_MINIMIZEONFOCUSLOSS); }
-    int avdecthreadtype() const {return int_value(OPTION_AVDECTHREADTYPE); }
-    
-    const char *layout() const { return value(OPTION_LAYOUT); }
-    const char *randomlayout() const { return value(OPTION_RANDOMLAYOUT); }
-    const char *firstplaylist() const { return value(OPTION_FIRSTPLAYLIST); }
-    const char *cycleplaylist() const { return value(OPTION_CYCLEPLAYLIST); }
-    const char *firstcollection() const { return value(OPTION_FIRSTCOLLECTION); }
-    const char *cyclecollection() const { return value(OPTION_CYCLECOLLECTION); }
-    int lastplayedsize() const { return int_value(OPTION_LASTPLAYEDSIZE); }
-    const char *lastplayedskipcollection() const { return value(OPTION_LASTPLAYEDSKIPCOLLECTION); }
-    bool enteroncollection() const { return bool_value(OPTION_ENTERONCOLLECTION); }
-    bool startcollectionenter() const { return bool_value(OPTION_STARTCOLLECTIONENTER); }
-    bool exitonfirstpageback() const { return bool_value(OPTION_EXITONFIRSTPAGEBACK); }
-    bool remembermenu() const { return bool_value(OPTION_REMEMBERMENU); }
-    bool subssplit() const { return bool_value(OPTION_SUBSSPLIT); }
-    bool cfwlettersub() const { return bool_value(OPTION_CFWLETTERSUB); }
-    bool prevlettersubtocurrent() const { return bool_value(OPTION_PREVLETTERSUBTOCURRENT); }
-    bool randomstart() const { return bool_value(OPTION_RANDOMSTART); }
-    bool kiosk() const { return bool_value(OPTION_KIOSK); }
-    bool globalfavlast() const { return bool_value(OPTION_GLOBALFAVLAST); }
-    bool infoexitonscroll() const { return bool_value(OPTION_INFOEXITONSCROLL); }
-    bool jukebox() const { return bool_value(OPTION_JUKEBOX); }
-    
-    bool attractmodecycleplaylist() const { return bool_value(OPTION_ATTRACTMODECYCLEPLAYLIST); }
-    int attractmodetime() const { return int_value(OPTION_ATTRACTMODETIME); }
-    int attractmodenexttime() const { return int_value(OPTION_ATTRACTMODENEXTTIME); }
-    int attractmodeplaylisttime() const { return int_value(OPTION_ATTRACTMODEPLAYLISTTIME); }
-    const char *attractmodeskipplaylist() const { return value(OPTION_ATTRACTMODESKIPPLAYLIST); }
-    int attractmodecollectiontime() const { return int_value(OPTION_ATTRACTMODECOLLECTIONTIME); }
-    const char *attractmodeskipcollection() const { return value(OPTION_ATTRACTMODESKIPCOLLECTION); }
-    int attractmodemintime() const { return int_value(OPTION_ATTRACTMODEMINTIME); }
-    int attractmodemaxtime() const { return int_value(OPTION_ATTRACTMODEMAXTIME); }
-    bool attractmodefast() const { return bool_value(OPTION_ATTRACTMODEFAST); }
-    
-    bool collectioninputclear() const { return bool_value(OPTION_COLLECTIONINPUTCLEAR); }
-    bool playlistinputclear() const { return bool_value(OPTION_PLAYLISTINPUTCLEAR); }
-    bool jumpinputclear() const { return bool_value(OPTION_JUMPINPUTCLEAR); }
-    bool controllercomboexit() const { return bool_value(OPTION_CONTROLLERCOMBOEXIT); }
-    bool controllercombosettings() const { return bool_value(OPTION_CONTROLLERCOMBOSETTINGS); }
-    const char *settingscollectionplaylist() const { return value(OPTION_SETTINGSCOLLECTIONPLAYLIST); }
-    
-    bool metalock() const { return bool_value(OPTION_METALOCK); }
-    bool overwritexml() const { return bool_value(OPTION_OVERWRITEXML); }
-    bool showparenthesis() const { return bool_value(OPTION_SHOWPARENTHESIS); }
-    bool showsquarebrackets() const { return bool_value(OPTION_SHOWSQUAREBRACKETS); }
-    
-    const char *ledblinkydirectory() const { return value(OPTION_LEDBLINKYDIRECTORY); }
-    
-    const char *basemediapath() const { return value(OPTION_BASEMEDIAPATH); }
-    const char *baseitempath() const { return value(OPTION_BASEITEMPATH); }
+//    // reading
+//    const char *value(std::string_view defvalue) const noexcept;
+//    const char *description(std::string_view defvalue) const noexcept;
+//    bool bool_value(std::string_view defvalue) const { return int_value(defvalue) != 0; }
+//    int int_value(std::string_view defvalue) const;
+//    float float_value(std::string_view defvalue) const;
+//    
+//    const char *log() const { return value(OPTION_LOG); }
+//    bool dumpproperties() const { return bool_value(OPTION_DUMPPROPERTIES); }
+//    
+//    int numscreens() const { return int_value(OPTION_NUMSCREENS); }
+//    bool fullscreen() const { return bool_value(OPTION_FULLSCREEN); }
+//    int horizontal() const { return int_value(OPTION_HORIZONTAL); }
+//    int vertical() const { return int_value(OPTION_VERTICAL); }
+//    int screennum() const { return int_value(OPTION_SCREENNUM); }
+//    bool fullscreenx() const { return bool_value(OPTION_FULLSCREENX); }
+//    int horizontalx() const { return int_value(OPTION_HORIZONTALX); }
+//    int verticalx() const { return int_value(OPTION_VERTICALX); }
+//    int screennumx() const { return int_value(OPTION_SCREENNUMX); }
+//    bool mirrorx() const { return bool_value(OPTION_MIRRORX); }
+//    int rotationx() const { return int_value(OPTION_ROTATIONX); }
+//    
+//    bool windowborder() const { return bool_value(OPTION_WINDOWBORDER); }
+//    bool windowresize() const { return bool_value(OPTION_WINDOWRESIZE); }
+//    int fps() const { return int_value(OPTION_FPS); }
+//    int fpsidle() const { return int_value(OPTION_FPSIDLE); }
+//    bool hidemouse() const { return bool_value(OPTION_HIDEMOUSE); }
+//    bool animateduringgame() const { return bool_value(OPTION_ANIMATEDURINGGAME); }
+//    
+//    bool videoenable() const { return bool_value(OPTION_VIDEOENABLE); }
+//    int videoloop() const { return int_value(OPTION_VIDEOLOOP); }
+//    bool disablevideorestart() const { return bool_value(OPTION_DISABLEVIDEORESTART); }
+//    bool disablepauseonscroll() const { return bool_value(OPTION_DISABLEPAUSEONSCROLL); }
+//    
+//    bool vsync() const { return bool_value(OPTION_VSYNC); }
+//    bool hardwarevideoaccel() const { return bool_value(OPTION_HARDWAREVIDEOACCEL); }
+//    int avdecmaxthreads() const { return int_value(OPTION_AVDECMAXTHREADS); }
+//    bool mutevideo() const { return bool_value(OPTION_MUTEVIDEO); }
+//    int sdlrenderdriver() const { return int_value(OPTION_SDLRENDERDRIVER); }
+//    int scalequality() const { return int_value(OPTION_SCALEQUALITY); }
+//    bool highpriority() const { return bool_value(OPTION_HIGHPRIORITY); }
+//    bool unloadsdl() const { return bool_value(OPTION_UNLOADSDL); }
+//    bool minimizeonfocusloss() const { return bool_value(OPTION_MINIMIZEONFOCUSLOSS); }
+//    int avdecthreadtype() const {return int_value(OPTION_AVDECTHREADTYPE); }
+//    
+//    const char *layout() const { return value(OPTION_LAYOUT); }
+//    const char *randomlayout() const { return value(OPTION_RANDOMLAYOUT); }
+//    const char *firstplaylist() const { return value(OPTION_FIRSTPLAYLIST); }
+//    const char *cycleplaylist() const { return value(OPTION_CYCLEPLAYLIST); }
+//    const char *firstcollection() const { return value(OPTION_FIRSTCOLLECTION); }
+//    const char *cyclecollection() const { return value(OPTION_CYCLECOLLECTION); }
+//    int lastplayedsize() const { return int_value(OPTION_LASTPLAYEDSIZE); }
+//    const char *lastplayedskipcollection() const { return value(OPTION_LASTPLAYEDSKIPCOLLECTION); }
+//    bool enteroncollection() const { return bool_value(OPTION_ENTERONCOLLECTION); }
+//    bool startcollectionenter() const { return bool_value(OPTION_STARTCOLLECTIONENTER); }
+//    bool exitonfirstpageback() const { return bool_value(OPTION_EXITONFIRSTPAGEBACK); }
+//    bool remembermenu() const { return bool_value(OPTION_REMEMBERMENU); }
+//    bool subssplit() const { return bool_value(OPTION_SUBSSPLIT); }
+//    bool cfwlettersub() const { return bool_value(OPTION_CFWLETTERSUB); }
+//    bool prevlettersubtocurrent() const { return bool_value(OPTION_PREVLETTERSUBTOCURRENT); }
+//    bool randomstart() const { return bool_value(OPTION_RANDOMSTART); }
+//    bool kiosk() const { return bool_value(OPTION_KIOSK); }
+//    bool globalfavlast() const { return bool_value(OPTION_GLOBALFAVLAST); }
+//    bool infoexitonscroll() const { return bool_value(OPTION_INFOEXITONSCROLL); }
+//    bool jukebox() const { return bool_value(OPTION_JUKEBOX); }
+//    
+//    bool attractmodecycleplaylist() const { return bool_value(OPTION_ATTRACTMODECYCLEPLAYLIST); }
+//    int attractmodetime() const { return int_value(OPTION_ATTRACTMODETIME); }
+//    int attractmodenexttime() const { return int_value(OPTION_ATTRACTMODENEXTTIME); }
+//    int attractmodeplaylisttime() const { return int_value(OPTION_ATTRACTMODEPLAYLISTTIME); }
+//    const char *attractmodeskipplaylist() const { return value(OPTION_ATTRACTMODESKIPPLAYLIST); }
+//    int attractmodecollectiontime() const { return int_value(OPTION_ATTRACTMODECOLLECTIONTIME); }
+//    const char *attractmodeskipcollection() const { return value(OPTION_ATTRACTMODESKIPCOLLECTION); }
+//    int attractmodemintime() const { return int_value(OPTION_ATTRACTMODEMINTIME); }
+//    int attractmodemaxtime() const { return int_value(OPTION_ATTRACTMODEMAXTIME); }
+//    bool attractmodefast() const { return bool_value(OPTION_ATTRACTMODEFAST); }
+//    
+//    bool collectioninputclear() const { return bool_value(OPTION_COLLECTIONINPUTCLEAR); }
+//    bool playlistinputclear() const { return bool_value(OPTION_PLAYLISTINPUTCLEAR); }
+//    bool jumpinputclear() const { return bool_value(OPTION_JUMPINPUTCLEAR); }
+//    bool controllercomboexit() const { return bool_value(OPTION_CONTROLLERCOMBOEXIT); }
+//    bool controllercombosettings() const { return bool_value(OPTION_CONTROLLERCOMBOSETTINGS); }
+//    const char *settingscollectionplaylist() const { return value(OPTION_SETTINGSCOLLECTIONPLAYLIST); }
+//    
+//    bool metalock() const { return bool_value(OPTION_METALOCK); }
+//    bool overwritexml() const { return bool_value(OPTION_OVERWRITEXML); }
+//    bool showparenthesis() const { return bool_value(OPTION_SHOWPARENTHESIS); }
+//    bool showsquarebrackets() const { return bool_value(OPTION_SHOWSQUAREBRACKETS); }
+//    
+//    const char *ledblinkydirectory() const { return value(OPTION_LEDBLINKYDIRECTORY); }
+//    
+//    const char *basemediapath() const { return value(OPTION_BASEMEDIAPATH); }
+//    const char *baseitempath() const { return value(OPTION_BASEITEMPATH); }
     
     // static list of options entries
     static const options_entry s_option_entries[];
