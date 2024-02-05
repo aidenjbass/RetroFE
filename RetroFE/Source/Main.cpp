@@ -538,7 +538,7 @@ static bool ImportConfiguration(Configuration* c)
 
     LOG_INFO("RetroFE", "Imported configuration");
     bool dumpProperties = false;
-    c->getProperty("dumpProperties", dumpProperties);
+    c->getProperty(OPTION_DUMPPROPERTIES, dumpProperties);
     if (dumpProperties) {
             c->dumpPropertiesToFile(Utils::combinePath(Configuration::absolutePath, "properties.txt"));
     }

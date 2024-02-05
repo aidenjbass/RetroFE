@@ -22,6 +22,7 @@
 
 // LOGGING OPTIONS
 #define OPTION_LOG                   "log"
+#define OPTION_DUMPPROPERTIES        "dumpProperties"
 
 // DISPLAY OPTIONS
 #define OPTION_NUMSCREENS            "numScreens"
@@ -152,6 +153,7 @@ public:
     float float_value(std::string_view option) const;
     
     const char *log() const { return value(OPTION_LOG); }
+    bool dumpproperties() const { return bool_value(OPTION_DUMPPROPERTIES); }
     
     int numscreens() const { return int_value(OPTION_NUMSCREENS); }
     bool fullscreen() const { return bool_value(OPTION_FULLSCREEN); }
