@@ -296,12 +296,12 @@ void ScrollingList::random( )
 
 void ScrollingList::letterUp( )
 {
-    letterChange( false );
+    letterChange( true );
 }
 
 void ScrollingList::letterDown( )
 {
-    letterChange( true );
+    letterChange( false );
 }
 
 void ScrollingList::letterChange(bool increment)

@@ -16,8 +16,11 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ### Added
 - local launchers that are restricted to their own collections [@inigomontoya](https://github.com/inigomontoya)
 - thread pool to speed up page updates and scrolling (Windows only) [@inigomontoya](https://github.com/inigomontoya)
+- csv list to lastPlayedSkipCollection [@aidenjbass](https://github.com/aidenjbass)
+
 ### Changed
 - assert window focus after SDL initialization [@inigomontoya](https://github.com/inigomontoya)
+
 ### Fixed
 - refined behavior of video restart/pause logic [@inigomontoya](https://github.com/inigomontoya)
 - general optimization pass [@inigomontoya](https://github.com/inigomontoya)
