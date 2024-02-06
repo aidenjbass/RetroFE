@@ -114,8 +114,20 @@ Page *PageBuilder::buildPage( const std::string& collectionName, bool defaultToC
         rapidxml::xml_document<> doc;
         std::ifstream file;
         
+        // Override layout with layoutFromAnotherCollection = <collection> in layouts/Arcades/collections/<collection>
+        std::string layoutFromAnotherCollection;
+        config_.getProperty("collections." + collectionName + ".layoutFromAnotherCollection", layoutFromAnotherCollection);
+        if (layoutFromAnotherCollection != "")
+        {
+            std::string layoutFileFromAnotherCollection = Utils::combinePath(layoutPathDefault, "collections", layoutFromAnotherCollection, "layout");
+            std::cout << "Layout from another collection: " << layoutFileFromAnotherCollection << std::endl;
+            layoutPath = layoutFileFromAnotherCollection;
+        }
+        
         layoutFile = Utils::combinePath(layoutPath, layouts[layout] + ".xml");
         
+        std::cout << "Layout from another collection 2: " << layoutFile << std::endl;
+                
         if(fixedResLayouts)
         {
             // Use fixed resolution layout ie layout1920x1080.xml
