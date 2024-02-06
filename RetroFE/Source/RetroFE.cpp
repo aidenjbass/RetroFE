@@ -951,7 +951,7 @@ bool RetroFE::run( )
                     std::string layoutName;
                     config_.getProperty("collections." + settingsCollection + ".layout", layoutName);
                     if (layoutName == "") {
-                        config_.getProperty("layout", layoutName);
+                        config_.getProperty(OPTION_LAYOUT, layoutName);
                     }
                     PageBuilder pb(layoutName, getLayoutFileName(), config_, &fontcache_);
 
@@ -1114,7 +1114,7 @@ bool RetroFE::run( )
                 if (currentPage_->getCollectionSize() == 0)
                 {
                     bool backOnEmpty = false;
-                    config_.getProperty( "backOnEmpty", backOnEmpty );
+                    config_.getProperty( OPTION_BACKONEMPTY, backOnEmpty );
                     if (backOnEmpty)
                         state = RETROFE_BACK_MENU_EXIT;
                 }
@@ -2295,7 +2295,7 @@ RetroFE::RETROFE_STATE RetroFE::processUserInput( Page *page )
             resetInfoToggle();
             attract_.reset( );
             bool backOnCollection = false;
-            config_.getProperty( "backOnCollection", backOnCollection );
+            config_.getProperty( OPTION_BACKONCOLLECTION, backOnCollection );
             if ( page->getMenuDepth( ) == 1 || !backOnCollection )
                 state = RETROFE_COLLECTION_UP_REQUEST;
             else
@@ -2308,7 +2308,7 @@ RetroFE::RETROFE_STATE RetroFE::processUserInput( Page *page )
             resetInfoToggle();
             attract_.reset( );
             bool backOnCollection = false;
-            config_.getProperty( "backOnCollection", backOnCollection );
+            config_.getProperty( OPTION_BACKONCOLLECTION, backOnCollection );
             if ( page->getMenuDepth( ) == 1 || !backOnCollection )
                 state = RETROFE_COLLECTION_DOWN_REQUEST;
             else

@@ -1623,7 +1623,7 @@ void PageBuilder::getAnimationEvents(const xml_node<> *node, TweenSet &tweens)
 {
     xml_attribute<> const *durationXml = node->first_attribute("duration");
     std::string actionSetting;
-    config_.getProperty("action", actionSetting);
+    config_.getProperty(OPTION_ACTION, actionSetting);
 
     if(!durationXml)
     {
