@@ -448,7 +448,7 @@ bool RetroFE::run( )
     bool exitSplashMode = false;
     // don't show splash 
     bool screensaver = false;
-    config_.getProperty("screensaver", screensaver);
+    config_.getProperty(OPTION_SCREENSAVER, screensaver);
 
     Launcher l( config_ );
     Menu     m( config_, input_ );
@@ -2077,7 +2077,7 @@ void RetroFE::goToNextAttractModePlaylistByCycle(std::vector<std::string> cycleV
 RetroFE::RETROFE_STATE RetroFE::processUserInput( Page *page )
 {
     bool screensaver = false;
-    config_.getProperty("screensaver", screensaver);
+    config_.getProperty(OPTION_SCREENSAVER, screensaver);
 
     bool infoExitOnScroll = false;
     config_.getProperty(OPTION_INFOEXITONSCROLL, infoExitOnScroll);

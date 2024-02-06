@@ -85,6 +85,7 @@
 #define OPTION_INFOEXITONSCROLL       "infoExitOnScroll"
 #define OPTION_JUKEBOX                "jukebox"
 #define OPTION_FIXEDRESLAYOUTS        "fixedResLayouts"
+#define OPTION_SCREENSAVER            "screensaver"
 
 // ATTRACT MODE OPTIONS
 #define OPTION_ATTRACTMODECYCLEPLAYLIST "attractModeCyclePlaylist"
@@ -144,8 +145,9 @@ public:
         option_type                 type;               // type of option
         const char *                description;        // description for -showusage
     };
-
     
+    // TODO implement writing
+
 //    // reading
 //    const char *value(std::string_view defvalue) const noexcept;
 //    const char *description(std::string_view defvalue) const noexcept;
@@ -211,7 +213,9 @@ public:
 //    bool globalfavlast() const { return bool_value(OPTION_GLOBALFAVLAST); }
 //    bool infoexitonscroll() const { return bool_value(OPTION_INFOEXITONSCROLL); }
 //    bool jukebox() const { return bool_value(OPTION_JUKEBOX); }
-//    
+//    bool fixedreslayouts() const { return bool_value(OPTION_FIXEDRESLAYOUTS); }
+//    bool screensaver() const { return bool_value(OPTION_SCREENSAVER); }
+//
 //    bool attractmodecycleplaylist() const { return bool_value(OPTION_ATTRACTMODECYCLEPLAYLIST); }
 //    int attractmodetime() const { return int_value(OPTION_ATTRACTMODETIME); }
 //    int attractmodenexttime() const { return int_value(OPTION_ATTRACTMODENEXTTIME); }
