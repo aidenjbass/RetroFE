@@ -67,6 +67,7 @@
 #define OPTION_LAYOUT                "layout"
 #define OPTION_RANDOMLAYOUT          "randomLayout"
 #define OPTION_FIRSTPLAYLIST         "firstPlaylist"
+#define OPTION_AUTOPLAYLIST          "autoPlaylist"
 #define OPTION_CYCLEPLAYLIST         "cyclePlaylist"
 #define OPTION_FIRSTCOLLECTION       "firstCollection"
 #define OPTION_CYCLECOLLECTION       "cycleCollection"
@@ -199,6 +200,7 @@ public:
     const char *layout() const { return value(OPTION_LAYOUT); }
     const char *randomlayout() const { return value(OPTION_RANDOMLAYOUT); }
     const char *firstplaylist() const { return value(OPTION_FIRSTPLAYLIST); }
+    const char *autoplaylist() const { return value(OPTION_AUTOPLAYLIST); }
     const char *cycleplaylist() const { return value(OPTION_CYCLEPLAYLIST); }
     const char *firstcollection() const { return value(OPTION_FIRSTCOLLECTION); }
     const char *cyclecollection() const { return value(OPTION_CYCLECOLLECTION); }

@@ -732,11 +732,11 @@ bool RetroFE::run( )
 
                     std::string autoPlaylist = "all";
 
-                    if (std::string settingPrefix = "collections." + currentPage_->getCollectionName() + "."; config_.propertyExists(settingPrefix + "autoPlaylist")) {
-                        config_.getProperty(settingPrefix + "autoPlaylist", autoPlaylist);
+                    if (std::string settingPrefix = "collections." + currentPage_->getCollectionName() + "."; config_.propertyExists(settingPrefix + OPTION_AUTOPLAYLIST)) {
+                        config_.getProperty(settingPrefix + OPTION_AUTOPLAYLIST, autoPlaylist);
                     }
                     else {
-                        config_.getProperty("autoPlaylist", autoPlaylist);
+                        config_.getProperty(OPTION_AUTOPLAYLIST, autoPlaylist);
                     }
 
                     if (currentPage_->getCollectionName() == "Favorites") {
@@ -987,11 +987,11 @@ bool RetroFE::run( )
                 std::string selectPlaylist = settingsPlaylist;
                 if (settingsPlaylist == "") {
                     std::string autoPlaylist = "settings";
-                    if (std::string settingPrefix = "collections." + currentPage_->getCollectionName() + "."; config_.propertyExists(settingPrefix + "autoPlaylist")) {
-                        config_.getProperty(settingPrefix + "autoPlaylist", autoPlaylist);
+                    if (std::string settingPrefix = "collections." + currentPage_->getCollectionName() + "."; config_.propertyExists(settingPrefix + OPTION_AUTOPLAYLIST)) {
+                        config_.getProperty(settingPrefix + OPTION_AUTOPLAYLIST, autoPlaylist);
                     }
                     else {
-                        config_.getProperty("autoPlaylist", autoPlaylist);
+                        config_.getProperty(OPTION_AUTOPLAYLIST, autoPlaylist);
                     }
                     selectPlaylist = autoPlaylist;
                 }
@@ -1075,11 +1075,11 @@ bool RetroFE::run( )
                 currentPage_->pushCollection(info);
                 // check collection for setting
                 std::string autoPlaylist = "all";
-                if (std::string settingPrefix = "collections." + currentPage_->getCollectionName() + "."; config_.propertyExists(settingPrefix + "autoPlaylist")) {
-                    config_.getProperty(settingPrefix + "autoPlaylist", autoPlaylist);
+                if (std::string settingPrefix = "collections." + currentPage_->getCollectionName() + "."; config_.propertyExists(settingPrefix + OPTION_AUTOPLAYLIST)) {
+                    config_.getProperty(settingPrefix + OPTION_AUTOPLAYLIST, autoPlaylist);
                 }
                 else {
-                    config_.getProperty("autoPlaylist", autoPlaylist);
+                    config_.getProperty(OPTION_AUTOPLAYLIST, autoPlaylist);
                 }
 
                 if (currentPage_->getCollectionName() == "Favorites") {
@@ -1225,11 +1225,11 @@ bool RetroFE::run( )
                 config_.setProperty( "currentCollection", collectionName );
                 // check collection for setting
                 std::string autoPlaylist = "all";
-                if (std::string settingPrefix = "collections." + currentPage_->getCollectionName() + "."; config_.propertyExists(settingPrefix + "autoPlaylist")) {
-                    config_.getProperty(settingPrefix + "autoPlaylist", autoPlaylist);
+                if (std::string settingPrefix = "collections." + currentPage_->getCollectionName() + "."; config_.propertyExists(settingPrefix + OPTION_AUTOPLAYLIST)) {
+                    config_.getProperty(settingPrefix + OPTION_AUTOPLAYLIST, autoPlaylist);
                 }
                 else {
-                    config_.getProperty("autoPlaylist", autoPlaylist);
+                    config_.getProperty(OPTION_AUTOPLAYLIST, autoPlaylist);
                 }
 
                 if (currentPage_->getCollectionName() == "Favorites") {
@@ -1448,11 +1448,11 @@ bool RetroFE::run( )
 
                 // check collection for setting
                 std::string autoPlaylist = "all";
-                if (std::string settingPrefix = "collections." + currentPage_->getCollectionName() + "."; config_.propertyExists(settingPrefix + "autoPlaylist")) {
-                    config_.getProperty(settingPrefix + "autoPlaylist", autoPlaylist);
+                if (std::string settingPrefix = "collections." + currentPage_->getCollectionName() + "."; config_.propertyExists(settingPrefix + OPTION_AUTOPLAYLIST)) {
+                    config_.getProperty(settingPrefix + OPTION_AUTOPLAYLIST, autoPlaylist);
                 }
                 else {
-                    config_.getProperty("autoPlaylist", autoPlaylist);
+                    config_.getProperty(OPTION_AUTOPLAYLIST, autoPlaylist);
                 }
 
                 if (currentPage_->getCollectionName() == "Favorites") {
@@ -1693,11 +1693,11 @@ bool RetroFE::run( )
         
                 // check collection for setting
                 std::string autoPlaylist = "all";
-                if (std::string settingPrefix = "collections." + currentPage_->getCollectionName() + "."; config_.propertyExists(settingPrefix + "autoPlaylist")) {
-                    config_.getProperty(settingPrefix + "autoPlaylist", autoPlaylist);
+                if (std::string settingPrefix = "collections." + currentPage_->getCollectionName() + "."; config_.propertyExists(settingPrefix + OPTION_AUTOPLAYLIST)) {
+                    config_.getProperty(settingPrefix + OPTION_AUTOPLAYLIST, autoPlaylist);
                 }
                 else {
-                    config_.getProperty("autoPlaylist", autoPlaylist);
+                    config_.getProperty(OPTION_AUTOPLAYLIST, autoPlaylist);
                 }
 
                 if (currentPage_->getCollectionName() == "Favorites") {
