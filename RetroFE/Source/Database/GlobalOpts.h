@@ -255,3 +255,8 @@ public:
     static const options_entry s_option_entries[];
 };
 
+// Function to format and print contents of global_options::options_entry
+void showUsage(const global_options::options_entry* options);
+
+// Function to format and print contents of global_options::options_entry to a settings file
+void makeSettings(const global_options::options_entry* options);

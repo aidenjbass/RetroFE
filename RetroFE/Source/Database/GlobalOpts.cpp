@@ -19,8 +19,12 @@
 //**************************************************************************
 
 #include "GlobalOpts.h"
+#include "../Utility/Utils.h"
+#include "Configuration.h"
+#include <fstream>
 #include <iostream>
 #include <string>
+#include <iomanip>
 
 const global_options::options_entry global_options::s_option_entries[] =
 {
@@ -130,3 +134,34 @@ const global_options::options_entry global_options::s_option_entries[] =
 
     { nullptr }
 };
+
+// Function to format and print contents of global_options::options_entry
+void showUsage(const global_options::options_entry* options) {
+    for (int i = 0; options[i].name || options[i].description; ++i) {
+        if (options[i].name) {
+            std::cout << "-" << std::setw(30) << std::left << options[i].name << options[i].description << std::endl;
+        }
+        else {
+            // Category headers have nullptr names, so we print separate
+            std::cout << "\n#\n# " << options[i].description << "\n#\n" << std::endl;
+        }
+    }
+    std::cout << std::endl;
+}
+
+// Function to format and print contents of global_options::options_entry to a settings file
+void makeSettings(const global_options::options_entry* options) {
+    std::string filename = Utils::combinePath(Configuration::absolutePath, "settings.conf");
+    std::ofstream settingsFile;
+    settingsFile.open(filename.c_str());
+    for (int i = 0; options[i].name || options[i].description; ++i) {
+        if (options[i].name) {
+            settingsFile << options[i].name << "=" << options[i].defvalue << std::endl;
+        }
+        else {
+            // Category headers have nullptr names, so we print separate
+            settingsFile << "\n#\n# " << options[i].description << "\n#\n" << std::endl;
+        }
+    }
+    settingsFile.close();
+}

@@ -17,6 +17,7 @@
 #include "Video/GStreamerVideo.h"
 #include "Database/Configuration.h"
 #include "Database/DB.h"
+#include "Database/GlobalOpts.h"
 #include "Collection/CollectionInfoBuilder.h"
 #include "Execute/Launcher.h"
 #include "Utility/Log.h"
@@ -24,8 +25,6 @@
 #include "RetroFE.h"
 #include "Version.h"
 #include "SDL.h"
-
-#include "Database/GlobalOpts.h"
 
 #include <cstdlib>
 #include <fstream>
@@ -35,13 +34,6 @@
 #include <string>
 #include <fstream>
 #include <vector>
-#include <iostream>
-#include <iomanip>
-#ifdef WIN32
-    #include <io.h>
-#else
-    #include <unistd.h>
-#endif
 
 namespace fs = std::filesystem;
 static bool ImportConfiguration(Configuration* c);
@@ -69,37 +61,6 @@ bool initializeMetadataDatabase(MetadataDatabase*& metadb, DB* db, Configuration
         return false;
     }
     return true;
-}
-
-// Function to format and print contents of global_options::options_entry
-void showUsage(const global_options::options_entry* options) {
-    for (int i = 0; options[i].name || options[i].description; ++i) {
-        if (options[i].name) {
-            std::cout << "-" << std::setw(30) << std::left << options[i].name << options[i].description << std::endl;
-        }
-        else {
-            // Category headers have nullptr names, so we print separate
-            std::cout << "\n#\n# " << options[i].description << "\n#\n" << std::endl;
-        }
-    }
-    std::cout << std::endl;
-}
-
-// Function to format and print contents of global_options::options_entry to a settings file
-void makeSettings(const global_options::options_entry* options) {
-    std::string filename = Utils::combinePath(Configuration::absolutePath, "settings.conf");
-    std::ofstream settingsFile;
-    settingsFile.open(filename.c_str());
-    for (int i = 0; options[i].name || options[i].description; ++i) {
-        if (options[i].name) {
-            settingsFile << options[i].name << "=" << options[i].defvalue << std::endl;
-        }
-        else {
-            // Category headers have nullptr names, so we print separate
-            settingsFile << "\n#\n# " << options[i].description << "\n#\n" << std::endl;
-        }
-    }
-    settingsFile.close();
 }
 
 //
