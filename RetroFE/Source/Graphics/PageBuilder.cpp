@@ -76,7 +76,7 @@ Page *PageBuilder::buildPage( const std::string& collectionName, bool defaultToC
     std::string layoutFileAspect;
     std::string layoutName = layoutKey;
     std::string layoutPathDefault = Utils::combinePath(Configuration::absolutePath, "layouts", layoutName);
-    bool fixedResLayouts;
+    bool fixedResLayouts = false;
     config_.getProperty(OPTION_FIXEDRESLAYOUTS, fixedResLayouts);
     namespace fs = std::filesystem;
     
