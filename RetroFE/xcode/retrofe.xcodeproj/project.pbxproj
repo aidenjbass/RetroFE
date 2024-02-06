@@ -390,6 +390,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = 08FC2F3B09344060A0D4CF8E /* Build configuration list for PBXNativeTarget "retrofe" */;
 			buildPhases = (
+				DFB7B5A52B7276E400B7CCCE /* ShellScript */,
 				381A2E200F614C28905EA636 /* Sources */,
 				2A7B1EA572134ECA84E6FDE2 /* Frameworks */,
 				DFF91EAC2B26200900507957 /* Embed Frameworks */,
@@ -440,6 +441,27 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		DFB7B5A52B7276E400B7CCCE /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n${PROJECT_DIR}/../xcode/embed_commit.sh\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		381A2E200F614C28905EA636 /* Sources */ = {
@@ -598,7 +620,7 @@
 					"$(PROJECT_DIR)/../ThirdPartyMac/GStreamer.framework/Libraries",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
-				MARKETING_VERSION = 0.10.34.3;
+				MARKETING_VERSION = 0.10.34.4;
 				PRODUCT_BUNDLE_IDENTIFIER = RetroFE;
 				PRODUCT_NAME = RetroFE;
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -649,7 +671,7 @@
 					"$(PROJECT_DIR)/../ThirdPartyMac/GStreamer.framework/Libraries",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
-				MARKETING_VERSION = 0.10.34.3;
+				MARKETING_VERSION = 0.10.34.4;
 				PRODUCT_BUNDLE_IDENTIFIER = RetroFE;
 				PRODUCT_NAME = RetroFE;
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -700,7 +722,7 @@
 					"$(PROJECT_DIR)/../ThirdPartyMac/GStreamer.framework/Libraries",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
-				MARKETING_VERSION = 0.10.34.3;
+				MARKETING_VERSION = 0.10.34.4;
 				PRODUCT_BUNDLE_IDENTIFIER = RetroFE;
 				PRODUCT_NAME = RetroFE;
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -777,7 +799,7 @@
 					"$(PROJECT_DIR)/../ThirdPartyMac/GStreamer.framework/Libraries",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
-				MARKETING_VERSION = 0.10.34.3;
+				MARKETING_VERSION = 0.10.34.4;
 				PRODUCT_BUNDLE_IDENTIFIER = RetroFE;
 				PRODUCT_NAME = RetroFE;
 				PROVISIONING_PROFILE_SPECIFIER = "";
