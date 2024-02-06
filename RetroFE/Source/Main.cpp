@@ -118,9 +118,9 @@ int main(int argc, char** argv)
         std::string program = argv[0];
         std::string param = argv[1];
         
-        if (param == "-createcollection" ||
+        if ((param == "-createcollection" ||
             param == "--createcollection" ||
-            param == "-cc")
+            param == "-cc") && argc > 2)
         {
             std::string param = argv[1];
             std::string value = argv[2];
@@ -129,14 +129,14 @@ int main(int argc, char** argv)
                 CollectionInfoBuilder::createCollectionDirectory(value, "", Utils::getOSType());
                 return 0;
             }
-            else if (argc == 4 and std::string(argv[3]) == "local")
+            else if (argc == 4 && std::string(argv[3]) == "local")
             {
                 CollectionInfoBuilder::createCollectionDirectory(value, argv[3], Utils::getOSType());
                 return 0;
             }
             else
             {
-                std::cout << "Expected 1 argument for -createcollection, got " << argc - 2 << std::endl;
+                std::cout << "Expected at least 1 argument for -createcollection, got " << argc - 2 << std::endl;
                 return 0;
             }
         }
@@ -197,6 +197,7 @@ int main(int argc, char** argv)
             else
             {
                 std::cout << "Expected 1 argument for -dump, got " << argc - 2 << std::endl;
+                std::cout << "Usage [-dump] [filename.txt]" << std::endl;
                 return 0;
             }
         }
@@ -207,7 +208,7 @@ int main(int argc, char** argv)
             makeSettings(global_options::s_option_entries);
             return 0;
         }
-        else if ((argc % 2 != 0 or argc % 2 == 0) and param != "-help" and param != "-h")
+        else if ((argc % 2 != 0 || argc % 2 == 0) && param != "-help" && param != "-h")
         {
             // Pass global settings via CLI
             for (int i = 1; i <= argc - 1 ; i+=2) {
@@ -215,7 +216,16 @@ int main(int argc, char** argv)
                 if (argv[i+1] == nullptr)
                 {
                     // If you don't pass a value with a key we need catch that here
-                    std::cout << "Expected 1 argument for " << argv[i] << " got " << 0 << std::endl;
+                    if (param == "-createcollection" ||
+                        param == "--createcollection" ||
+                        param == "-cc")
+                    {
+                        std::cout << "Usage [-createcollection] [collectionName] {local}" << std::endl;
+                    }
+                    else
+                    {
+                        std::cout << "Expected 1 argument for " << argv[i] << " got " << 0 << std::endl;
+                    }
                     return 0;
                 }
                 std::string CLIkey = argv[i];
@@ -244,6 +254,7 @@ int main(int argc, char** argv)
         else
         {
             // Display information about RetroFE
+            std::cout << std::endl;
             std::cout << "Absolute Path: " << Configuration::absolutePath << std::endl;
             std::cout << "RetroFE Version: " << Version::getString() << std::endl;
             std::cout << std::endl;
@@ -256,12 +267,12 @@ int main(int argc, char** argv)
             std::cout << "  -h   -help               Show this message" << std::endl;
             std::cout << "  -v   -version            Print the version of RetroFE" << std::endl;
             std::cout << std::endl;
-            std::cout << "  -cc  -createcollection   Create a collection directory structure" << std::endl;
+            std::cout << "  -cc  -createcollection   Create a collection directory structure        [collectionName] {local}" << std::endl;
             std::cout << "  -rdb -rebuilddatabase    Rebuild the database from /meta subfolder" << std::endl;
             std::cout << "  -su  -showusage          Print a list of all global settings" << std::endl;
             std::cout << "  -sc  -showconfig         Print a list of current settings" << std::endl;
             std::cout << "  -C   -createconfig       Create a settings.conf with default values" << std::endl;
-            std::cout << "       -dump               Dump current settings to a file" << std::endl;
+            std::cout << "       -dump               Dump current settings to a file                [filename.txt]" << std::endl;
             std::cout << std::endl;
 
             // Provide additional information and references
