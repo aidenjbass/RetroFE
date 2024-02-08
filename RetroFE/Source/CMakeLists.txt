@@ -10,6 +10,17 @@ set(RETROFE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/..)
 set(RETROFE_THIRD_PARTY_DIR "${RETROFE_DIR}/ThirdParty")
 list(APPEND CMAKE_MODULE_PATH "${RETROFE_DIR}/CMake")
 
+# Find Git executable
+find_package(Git REQUIRED)
+
+# Get the Git hash
+execute_process(
+    COMMAND ${GIT_EXECUTABLE} rev-list --count HEAD
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE GIT_COMMIT_NO
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
 ##############################################################
 # Setup some variables to help find external libraries
 ##############################################################
@@ -246,6 +257,7 @@ if(APPLE)
 	target_link_libraries(retrofe ${RETROFE_LIBRARIES})
 
 else()
+	set_target_properties(retrofe PROPERTIES OUTPUT_NAME "retrofe-${GIT_COMMIT_NO}")
 	set_target_properties(retrofe PROPERTIES LINKER_LANGUAGE CXX)
 endif()
 
