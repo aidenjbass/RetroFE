@@ -519,7 +519,19 @@ bool PageBuilder::buildComponents(xml_node<>* layout, Page* page, const std::str
         else
         {
             std::string imagePath;
+            
+            std::string layoutFromAnotherCollection;
+            config_.getProperty("collections." + collectionName + ".layoutFromAnotherCollection", layoutFromAnotherCollection);
+            if (layoutFromAnotherCollection != "")
+            {
+                // If layoutFromAnotherCollection, search in layouts/<layout>/collections/<collectionName>/layout/
+                // Instead of layouts/<layout>/collections/<layoutFromAnotherCollection>/layout/
+                std::string layoutPathDefault = Utils::combinePath(Configuration::absolutePath, "layouts", layoutKey);
+                layoutPath = Utils::combinePath(layoutPathDefault, "collections", collectionName, "layout");;
+            }
+            
             imagePath = Utils::combinePath(Configuration::convertToAbsolutePath(layoutPath, imagePath), std::string(src->value()));
+            
             // check if collection's assets are in a different theme
             std::string layoutName;
             config_.getProperty("collections." + collectionName + ".layout", layoutName);
