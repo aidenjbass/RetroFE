@@ -83,6 +83,7 @@ int main(int argc, char** argv)
             param == "--createcollection" ||
             param == "-cc") && argc > 2)
         {
+            // Generate a default collection structure
             std::string param = argv[1];
             std::string value = argv[2];
             if (argc == 3)
@@ -112,6 +113,7 @@ int main(int argc, char** argv)
             param == "--showusage" ||
             param == "-su")
         {
+            // List all available global settings and there use
             showUsage(global_options::s_option_entries);
             return 0;
         }
@@ -121,6 +123,7 @@ int main(int argc, char** argv)
             param == "-rbdb" ||
             param == "-rdb")
         {
+            // Rebuild the database without doing a full init and bypasses metaLock
             DB* db = nullptr;
             MetadataDatabase* metadb = nullptr;
             if (!initializeDB(db, dbPath)) {
@@ -139,6 +142,7 @@ int main(int argc, char** argv)
             param == "--showconfig" ||
             param == "-sc")
         {
+            // Prints all settingsX.conf to terminal
             ImportConfiguration(&config);
             config.printProperties();
             return 0;
@@ -147,18 +151,19 @@ int main(int argc, char** argv)
                  param == "--dumpproperties" ||
                  param == "-dump")
         {
-            if (argc == 3)
+            // Equivalent to doing dumpProperties=true in settings.conf, we just don't do a full init
+            if (argc == 2)
             {
-                gst_init(nullptr, nullptr); // If gstreamer isn't init ImportConfiguration fails
+                gst_init(nullptr, nullptr);
                 ImportConfiguration(&config);
-                config.dumpPropertiesToFile(argv[2]);
-                fprintf(stdout, "Dumping to: %s/%s\n", Configuration::absolutePath.c_str(), argv[2]);
+                config.dumpPropertiesToFile(Utils::combinePath(Configuration::absolutePath, "properties.txt"));
+                fprintf(stdout, "Dumping to: %s/%s\n", Configuration::absolutePath.c_str(), Utils::combinePath(Configuration::absolutePath, "properties.txt").c_str());
                 return 0;
             }
             else
             {
                 std::cout << "Expected 1 argument for -dump, got " << argc - 2 << std::endl;
-                std::cout << "Usage [-dump] [filename.txt]" << std::endl;
+                std::cout << "Usage [-dump]" << std::endl;
                 return 0;
             }
         }
@@ -166,7 +171,9 @@ int main(int argc, char** argv)
             param == "--createconfig" ||
             param == "-C")
         {
+            // Generate a default settings.conf and readme
             makeSettings(global_options::s_option_entries);
+            makeSettingsReadme(global_options::s_option_entries);
             return 0;
         }
         else if ((argc % 2 != 0 || argc % 2 == 0) && param != "-help" && param != "-h")
@@ -232,8 +239,8 @@ int main(int argc, char** argv)
             std::cout << "  -rdb -rebuilddatabase    Rebuild the database from /meta subfolder" << std::endl;
             std::cout << "  -su  -showusage          Print a list of all global settings" << std::endl;
             std::cout << "  -sc  -showconfig         Print a list of current settings" << std::endl;
-            std::cout << "  -C   -createconfig       Create a settings.conf with default values" << std::endl;
-            std::cout << "       -dump               Dump current settings to a file                [filename.txt]" << std::endl;
+            std::cout << "  -C   -createconfig       Create a settings.conf with default values and a readme" << std::endl;
+            std::cout << "       -dump               Dump current settings to properties.txt" << std::endl;
             std::cout << std::endl;
 
             // Provide additional information and references

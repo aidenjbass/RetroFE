@@ -151,12 +151,29 @@ void showUsage(const global_options::options_entry* options) {
 
 // Function to format and print contents of global_options::options_entry to a settings file
 void makeSettings(const global_options::options_entry* options) {
-    std::string filename = Utils::combinePath(Configuration::absolutePath, "settings.conf");
+    std::string filename = Utils::combinePath(Configuration::absolutePath, "settings - default.conf");
     std::ofstream settingsFile;
     settingsFile.open(filename.c_str());
     for (int i = 0; options[i].name || options[i].description; ++i) {
         if (options[i].name) {
             settingsFile << options[i].name << "=" << options[i].defvalue << std::endl;
+        }
+        else {
+            // Category headers have nullptr names, so we print separate
+            settingsFile << "\n# " << options[i].description << "\n" << std::endl;
+        }
+    }
+    settingsFile.close();
+}
+
+// Function to format and print contents of global_options::options_entry to a settings file
+void makeSettingsReadme(const global_options::options_entry* options) {
+    std::string filename = Utils::combinePath(Configuration::absolutePath, "settings - README.txt");
+    std::ofstream settingsFile;
+    settingsFile.open(filename.c_str());
+    for (int i = 0; options[i].name || options[i].description; ++i) {
+        if (options[i].name) {
+            settingsFile << std::setw(30) << std::left << options[i].name << options[i].description << std::endl;
         }
         else {
             // Category headers have nullptr names, so we print separate

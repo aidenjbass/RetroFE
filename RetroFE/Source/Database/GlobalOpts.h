@@ -260,3 +260,6 @@ void showUsage(const global_options::options_entry* options);
 
 // Function to format and print contents of global_options::options_entry to a settings file
 void makeSettings(const global_options::options_entry* options);
+
+// Function to format and print contents of global_options::options_entry to a readme file
+void makeSettingsReadme(const global_options::options_entry* options);
