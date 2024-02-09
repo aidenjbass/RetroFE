@@ -524,10 +524,18 @@ bool PageBuilder::buildComponents(xml_node<>* layout, Page* page, const std::str
             config_.getProperty("collections." + collectionName + ".layoutFromAnotherCollection", layoutFromAnotherCollection);
             if (layoutFromAnotherCollection != "")
             {
+                namespace fs = std::filesystem;
                 // If layoutFromAnotherCollection, search in layouts/<layout>/collections/<collectionName>/layout/
                 // Instead of layouts/<layout>/collections/<layoutFromAnotherCollection>/layout/
                 std::string layoutPathDefault = Utils::combinePath(Configuration::absolutePath, "layouts", layoutKey);
-                layoutPath = Utils::combinePath(layoutPathDefault, "collections", collectionName, "layout");;
+                layoutPath = Utils::combinePath(layoutPathDefault, "collections", collectionName, "layout");
+                if (!fs::exists(layoutPath))
+                {
+                    std::string layout_artworkCollectionPath = Utils::combinePath(Configuration::absolutePath, "collections", collectionName, "layout_artwork");
+                    LOG_INFO("Layout", "Layout Artwork not found in layouts/" + layoutKey + "/collections/" + collectionName + "/layout/");
+                    LOG_INFO("Layout", "Using layout_artwork folder in: " + layout_artworkCollectionPath);
+                    layoutPath = layout_artworkCollectionPath;
+                }
             }
             
             imagePath = Utils::combinePath(Configuration::convertToAbsolutePath(layoutPath, imagePath), std::string(src->value()));
