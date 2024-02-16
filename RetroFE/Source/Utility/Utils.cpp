@@ -240,18 +240,21 @@ std::string Utils::getDirectory(const std::string& filePath)
     return directory;
 }
 
-std::string Utils::getParentDirectory(std::string directory)
+std::string Utils::getParentDirectory(std::string directory) 
 {
     size_t last_slash_idx = directory.find_last_of(pathSeparator);
-    if(directory.length() - 1 == last_slash_idx)
-    {
-        directory = directory.erase(last_slash_idx, directory.length()-1);
+    if (directory.length() - 1 == last_slash_idx) {
+        directory = directory.erase(last_slash_idx, directory.length() - 1);
         last_slash_idx = directory.find_last_of(pathSeparator);
     }
 
-    if (std::string::npos != last_slash_idx)
-    {
+    if (std::string::npos != last_slash_idx) {
         directory = directory.erase(last_slash_idx, directory.length());
+    }
+
+    // If the directory ends with a drive letter (e.g., "C:"), append a backslash to form a valid root path
+    if (directory.length() == 2 && directory[1] == ':') {
+        directory += pathSeparator;
     }
 
     return directory;
