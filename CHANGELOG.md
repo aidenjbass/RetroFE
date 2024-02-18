@@ -11,17 +11,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 [@arghs15](https://github.com/arghs15)
 [@bluestang2006](https://github.com/bluestang2006)
 
-<<<<<<< Updated upstream
-
-## [10.34.5] - 
-
-### Added
-- added default.conf for default game info [@monkofthefunk](https://github.com/monkofthefunk)
-
-### Changed
-
-### Fixed
-=======
 ## [10.34.5] - 2024-02-18
 
 ### Added
