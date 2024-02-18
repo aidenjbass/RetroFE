@@ -1626,11 +1626,12 @@ void Page::scroll(bool forward) {
                     menu->scroll(forward);
                 }
             }
+            onNewScrollItemSelected();
             });
 
         // Wait for the scroll operation to complete
         scrollFuture.get();
-        onNewScrollItemSelected();
+
         if (highlightSoundChunk_) {
             highlightSoundChunk_->play();
         }

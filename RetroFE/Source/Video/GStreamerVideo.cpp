@@ -188,6 +188,13 @@ void GStreamerVideo::freeElements()
         videoConvertCaps_ = nullptr;
     }
 
+    // Unref the capsFilter
+    if (capsFilter_)
+    {
+        gst_object_unref(capsFilter_);
+        capsFilter_ = nullptr;
+    }
+
     // Nullify video elements
     videoSink_    = nullptr;
     videoConvert_ = nullptr;

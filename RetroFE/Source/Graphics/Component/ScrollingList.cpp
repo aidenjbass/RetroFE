@@ -251,9 +251,10 @@ void ScrollingList::setSelectedIndex( int selectedIndex )
 
 Item *ScrollingList::getItemByOffset(int offset)
 {
+    // First, check if items_ is nullptr or empty
+    if (!items_ || items_->empty()) return nullptr;
+    
     size_t itemSize = items_->size();
-    if (!items_ || itemSize == 0) return nullptr;
-
     size_t index = getSelectedIndex();
     if (offset >= 0)
     {
@@ -261,7 +262,7 @@ Item *ScrollingList::getItemByOffset(int offset)
     }
     else
     {
-        index = loopDecrement(index, offset * -1, itemSize);
+        index = loopDecrement(index, -offset, itemSize);
     }
     
     return (*items_)[index];
@@ -269,8 +270,9 @@ Item *ScrollingList::getItemByOffset(int offset)
 
 Item* ScrollingList::getSelectedItem()
 {
+    // First, check if items_ is nullptr or empty
+    if (!items_ || items_->empty()) return nullptr;
     size_t itemSize = items_->size();
-    if (!items_ || itemSize == 0) return nullptr;
     
     return (*items_)[loopIncrement(itemIndex_, selectedOffsetIndex_, itemSize)];
 }
@@ -289,8 +291,9 @@ void ScrollingList::pageDown()
 
 void ScrollingList::random( )
 {
+    if (!items_ || items_->empty()) return;
     size_t itemSize = items_->size();
-    if ( !items_ || itemSize == 0 ) return;
+    
     itemIndex_ = rand( ) % itemSize;
 }
 
@@ -306,8 +309,9 @@ void ScrollingList::letterDown( )
 
 void ScrollingList::letterChange(bool increment)
 {
+    // First, check if items_ is nullptr or empty
+    if (!items_ || items_->empty()) return;
     size_t itemSize = items_->size();
-    if (!items_ || itemSize == 0) return;
 
     Item const* startItem = (*items_)[(itemIndex_ + selectedOffsetIndex_) % itemSize];
     std::string startname = (*items_)[(itemIndex_ + selectedOffsetIndex_) % itemSize]->lowercaseFullTitle();
@@ -355,14 +359,15 @@ void ScrollingList::letterChange(bool increment)
     }
 }
 
-size_t ScrollingList::loopIncrement(size_t offset, size_t i, size_t size) const {
-    if (size == 0) return 0;
-    return (offset + i) % size;
+size_t ScrollingList::loopIncrement(size_t currentIndex, size_t incrementAmount, size_t listSize) const {
+    if (listSize == 0) return 0;
+    return (currentIndex + incrementAmount) % listSize;
 }
 
-size_t ScrollingList::loopDecrement(size_t offset, size_t i, size_t size) const {
-    if (size == 0) return 0;
-    return (offset + size - i) % size;
+
+size_t ScrollingList::loopDecrement(size_t currentIndex, size_t decrementAmount, size_t listSize) const {
+    if (listSize == 0) return 0;
+    return (currentIndex + listSize - decrementAmount) % listSize;
 }
 
 void ScrollingList::metaUp(const std::string& attribute)
@@ -377,9 +382,8 @@ void ScrollingList::metaDown(const std::string& attribute)
 
 void ScrollingList::metaChange(bool increment, const std::string& attribute)
 {
+    if (!items_ || items_->empty()) return;
     size_t itemSize = items_->size();
-
-    if (!items_ || itemSize == 0) return;
 
     const Item* startItem = (*items_)[(itemIndex_ + selectedOffsetIndex_) % itemSize];
     std::string startValue = (*items_)[(itemIndex_ + selectedOffsetIndex_) % itemSize]->getMetaAttribute(attribute);
@@ -423,9 +427,8 @@ void ScrollingList::metaChange(bool increment, const std::string& attribute)
 
 void ScrollingList::subChange(bool increment)
 {
+    if (!items_ || items_->empty()) return;
     size_t itemSize = items_->size();
-
-    if (!items_ || itemSize == 0) return;
 
     const Item* startItem = (*items_)[(itemIndex_ + selectedOffsetIndex_) % itemSize];
     std::string startname = (*items_)[(itemIndex_ + selectedOffsetIndex_) % itemSize]->collectionInfo->lowercaseName();
@@ -1019,17 +1022,12 @@ void ScrollingList::deallocateTexture( size_t index )
 
     Component *s = components_[index];
 
-    if ( s )
-        s->freeGraphicsMemory(  );
-    delete s;
-    components_[index] = nullptr;
-
-}
-
-void ScrollingList::draw(  )
-{
-    //todo: Poor design implementation.
-    // caller should instead call ScrollingList::Draw( unsigned int layer )
+    if (s)
+    {
+        s->freeGraphicsMemory();
+        delete s;
+        components_[index] = nullptr;
+    }
 }
 
 void ScrollingList::draw(unsigned int layer)

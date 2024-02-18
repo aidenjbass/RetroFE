@@ -46,6 +46,9 @@ public:
 
     ~ScrollingList() override;
     const std::vector<Item*>& getItems() const;
+    
+    using Component::draw;
+    
     void triggerEnterEvent();
     void triggerExitEvent();
     void triggerMenuEnterEvent(int menuIndex = -1);
@@ -104,7 +107,6 @@ public:
     void allocateGraphicsMemory() override;
     void freeGraphicsMemory() override;
     bool update(float dt) override;
-    void draw() override;
     void draw(unsigned int layer);
     void setScrollAcceleration(float value);
     void setStartScrollTime(float value);
