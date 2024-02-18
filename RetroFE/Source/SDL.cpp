@@ -228,12 +228,12 @@ bool SDL::initialize( Configuration &config )
             }
 
             int rotation= 0;
-            config.getProperty( "rotation" + screenIndex, rotation ); // TODO use GlobalOpts
+            config.getProperty( OPTION_ROTATION + screenIndex, rotation );
             LOG_INFO("Configuration", "Setting rotation for screen " + screenIndex + " to " + std::to_string( rotation * 90 ) + " degrees." );
             rotation_.push_back( rotation );
 
             bool mirror = false;
-            config.getProperty( "mirror" + screenIndex, mirror ); // TODO use GlobalOpts
+            config.getProperty( OPTION_MIRROR + screenIndex, mirror );
             if ( mirror )
                 LOG_INFO("Configuration", "Setting mirror mode for screen " + screenIndex + "." );
             mirror_.push_back( mirror );

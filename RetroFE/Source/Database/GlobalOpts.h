@@ -30,6 +30,8 @@
 #define OPTION_HORIZONTAL            "horizontal"
 #define OPTION_VERTICAL              "vertical"
 #define OPTION_SCREENNUM             "screenNum"
+#define OPTION_MIRROR                "mirror"
+#define OPTION_ROTATION              "rotation"
 #define OPTION_FULLSCREENX           "fullscreenx"
 #define OPTION_HORIZONTALX           "horizontalx"
 #define OPTION_VERTICALX             "verticalx"
