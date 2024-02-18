@@ -261,7 +261,7 @@ Item *ScrollingList::getItemByOffset(int offset)
     }
     else
     {
-        index = loopDecrement(index, offset * -1, itemSize);
+        index = loopDecrement(index, -offset, itemSize);
     }
     
     return (*items_)[index];
@@ -358,14 +358,15 @@ void ScrollingList::letterChange(bool increment)
     }
 }
 
-size_t ScrollingList::loopIncrement(size_t offset, size_t i, size_t size) const {
-    if (size == 0) return 0;
-    return (offset + i) % size;
+size_t ScrollingList::loopIncrement(size_t currentIndex, size_t incrementAmount, size_t listSize) const {
+    if (listSize == 0) return 0;
+    return (currentIndex + incrementAmount) % listSize;
 }
 
-size_t ScrollingList::loopDecrement(size_t offset, size_t i, size_t size) const {
-    if (size == 0) return 0;
-    return (offset + size - i) % size;
+
+size_t ScrollingList::loopDecrement(size_t currentIndex, size_t decrementAmount, size_t listSize) const {
+    if (listSize == 0) return 0;
+    return (currentIndex + listSize - decrementAmount) % listSize;
 }
 
 void ScrollingList::metaUp(const std::string& attribute)
