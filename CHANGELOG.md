@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 ## [10.34.5] - 2024-02-18
 
 ### Added
+- added default.conf for default game info [@monkofthefunk](https://github.com/monkofthefunk)
 - Append build number to RetroFE binary when building [@aidenjbass](https://github.com/aidenjbass)
 - A plethora of CLI options [@aidenjbass](https://github.com/aidenjbass)
 - -help to show all [@aidenjbass](https://github.com/aidenjbass)
@@ -33,7 +34,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Existence checks for start and exit scripts [@aidenjbass](https://github.com/aidenjbass)
 - Placed jbKey's behind a jukebox key to not bother mapping [@aidenjbass](https://github.com/aidenjbass)
 - Rebuilt the layout getter in pageBuilder [@aidenjbass](https://github.com/aidenjbass)
->>>>>>> Stashed changes
 
 ## [10.34.4] - 2024-02-03
 
