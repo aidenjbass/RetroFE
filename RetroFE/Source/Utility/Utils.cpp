@@ -33,6 +33,11 @@
     #include <Windows.h>
 #endif
 
+#ifdef WIN32
+    #include <io.h>
+#else
+    #include <unistd.h>
+#endif
 
 // Initialize the static member variables
 #ifdef __APPLE__
@@ -333,4 +338,39 @@ std::string Utils::removeAbsolutePath(const std::string& fullPath) {
         return fullPath.substr(0, found) + "." + fullPath.substr(found + rootPath.length());
     }
     return fullPath; // Return the original path if root is not found
+}
+
+// Check if we're starting retrofe from terminal on Win or Unix
+bool Utils::isOutputATerminal() {
+    #ifdef _WIN32
+        return _isatty(_fileno(stdout));
+    #else
+        return isatty(STDOUT_FILENO);
+    #endif
+}
+
+// Check if start of fullString contains startOfString
+bool Utils::startsWith(const std::string& fullString, const std::string& startOfString) {
+    return fullString.substr(0, startOfString.length()) == startOfString;
+}
+
+// Check if start of fullString contains startOfString and then remove
+bool Utils::startsWithAndStrip(std::string& fullString, const std::string& startOfString) {
+    if (fullString.substr(0, startOfString.length()) == startOfString) {
+        fullString = fullString.substr(startOfString.length());
+        return true;
+    }
+    return false;
+}
+
+
+std::string Utils::getOSType(){
+    #ifdef WIN32
+        std::string osType = "windows";
+    #elif __APPLE__
+        std::string osType = "apple";
+    #else
+        std::string osType = "linux";
+    #endif
+    return osType;
 }

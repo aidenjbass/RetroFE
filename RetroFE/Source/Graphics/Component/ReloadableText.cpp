@@ -17,6 +17,7 @@
 #include "ReloadableText.h"
 #include "../ViewInfo.h"
 #include "../../Database/Configuration.h"
+#include "../../Database/GlobalOpts.h"
 #include "../../Utility/Log.h"
 #include "../../SDL.h"
 #include <fstream>
@@ -307,7 +308,7 @@ void ReloadableText::ReloadTexture()
         }
 
         bool overwriteXML = false;
-        config_.getProperty( "overwriteXML", overwriteXML );
+        config_.getProperty( OPTION_OVERWRITEXML, overwriteXML );
         if ( text == "" || overwriteXML ) // No text was found yet; check the info in stead
         {
             std::string text_tmp;
