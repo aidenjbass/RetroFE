@@ -198,7 +198,7 @@ int main(int argc, char** argv)
                 }
                 std::string CLIkey = argv[i];
                 std::string CLIvalue = argv[i+1];
-                if (Utils::startsWithAndStrip(CLIkey, "-") and ! Utils::startsWith(CLIvalue,"-"))
+                if (Utils::startsWithAndStrip(CLIkey, "-") && ! Utils::startsWith(CLIvalue,"-"))
                 {
                     if (CLIkey == OPTION_LOG)
                     {
