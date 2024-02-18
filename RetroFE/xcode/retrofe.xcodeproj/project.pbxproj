@@ -620,7 +620,7 @@
 					"$(PROJECT_DIR)/../ThirdPartyMac/GStreamer.framework/Libraries",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
-				MARKETING_VERSION = 0.10.34.4;
+				MARKETING_VERSION = 0.10.34.5;
 				PRODUCT_BUNDLE_IDENTIFIER = RetroFE;
 				PRODUCT_NAME = RetroFE;
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -671,7 +671,7 @@
 					"$(PROJECT_DIR)/../ThirdPartyMac/GStreamer.framework/Libraries",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
-				MARKETING_VERSION = 0.10.34.4;
+				MARKETING_VERSION = 0.10.34.5;
 				PRODUCT_BUNDLE_IDENTIFIER = RetroFE;
 				PRODUCT_NAME = RetroFE;
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -722,7 +722,7 @@
 					"$(PROJECT_DIR)/../ThirdPartyMac/GStreamer.framework/Libraries",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
-				MARKETING_VERSION = 0.10.34.4;
+				MARKETING_VERSION = 0.10.34.5;
 				PRODUCT_BUNDLE_IDENTIFIER = RetroFE;
 				PRODUCT_NAME = RetroFE;
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -799,7 +799,7 @@
 					"$(PROJECT_DIR)/../ThirdPartyMac/GStreamer.framework/Libraries",
 				);
 				MACOSX_DEPLOYMENT_TARGET = 11.0;
-				MARKETING_VERSION = 0.10.34.4;
+				MARKETING_VERSION = 0.10.34.5;
 				PRODUCT_BUNDLE_IDENTIFIER = RetroFE;
 				PRODUCT_NAME = RetroFE;
 				PROVISIONING_PROFILE_SPECIFIER = "";
