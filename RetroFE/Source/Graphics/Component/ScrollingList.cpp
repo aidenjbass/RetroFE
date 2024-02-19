@@ -262,7 +262,7 @@ Item *ScrollingList::getItemByOffset(int offset)
     }
     else
     {
-        index = loopDecrement(index, -offset, itemSize);
+        index = loopDecrement(index, offset, itemSize);
     }
     
     return (*items_)[index];
