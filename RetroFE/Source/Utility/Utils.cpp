@@ -104,7 +104,11 @@ void Utils::populateCache(const std::filesystem::path& directory) {
     std::unordered_set<std::string>& files = fileCache[directory];
     for (const auto& entry : std::filesystem::directory_iterator(directory)) {
         if (entry.is_regular_file()) {
+#ifdef WIN32
+            files.insert(Utils::toLower(entry.path().filename().string()));
+#else
             files.insert(entry.path().filename().string());
+#endif
         }
     }
 }
@@ -113,7 +117,11 @@ bool Utils::isFileInCache(const std::filesystem::path& baseDir, const std::strin
     auto baseDirIt = fileCache.find(baseDir);
     if (baseDirIt != fileCache.end()) {
         const auto& files = baseDirIt->second;
+#ifdef WIN32
+        if (files.find(Utils::toLower(filename)) != files.end()) {
+#else
         if (files.find(filename) != files.end()) {
+#endif
             // Logging cache hit
             LOG_FILECACHE("Hit", removeAbsolutePath(baseDir.string()) + " contains " + filename);
             return true;
