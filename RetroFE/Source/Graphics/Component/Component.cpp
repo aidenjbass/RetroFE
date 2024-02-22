@@ -147,7 +147,7 @@ void Component::setTweens(AnimationEvents *set)
     tweens_ = set;
 }
 
-std::string Component::filePath()
+std::string_view Component::filePath()
 {
     return std::string();
 }

@@ -544,9 +544,6 @@ Component* ReloadableMedia::findComponent(
                 return loadedComponent_;
             }
         }
-        else if (imagePath == loadedComponent_->filePath()) {
-            return loadedComponent_;
-        }
     }
 
     if(isVideo)

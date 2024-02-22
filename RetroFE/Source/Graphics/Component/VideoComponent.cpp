@@ -151,7 +151,7 @@ bool VideoComponent::isPlaying()
     return isPlaying_;
 }
 
-std::string VideoComponent::filePath()
+std::string_view VideoComponent::filePath()
 {
     return videoFile_;
 }
