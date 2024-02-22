@@ -238,17 +238,23 @@ bool GStreamerVideo::createAndLinkGstElements()
     videoBin_ = gst_bin_new("SinkBin");
     videoSink_ = gst_element_factory_make("fakesink", "video_sink");
     capsFilter_ = gst_element_factory_make("capsfilter", "caps_filter");
+
+    // Only create videoConvert and videoConvertCaps if not using DirectX11
     if (Configuration::HardwareVideoAccel && SDL::getRendererBackend(0) == "direct3d11") {
-        videoConvert_ = gst_element_factory_make("d3d11convert", "d3d11_convert");
+        // Omitting the videoConvert element entirely in DirectX11 case
         videoConvertCaps_ = gst_caps_from_string("video/x-raw(memory:D3D11Memory),format=(string)NV12,pixel-aspect-ratio=(fraction)1/1");
     }
     else {
         videoConvert_ = gst_element_factory_make("videoconvert", "video_convert");
         videoConvertCaps_ = gst_caps_from_string("video/x-raw,format=(string)NV12,pixel-aspect-ratio=(fraction)1/1");
+        if (!videoConvert_) {
+            LOG_DEBUG("Video", "Could not create video convert element");
+            return false;
+        }
+        gst_bin_add(GST_BIN(videoBin_), videoConvert_);
     }
 
-    if(!playbin_ || !videoSink_ || !videoConvert_ || !capsFilter_ || !videoConvertCaps_)
-    {
+    if (!playbin_ || !videoSink_ || !capsFilter_ || !videoConvertCaps_) {
         LOG_DEBUG("Video", "Could not create elements");
         return false;
     }
@@ -256,17 +262,35 @@ bool GStreamerVideo::createAndLinkGstElements()
     g_object_set(G_OBJECT(videoSink_), "sync", TRUE, "qos", FALSE, "enable-last-sample", FALSE, nullptr);
     g_object_set(G_OBJECT(capsFilter_), "caps", videoConvertCaps_, nullptr);
     gst_caps_unref(videoConvertCaps_);
-    gst_bin_add_many(GST_BIN(videoBin_), videoConvert_, capsFilter_, videoSink_, nullptr);
-    if (!gst_element_link_many(videoConvert_, capsFilter_, videoSink_, nullptr))
-    {
-        LOG_DEBUG("Video", "Could not link video processing elements");
-        return false;
+    gst_bin_add_many(GST_BIN(videoBin_), capsFilter_, videoSink_, nullptr);
+
+    // Adjust linking based on whether videoConvert is used
+    if (videoConvert_) {
+        if (!gst_element_link_many(videoConvert_, capsFilter_, videoSink_, nullptr)) {
+            LOG_DEBUG("Video", "Could not link video processing elements");
+            return false;
+        }
+    }
+    else {
+        // Directly link capsFilter to videoSink if videoConvert is omitted
+        if (!gst_element_link_many(capsFilter_, videoSink_, nullptr)) {
+            LOG_DEBUG("Video", "Could not link video processing elements without video convert");
+            return false;
+        }
     }
 
-    GstPad *videoSinkPad = gst_element_get_static_pad(videoConvert_, "sink");
-    GstPad *ghostPad = gst_ghost_pad_new("sink", videoSinkPad);
+    // Adjust pad linking based on whether videoConvert is used
+    GstPad* sinkPad = nullptr;
+    if (videoConvert_) {
+        sinkPad = gst_element_get_static_pad(videoConvert_, "sink");
+    }
+    else {
+        // If videoConvert is omitted, get the sink pad from the next element in the chain
+        sinkPad = gst_element_get_static_pad(capsFilter_, "sink");
+    }
+    GstPad* ghostPad = gst_ghost_pad_new("sink", sinkPad);
     gst_element_add_pad(videoBin_, ghostPad);
-    gst_object_unref(videoSinkPad);
+    gst_object_unref(sinkPad);
 
     return true;
 }
