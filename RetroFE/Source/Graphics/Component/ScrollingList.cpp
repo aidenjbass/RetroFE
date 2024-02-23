@@ -1043,32 +1043,26 @@ void ScrollingList::draw(unsigned int layer)
     }
 }
 
-bool ScrollingList::isScrollingListIdle(  )
+bool ScrollingList::isScrollingListIdle() const
 {
-    size_t componentSize = components_.size();
-    if ( !Component::isIdle(  ) ) return false;
+    // Check if the ScrollingList itself is not idle first.
+    if (!Component::isIdle()) return false;
 
-    for ( unsigned int i = 0; i < componentSize; ++i )
-    {
-        Component const *c = components_[i];
-        if ( c && !c->isIdle(  ) ) return false;
-    }
-
-    return true;
+    // Use std::any_of to determine if any component is not idle.
+    return !std::any_of(components_.begin(), components_.end(), [](const Component* component) {
+        return component && !component->isIdle();
+        });
 }
 
-bool ScrollingList::isScrollingListAttractIdle(  )
+bool ScrollingList::isScrollingListAttractIdle() const
 {
-    size_t componentSize = components_.size();
-    if ( !Component::isAttractIdle(  ) ) return false;
+    // Check if the ScrollingList itself is not attract idle first.
+    if (!Component::isAttractIdle()) return false;
 
-    for ( unsigned int i = 0; i < componentSize; ++i )
-    {
-        Component const *c = components_[i];
-        if ( c && !c->isAttractIdle(  ) ) return false;
-    }
-
-    return true;
+    // Use std::any_of to find if any component is not attract idle.
+    return !std::any_of(components_.begin(), components_.end(), [](const Component* component) {
+        return component && !component->isAttractIdle();
+        });
 }
 
 void ScrollingList::resetScrollPeriod(  )

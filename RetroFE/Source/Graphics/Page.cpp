@@ -311,73 +311,44 @@ bool Page::addComponent(Component *c)
 
 bool Page::isMenuIdle()
 {
-    for(auto it = menus_.begin(); it != menus_.end(); ++it)
-    {
-        for(auto it2 = it->begin(); it2 != it->end(); ++it2)
-        {
-            ScrollingList *menu = *it2;
-
-            if(!menu->isScrollingListIdle())
-            {
-                return false;
-            }
-        }
-    }
-    return true;
+    return !std::any_of(menus_.begin(), menus_.end(), [](const auto& menuList) {
+        return std::any_of(menuList.begin(), menuList.end(), [](const ScrollingList* menu) {
+            return !menu->isScrollingListIdle();
+            });
+        });
 }
 
 
 bool Page::isIdle()
 {
-    bool idle = isMenuIdle();
+    if (!isMenuIdle()) return false;
 
-    for(auto it = LayerComponents.begin(); it != LayerComponents.end() && idle; ++it)
-    {
-        idle = (*it)->isIdle();
-    }
-
-    return idle;
+    return !std::any_of(LayerComponents.begin(), LayerComponents.end(), [](const auto& component) {
+        return !component->isIdle();
+        });
 }
 
 
 bool Page::isAttractIdle()
 {
-    for(auto it = menus_.begin(); it != menus_.end(); ++it)
-    {
-        for(auto it2 = it->begin(); it2 != it->end(); ++it2)
-        {
-            ScrollingList const *menu = *it2;
+    bool menusIdle = !std::any_of(menus_.begin(), menus_.end(), [](const auto& menuList) {
+        return std::any_of(menuList.begin(), menuList.end(), [](const ScrollingList* menu) {
+            return !menu->isAttractIdle();
+            });
+        });
 
-            if(!menu->isAttractIdle())
-            {
-                return false;
-            }
-        }
-    }
+    bool layersIdle = !std::any_of(LayerComponents.begin(), LayerComponents.end(), [](const auto& component) {
+        return !component->isAttractIdle();
+        });
 
-    for(auto it = LayerComponents.begin(); it != LayerComponents.end(); ++it)
-    {
-        if (!(*it)->isAttractIdle())
-        {
-            return false;
-        }
-    }
-
-    return true;
+    return menusIdle && layersIdle;
 }
-
 
 bool Page::isGraphicsIdle()
 {
-    for(auto it = LayerComponents.begin(); it != LayerComponents.end(); ++it)
-    {
-        if (!(*it)->isIdle())
-        {
-            return false;
-        }
-    }
-
-    return true;
+    return !std::any_of(LayerComponents.begin(), LayerComponents.end(), [](const auto& component) {
+        return !component->isIdle();
+        });
 }
 
 
