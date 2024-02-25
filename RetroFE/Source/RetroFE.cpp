@@ -786,6 +786,7 @@ bool RetroFE::run( )
 
         // Switch playlist; start onHighlightExit animation
         case RETROFE_PLAYLIST_REQUEST:
+            
             inputClear = false;
             config_.getProperty( OPTION_PLAYLISTINPUTCLEAR, inputClear );
             if (  inputClear  )
@@ -916,20 +917,18 @@ bool RetroFE::run( )
 
         // Wait for onHighlightEnter animation to finish
         case RETROFE_HIGHLIGHT_ENTER:
-            RETROFE_STATE state_tmp;
-            if (currentPage_->isMenuIdle( ) &&
-                ((state_tmp = processUserInput( currentPage_ )) == RETROFE_HIGHLIGHT_REQUEST ||
-                  state_tmp                                     == RETROFE_MENUJUMP_REQUEST  ||
-                  state_tmp                                     == RETROFE_PLAYLIST_REQUEST) )
+            if (RETROFE_STATE state_tmp = processUserInput(currentPage_); currentPage_->isMenuIdle() &&
+                (state_tmp == RETROFE_HIGHLIGHT_REQUEST ||
+                    state_tmp == RETROFE_MENUJUMP_REQUEST ||
+                    state_tmp == RETROFE_PLAYLIST_REQUEST))
             {
                 state = state_tmp;
             }
-            else if (currentPage_->isIdle( ))
+            else if (currentPage_->isIdle())
             {
                 state = RETROFE_IDLE;
             }
             break;
-
         case RETROFE_SETTINGS_PAGE_REQUEST:
             if (currentPage_->isIdle() && currentPage_->getCollectionName() != "")
             {
