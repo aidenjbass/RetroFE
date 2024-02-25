@@ -204,7 +204,7 @@ void Launcher::LEDBlinky( int command, std::string collection, Item *collectionI
 	if (LEDBlinkyDirectory == "") {
         return;
     }
-    std::string exe  = LEDBlinkyDirectory + "\\LEDBlinky.exe";
+    std::string exe  = Utils::combinePath(LEDBlinkyDirectory, "LEDBlinky.exe");
 	std::string args = std::to_string( command );
 	bool wait = false;
 	if ( command == 2 )
