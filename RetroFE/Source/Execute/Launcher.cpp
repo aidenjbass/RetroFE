@@ -174,10 +174,9 @@ bool Launcher::run(std::string collection, Item *collectionItem, Page *currentPa
 void Launcher::startScript()
 {
 #ifdef WIN32
-    std::string exe = Configuration::absolutePath + "\\start.bat";
-
+    std::string exe = Utils::combinePath(Configuration::absolutePath, "start.bat");
 #else
-    std::string exe = "./start.sh";
+    std::string exe = Utils::combinePath(Configuration::absolutePath, "start.sh");
 #endif
     if(fs::exists(exe))
     {
@@ -188,10 +187,9 @@ void Launcher::startScript()
 void Launcher::exitScript()
 {
 #ifdef WIN32
-    std::string exe = Configuration::absolutePath + "\\exit.bat";
-   
+    std::string exe = Utils::combinePath(Configuration::absolutePath, "exit.bat");
 #else
-    std::string exe = "./exit.sh";
+    std::string exe = Utils::combinePath(Configuration::absolutePath, "exit.sh");
 #endif
     if(fs::exists(exe))
     {
