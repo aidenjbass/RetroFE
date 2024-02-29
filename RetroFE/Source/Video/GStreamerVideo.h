@@ -16,15 +16,19 @@
 #pragma once
 
 #include "IVideo.h"
-
+#include "../SDL.h"
+#include "../Database/Configuration.h"
 extern "C"
 {
 #if (__APPLE__)
     #include <GStreamer/gst/gst.h>
-    #include <GStreamer/gst/app/gstappsink.h>
+    #include <GStreamer/gst/video/gstvideometa.h>
 #else
     #include <gst/gst.h>
-    #include <gst/app/gstappsink.h>
+    #include <gst/video/gstvideometa.h>
+
+
+
 #endif
 
 }
@@ -63,7 +67,8 @@ private:
     enum BufferLayout {
         UNKNOWN,        // Initial state
         CONTIGUOUS,     // Contiguous buffer layout
-        NON_CONTIGUOUS  // Non-contiguous buffer layout
+        NON_CONTIGUOUS,  // Non-contiguous buffer layout
+        NON_CONTIGUOUS_D3D
     };
     
     static void processNewBuffer (GstElement const *fakesink, GstBuffer *buf, GstPad *pad, gpointer data);
@@ -85,6 +90,7 @@ private:
     gint height_{ 0 };
     gint width_{ 0 };
     GstBuffer* videoBuffer_{ nullptr };
+    const GstVideoMeta* videoMeta_{ nullptr };
     bool frameReady_{ false };
     bool isPlaying_{ false };
     static bool initialized_;
@@ -97,5 +103,6 @@ private:
     bool paused_{ false };
     double lastSetVolume_{ 0.0 };
     bool lastSetMuteState_{ false };
+    bool useD3dHardware_{ Configuration::HardwareVideoAccel && SDL::getRendererBackend(0) == "direct3d11" };
     BufferLayout bufferLayout_{ UNKNOWN };
 };
