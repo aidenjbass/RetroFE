@@ -100,6 +100,7 @@ bool UserInput::initialize()
     
 	MapKeyCombo("quitCombo", KeyCodeQuitCombo1, KeyCodeQuitCombo2, false);
     MapKeyCombo("settingsCombo", KeyCodeSettingsCombo1, KeyCodeSettingsCombo2, false);
+    MapKey("exeWithButton", KeyCodeExeButton, false);
 
     bool retVal = true;
     

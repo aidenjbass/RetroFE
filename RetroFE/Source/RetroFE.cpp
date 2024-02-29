@@ -714,6 +714,16 @@ bool RetroFE::run( )
             currentPage_->setScrolling(Page::ScrollDirectionIdle);
             state = RETROFE_SETTINGS_PAGE_MENU_EXIT;
             break;
+        case RETROFE_EXE_REQUEST:
+            LOG_NOTICE("Testing", "In Here");
+            l.execute("./spotify.sh", "", Configuration::absolutePath, true);
+                
+            currentPage_->stop();
+                
+            // TODO mute video
+            state = RETROFE_IDLE;
+            
+            break;
         case RETROFE_SETTINGS_PAGE_MENU_EXIT:
             if ((settingsCollection == "" || currentPage_->getCollectionName() == settingsCollection) && 
                 (settingsPlaylist == "" || currentPage_->getPlaylistName() == settingsPlaylist)
@@ -2170,6 +2180,10 @@ RetroFE::RETROFE_STATE RetroFE::processUserInput( Page *page )
         {
             keyLastTime_ = currentTime_;
             return RETROFE_MENUMODE_START_REQUEST;
+        }
+        else if (input_.keystate(UserInput::KeyCodeExeButton)) {
+            attract_.reset();
+            return RETROFE_EXE_REQUEST;
         }
         else if (input_.keystate(UserInput::KeyCodeSettingsCombo1) && input_.keystate(UserInput::KeyCodeSettingsCombo2)) {
             attract_.reset();

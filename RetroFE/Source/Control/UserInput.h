@@ -76,6 +76,7 @@ public:
         KeyCodeSettingsCombo2,
         KeyCodeQuitCombo1,
         KeyCodeQuitCombo2,
+        KeyCodeExeButton,
         KeyCodeCycleCollection,
         KeyCodePrevCycleCollection,
         KeyCodeToggleGameInfo,

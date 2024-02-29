@@ -138,6 +138,7 @@ private:
         RETROFE_NEW,
         RETROFE_QUIT_REQUEST,
         RETROFE_QUIT,
+        RETROFE_EXE_REQUEST,
     };
 
     void            render();
