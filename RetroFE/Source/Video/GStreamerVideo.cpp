@@ -29,6 +29,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <gst/app/gstappsink.h>
+#include <gst/gstdebugutils.h>
 #include <gst/video/gstvideometa.h>
 #include <gst/video/video.h>
 #include <gst/audio/audio.h>
@@ -189,6 +190,9 @@ bool GStreamerVideo::play(const std::string& file)
     if(!initializeGstElements(file))
         return false;
 
+    GST_DEBUG_BIN_TO_DOT_FILE(GST_BIN(playbin_), GST_DEBUG_GRAPH_SHOW_ALL, "playbin");
+    GST_DEBUG_BIN_TO_DOT_FILE(GST_BIN(videoBin_), GST_DEBUG_GRAPH_SHOW_ALL, "videobin");
+
     // Start playing
     if (GstStateChangeReturn playState = gst_element_set_state(GST_ELEMENT(playbin_), GST_STATE_PLAYING); playState != GST_STATE_CHANGE_ASYNC)
     {
@@ -199,6 +203,8 @@ bool GStreamerVideo::play(const std::string& file)
     }
 
     isPlaying_ = true;
+
+
 
     // Set the volume to zero and mute the video
     gst_stream_volume_set_volume(GST_STREAM_VOLUME(playbin_), GST_STREAM_VOLUME_FORMAT_LINEAR, 0.0);
