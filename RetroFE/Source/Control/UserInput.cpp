@@ -24,6 +24,7 @@
 #include "JoyHatHandler.h"
 #include "KeyboardHandler.h"
 #include "MouseButtonHandler.h"
+#include "MouseScrollHandler.h"
 
 UserInput::UserInput(Configuration &c)
     : config_(c)
@@ -196,9 +197,29 @@ bool UserInput::HandleInputMapping(const std::string& token, KeyCode_E key, cons
                 else if (mousedesc == "right") button = SDL_BUTTON_RIGHT;
                 else if (mousedesc == "x1") button = SDL_BUTTON_X1;
                 else if (mousedesc == "x2") button = SDL_BUTTON_X2;
+                
+                ss << mousedesc;
 
                 keyHandlers_.push_back(std::pair<InputHandler*, KeyCode_E>(new MouseButtonHandler(button), key));
                 LOG_INFO("Input", "Binding mouse button " + ss.str());
+                found = true;
+            }
+            else if (mousedesc.find("wheel") == 0)
+            {
+                std::stringstream ss;
+                int scrollAxis;
+                mousedesc = Utils::replace(mousedesc, "wheel", "");
+                               
+                if (mousedesc == "x+")      scrollAxis = 3; // scroll right
+                else if (mousedesc == "x-") scrollAxis = 4; // scroll left
+                else if (mousedesc == "y+") scrollAxis = 1; // scroll up
+                else if (mousedesc == "y-") scrollAxis = 2; // scroll down
+                else                        scrollAxis = 0; // invalid
+                
+                ss << mousedesc;
+                                                                        
+                keyHandlers_.push_back(std::pair<InputHandler*, KeyCode_E>(new MouseScrollHandler(scrollAxis), key));
+                LOG_INFO("Input", "Binding mouse scroll wheel " + ss.str());
                 found = true;
             }
         }
