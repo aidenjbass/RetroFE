@@ -34,34 +34,35 @@ extern "C"
 }
 
 
-class GStreamerVideo final: public IVideo
+class GStreamerVideo : public IVideo
 {
 public:
     explicit GStreamerVideo( int monitor );
     GStreamerVideo(const GStreamerVideo&) = delete;
     GStreamerVideo& operator=(const GStreamerVideo&) = delete;
-    ~GStreamerVideo() override;
-    bool initialize() override;
-    bool play(const std::string& file) override;
-    bool stop() override;
-    bool deInitialize() override;
-    SDL_Texture *getTexture() const override;
-    void update(float dt) override;
-    void draw() override;
+    ~GStreamerVideo() final;
+    bool initialize() final;
+    bool play(const std::string& file) final;
+    bool stop() final;
+    bool deInitialize() final;
+    SDL_Texture *getTexture() const final;
+    void update(float dt) final;
+    void volumeUpdate();
+    void draw() final;
     void setNumLoops(int n);
-    int getHeight() override;
-    int getWidth() override;
-    bool isPlaying() override;
-    void setVolume(float volume) override;
-    void skipForward( ) override;
-    void skipBackward( ) override;
-    void skipForwardp( ) override;
-    void skipBackwardp( ) override;
-    void pause( ) override;
-    void restart( ) override;
-    unsigned long long getCurrent( ) override;
-    unsigned long long getDuration( ) override;
-    bool isPaused( ) override;
+    int getHeight() final;
+    int getWidth() final;
+    bool isPlaying() final;
+    void setVolume(float volume) final;
+    void skipForward( ) final;
+    void skipBackward( ) final;
+    void skipForwardp( ) final;
+    void skipBackwardp( ) final;
+    void pause( ) final;
+    void restart( ) final;
+    unsigned long long getCurrent( ) final;
+    unsigned long long getDuration( ) final;
+    bool isPaused( ) final;
 
 private:
     enum BufferLayout {
@@ -76,7 +77,6 @@ private:
     bool initializeGstElements(const std::string& file);
     bool createAndLinkGstElements();
     void loopHandler();
-    void volumeUpdate();
     GstElement* playbin_{ nullptr };
     GstElement* videoBin_{ nullptr };
     GstElement* videoSink_{ nullptr };
