@@ -257,7 +257,8 @@ bool SDL::initialize( Configuration &config )
 				LOG_ERROR("SDL", "Error setting renderer to" + SDLRenderDriver + ". Available direct3d, direct3d11, direct3d12, opengl, opengles2, opengles, metal, and software");
 			}
 #endif			
-			std::string ScaleQuality = "1";
+		
+            std::string ScaleQuality = "1";
 			config.getProperty(OPTION_SCALEQUALITY, ScaleQuality);
 			if ( SDL_SetHint( SDL_HINT_RENDER_SCALE_QUALITY, ScaleQuality.c_str()) != SDL_TRUE )
 			{
@@ -312,12 +313,22 @@ bool SDL::initialize( Configuration &config )
 				else 
 				{
 					SDL_RendererInfo info;
-					if (SDL_GetRendererInfo(renderer_[screenNum], &info) == 0) 
-					{
-						std::string logMessage = "Current rendering backend for renderer " + screenIndex + ": ";
-						logMessage += info.name;
-						LOG_INFO("SDL", logMessage);
-					}		 
+                    if (SDL_GetRendererInfo(renderer_[screenNum], &info) == 0)
+                    {
+                        std::string screenIndexStr = std::to_string(screenNum);
+                        std::string logMessage = "Current rendering backend for renderer " + screenIndexStr + ": ";
+                        logMessage += info.name;
+                        LOG_INFO("SDL", logMessage);
+                        if (strcmp(info.name, "opengl") == 0)
+                        {
+                            int GlSwapInterval = 1;
+                            config.getProperty(OPTION_GLSWAPINTERVAL, GlSwapInterval);
+                            if (SDL_GL_SetSwapInterval(GlSwapInterval) < 0)
+                            {
+                                LOG_ERROR("SDL", "Unable to set OpenGL swap interval: " + std::string(SDL_GetError()));
+                            }
+                        }
+                    }
 					else 
 					{
 						LOG_ERROR("SDL", "Could not retrieve renderer info for renderer " + screenIndex + " Error: " + SDL_GetError());
