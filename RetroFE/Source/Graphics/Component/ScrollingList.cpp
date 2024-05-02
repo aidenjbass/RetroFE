@@ -994,13 +994,10 @@ bool ScrollingList::allocateTexture( size_t index, const Item *item )
 
     }
 
-    if (!t)
-    {
-        std::string title = item->title;
-        if (!textFallback_){
-            title = "";
+    if (!t) {
+        if (textFallback_) {  // Check if fallback text should be used
+            t = new Text(item->title, page, fontInst_, baseViewInfo.Monitor);  // Use item's title
         }
-        t = new Text(title, page, fontInst_, baseViewInfo.Monitor );
     }
 
     if ( t )
@@ -1043,7 +1040,7 @@ void ScrollingList::draw(unsigned int layer)
     }
 }
 
-bool ScrollingList::isScrollingListIdle(  )
+bool ScrollingList::isScrollingListIdle()
 {
     size_t componentSize = components_.size();
     if ( !Component::isIdle(  ) ) return false;
@@ -1057,7 +1054,7 @@ bool ScrollingList::isScrollingListIdle(  )
     return true;
 }
 
-bool ScrollingList::isScrollingListAttractIdle(  )
+bool ScrollingList::isScrollingListAttractIdle()
 {
     size_t componentSize = components_.size();
     if ( !Component::isAttractIdle(  ) ) return false;
@@ -1084,6 +1081,11 @@ void ScrollingList::updateScrollPeriod(  )
     {
         scrollPeriod_ = minScrollTime_;
     }
+}
+
+bool ScrollingList::isFastScrolling() const
+{
+    return scrollPeriod_ == minScrollTime_;
 }
 
 void ScrollingList::scroll(bool forward)
