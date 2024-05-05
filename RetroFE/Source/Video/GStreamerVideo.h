@@ -18,6 +18,7 @@
 #include "IVideo.h"
 #include "../SDL.h"
 #include "../Database/Configuration.h"
+#include "../Utility/Utils.h"
 extern "C"
 {
 #if (__APPLE__)
@@ -34,10 +35,10 @@ extern "C"
 }
 
 
-class GStreamerVideo final: public IVideo
+class GStreamerVideo final : public IVideo
 {
 public:
-    explicit GStreamerVideo( int monitor );
+    explicit GStreamerVideo(int monitor);
     GStreamerVideo(const GStreamerVideo&) = delete;
     GStreamerVideo& operator=(const GStreamerVideo&) = delete;
     ~GStreamerVideo() override;
@@ -45,44 +46,44 @@ public:
     bool play(const std::string& file) override;
     bool stop() override;
     bool deInitialize() override;
-    SDL_Texture *getTexture() const override;
+    SDL_Texture* getTexture() const override;
     void update(float dt) override;
+    void loopHandler() override;
+    void volumeUpdate() override;
     void draw() override;
     void setNumLoops(int n);
     int getHeight() override;
     int getWidth() override;
     bool isPlaying() override;
     void setVolume(float volume) override;
-    void skipForward( ) override;
-    void skipBackward( ) override;
-    void skipForwardp( ) override;
-    void skipBackwardp( ) override;
-    void pause( ) override;
-    void restart( ) override;
-    unsigned long long getCurrent( ) override;
-    unsigned long long getDuration( ) override;
-    bool isPaused( ) override;
+    void skipForward() override;
+    void skipBackward() override;
+    void skipForwardp() override;
+    void skipBackwardp() override;
+    void pause() override;
+    void restart() override;
+    unsigned long long getCurrent() override;
+    unsigned long long getDuration() override;
+    bool isPaused() override;
+    bool getFrameReady();
+    // Helper functions...
+    static void enablePlugin(const std::string& pluginName);
+    static void disablePlugin(const std::string& pluginName);
 
 private:
     enum BufferLayout {
         UNKNOWN,        // Initial state
         CONTIGUOUS,     // Contiguous buffer layout
         NON_CONTIGUOUS,  // Non-contiguous buffer layout
-        NON_CONTIGUOUS_D3D
     };
-    
-    static void processNewBuffer (GstElement const *fakesink, GstBuffer *buf, GstPad *pad, gpointer data);
+
+    static void processNewBuffer(GstElement const*/* fakesink */, GstBuffer* buf, GstPad* new_pad, gpointer userdata);
     static void elementSetupCallback([[maybe_unused]] GstElement const* playbin, GstElement* element, [[maybe_unused]] GStreamerVideo const* video);
     bool initializeGstElements(const std::string& file);
-    bool createAndLinkGstElements();
-    void loopHandler();
-    void volumeUpdate();
     GstElement* playbin_{ nullptr };
     GstElement* videoBin_{ nullptr };
     GstElement* videoSink_{ nullptr };
-    GstElement* videoConvert_{ nullptr };
     GstElement* capsFilter_{ nullptr };
-    GstCaps* videoConvertCaps_{ nullptr };
     GstBus* videoBus_{ nullptr };
     SDL_Texture* texture_{ nullptr };
     gulong elementSetupHandlerId_{ 0 };
@@ -103,6 +104,15 @@ private:
     bool paused_{ false };
     double lastSetVolume_{ 0.0 };
     bool lastSetMuteState_{ false };
-    bool useD3dHardware_{ Configuration::HardwareVideoAccel && SDL::getRendererBackend(0) == "direct3d11" };
+    unsigned int expectedBufSize_{ 0 };
+
+    bool useD3dHardware_{ Configuration::HardwareVideoAccel
+        && SDL::getRendererBackend(0) == "direct3d11" };
+    bool useVaHardware_{ Configuration::HardwareVideoAccel
+        && SDL::getRendererBackend(0) == "opengl"
+        && Utils::getOSType() == "linux" };
+
     BufferLayout bufferLayout_{ UNKNOWN };
+    std::string generateDotFileName(const std::string& prefix, const std::string& videoFilePath);
+
 };
