@@ -105,14 +105,8 @@ void RetroFE::render()
         SDL_SetRenderDrawColor(SDL::getRenderer(i), 0x0, 0x0, 0x00, 0xFF);
         SDL_RenderClear(SDL::getRenderer(i));
     }
-
-    if (currentPage_) {
-        currentPage_->draw();
-    }
-
-    for (int i = 0; i < SDL::getScreenCount(); ++i) {
-        SDL_RenderPresent(SDL::getRenderer(i));
-    }
+    if (currentPage_) { currentPage_->draw(); }
+    for (int i = 0; i < SDL::getScreenCount(); ++i) { SDL_RenderPresent(SDL::getRenderer(i)); }
     SDL_UnlockMutex(SDL::getMutex());
 
 }
@@ -131,7 +125,6 @@ int RetroFE::initialize(void* context)
         instance->initializeError = true;
         return -1;
     }
-
     instance->db_ = new DB(Utils::combinePath(Configuration::absolutePath, "meta.db"));
 
     if (!instance->db_->initialize()) {
@@ -139,7 +132,6 @@ int RetroFE::initialize(void* context)
         instance->initializeError = true;
         return -1;
     }
-
     instance->metadb_ = new MetadataDatabase(*(instance->db_), instance->config_);
 
     if (!instance->metadb_->initialize()) {
@@ -147,26 +139,20 @@ int RetroFE::initialize(void* context)
         instance->initializeError = true;
         return -1;
     }
-
-
     instance->initialized = true;
     return 0;
 
 }
 
-
 // Launch a game/program
 void RetroFE::launchEnter( )
 {
-
     // Disable window focus
     SDL_SetWindowGrab(SDL::getWindow( 0 ), SDL_FALSE);
     // Free the textures, and take down SDL if unloadSDL flag is set
     bool unloadSDL = false;
     config_.getProperty( OPTION_UNLOADSDL, unloadSDL );
-    if ( unloadSDL ) {
-        freeGraphicsMemory();
-    }
+    if ( unloadSDL ) { freeGraphicsMemory(); }
     // If on MacOS disable relative mouse mode to handoff mouse to game/program
     #ifdef __APPLE__
         SDL_SetRelativeMouseMode(SDL_FALSE);
@@ -186,9 +172,7 @@ void RetroFE::launchExit( )
     // Set up SDL, and load the textures if unloadSDL flag is set
     bool unloadSDL = false;
     config_.getProperty( OPTION_UNLOADSDL, unloadSDL );
-    if ( unloadSDL ) {
-        allocateGraphicsMemory();
-    }
+    if ( unloadSDL ) { allocateGraphicsMemory(); }
 
     // Restore the SDL settings
     SDL_RestoreWindow( SDL::getWindow( 0 ) );
@@ -232,9 +216,7 @@ void RetroFE::launchExit( )
 void RetroFE::freeGraphicsMemory()
 {
     // Free textures
-    if (currentPage_) {
-        currentPage_->freeGraphicsMemory();
-    }
+    if (currentPage_) { currentPage_->freeGraphicsMemory(); }
 
     // Close down SDL
     bool unloadSDL = false;
@@ -353,7 +335,6 @@ bool RetroFE::run( )
 
     if (config_.propertiesEmpty()) {
         LOG_ERROR("RetroFE", "No controls.conf found");
-
         return false;
     }
 
@@ -1083,24 +1064,23 @@ bool RetroFE::run( )
 
         // Start exit animation
         case RETROFE_COLLECTION_DOWN_REQUEST:
-            if ( !pages_.empty( ) && currentPage_->getMenuDepth( ) == 1) // Inside a collection with a different layout
-            {
+            // Inside a collection with a different layout
+            if ( !pages_.empty( ) && currentPage_->getMenuDepth( ) == 1) {
                 currentPage_->stop( );
                 m.clearPage( );
                 menuMode_ = false;
                 state = RETROFE_COLLECTION_DOWN_EXIT;
             }
-            else if ( currentPage_->getMenuDepth( ) > 1 ) // Inside a collection with the same layout
-            {
+            // Inside a collection with the same layout
+            else if ( currentPage_->getMenuDepth( ) > 1 ) {
                 currentPage_->exitMenu( );
                 state = RETROFE_COLLECTION_DOWN_EXIT;
             }
-            else // Not in a collection
-            {
+            // Not in a collection
+            else {
                 state = RETROFE_COLLECTION_DOWN_ENTER;
-
-                if ( attractMode_ ) // Check playlist change in attract mode
-                {
+                // Check playlist change in attract mode
+                if ( attractMode_ ) {
                     attractModePlaylistCollectionNumber_   += 1;
                     int attractModePlaylistCollectionNumber = 0;
                     config_.getProperty( "attractModePlaylistCollectionNumber", attractModePlaylistCollectionNumber );
@@ -1127,8 +1107,8 @@ bool RetroFE::run( )
                 std::string collectionName = currentPage_->getCollectionName();
                 lastMenuOffsets_[collectionName] = currentPage_->getScrollOffsetIndex();
                 lastMenuPlaylists_[collectionName] = currentPage_->getPlaylistName( );
-                if (currentPage_->getMenuDepth( ) == 1) // Inside a collection with a different layout
-                {
+                // Inside a collection with a different layout
+                if (currentPage_->getMenuDepth( ) == 1) {
                     currentPage_->deInitialize( );
                     delete currentPage_;
                     currentPage_ = pages_.top( );
@@ -1136,8 +1116,8 @@ bool RetroFE::run( )
                     currentPage_->allocateGraphicsMemory( );
                     currentPage_->setLocked(kioskLock_);
                 }
-                else // Inside a collection with the same layout
-                {
+                // Inside a collection with the same layout
+                else {
                     currentPage_->popCollection( );
                 }
 
@@ -1179,8 +1159,8 @@ bool RetroFE::run( )
                 state = RETROFE_COLLECTION_DOWN_MENU_ENTER;
                 currentPage_->onNewItemSelected( );
 
-                if ( attractMode_ ) // Check playlist change in attract mode
-                {
+                // Check playlist change in attract mode
+                if ( attractMode_ ) {
                     attractModePlaylistCollectionNumber_   += 1;
                     int attractModePlaylistCollectionNumber = 0;
                     config_.getProperty( "attractModePlaylistCollectionNumber", attractModePlaylistCollectionNumber );
@@ -1417,12 +1397,12 @@ bool RetroFE::run( )
                     nextPageItem_ = currentPage_->getSelectedItem( );
                     bool enterOnCollection = true;
                     config_.getProperty( OPTION_ENTERONCOLLECTION, enterOnCollection );
-                    if ( currentPage_->getSelectedItem( )->leaf || !enterOnCollection ) // Current selection is a game or enterOnCollection is not set
-                    {
+                    // Current selection is a game or enterOnCollection is not set
+                    if ( currentPage_->getSelectedItem( )->leaf || !enterOnCollection ) {
                         state = RETROFE_HIGHLIGHT_REQUEST;
                     }
-                    else // Current selection is a menu
-                    {
+                    // Current selection is a menu
+                    else {
                         state = RETROFE_COLLECTION_HIGHLIGHT_EXIT;
                     }
                 }
@@ -1493,8 +1473,8 @@ bool RetroFE::run( )
                     }
 
                 l.LEDBlinky( 3, nextPageItem_->collectionInfo->name, nextPageItem_ );
-                if (l.run(nextPageItem_->collectionInfo->name, nextPageItem_, currentPage_)) // Run and check if we need to reboot
-                {
+                // Run and check if we need to reboot
+                if (l.run(nextPageItem_->collectionInfo->name, nextPageItem_, currentPage_)) {
                     attract_.reset( );
                     //Run launchExit function when unloadSDL flag is set
                     bool unloadSDL = false;
@@ -1548,8 +1528,7 @@ bool RetroFE::run( )
                 std::string collectionName = currentPage_->getCollectionName();
                 lastMenuOffsets_[collectionName] = currentPage_->getScrollOffsetIndex();
                 lastMenuPlaylists_[collectionName] = currentPage_->getPlaylistName( );
-                if (currentPage_->getMenuDepth( ) == 1 && !pages_.empty())
-                {
+                if (currentPage_->getMenuDepth( ) == 1 && !pages_.empty()) {
                     Page* page = pages_.top();
                     pages_.pop();
                     if (page->controlsType() != currentPage_->controlsType()) {
@@ -2037,7 +2016,7 @@ RetroFE::RETROFE_STATE RetroFE::processUserInput( Page *page )
             }
         }
         // KeyCodeCycleCollection shared with KeyCodeQuitCombo1 and can missfire
-        else if (!kioskLock_ && input_.lastKeyPressed(UserInput::KeyCodeCycleCollection)){
+        else if (!kioskLock_ && input_.lastKeyPressed(UserInput::KeyCodeCycleCollection)) {
             // delay a bit longer for next cycle or ignore second keyboard hit count
             if (!(currentTime_ - keyLastTime_ > keyDelayTime_ + 1.0)) {
                 return RETROFE_IDLE;
@@ -2090,7 +2069,7 @@ RetroFE::RETROFE_STATE RetroFE::processUserInput( Page *page )
         }
         else if (!kioskLock_ && (input_.keystate(UserInput::KeyCodeCyclePlaylist) ||
             input_.keystate(UserInput::KeyCodeNextCyclePlaylist))
-        ){
+        ) {
             if (!isStandalonePlaylist(currentPage_->getPlaylistName())) {
                 resetInfoToggle();
                 attract_.reset();
@@ -2403,18 +2382,18 @@ RetroFE::RETROFE_STATE RetroFE::processUserInput( Page *page )
                 }
             }
         }
-
-        else if (input_.keystate(UserInput::KeyCodeQuit)) // !kioskLock_ && 
-        {
+        
+        // !kioskLock_ &&
+        else if (input_.keystate(UserInput::KeyCodeQuit)) {
             attract_.reset( );
 #ifdef WIN32
         Utils::postMessage("MediaplayerHiddenWindow", 0x8001, 51,0);		
 #endif              			
             state = RETROFE_QUIT_REQUEST;
         }
-
-        else if (input_.keystate(UserInput::KeyCodeReboot)) // !kioskLock_ &&
-        {
+    
+        // !kioskLock_ &&
+        else if (input_.keystate(UserInput::KeyCodeReboot)) {
             attract_.reset( );
             reboot_ = true;
             state   = RETROFE_QUIT_REQUEST;
@@ -2452,8 +2431,7 @@ RetroFE::RETROFE_STATE RetroFE::processUserInput( Page *page )
          !input_.keystate(UserInput::KeyCodePageDown) &&
          !input_.keystate(UserInput::KeyCodeLetterUp) &&
          !input_.keystate(UserInput::KeyCodeLetterDown) &&
-         !attract_.isActive( ) )
-    {
+         !attract_.isActive( ) ) {
         page->resetScrollPeriod( );
         if (page->isMenuScrolling( )) {
             attract_.reset( attract_.isSet( ) );
