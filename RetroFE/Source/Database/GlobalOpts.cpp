@@ -38,11 +38,11 @@ const global_options::options_entry global_options::s_option_entries[] =
     { OPTION_FULLSCREEN,              "true",      global_options::option_type::BOOLEAN,  "Run the frontend in fullscreen" },
     { OPTION_HORIZONTAL,              "stretch",   global_options::option_type::STRING,   "Pixel width INT or STRETCH" },
     { OPTION_VERTICAL,                "stretch",   global_options::option_type::STRING,   "Pixel height INT or STRETCH" },
-    { OPTION_FULLSCREENX,             "",          global_options::option_type::BOOLEAN,  "Run the frontend in fullscreen for monitor x" },
+    { OPTION_FULLSCREENX,             "true",      global_options::option_type::BOOLEAN,  "Run the frontend in fullscreen for monitor x" },
     { OPTION_HORIZONTALX,             "",          global_options::option_type::INTEGER,  "Pixel width for monitor x" },
     { OPTION_VERTICALX,               "",          global_options::option_type::INTEGER,  "Pixel height for monitor x" },
     { OPTION_SCREENNUMX,              "",          global_options::option_type::INTEGER,  "Define which monitor x is which display window, Screen numbers start at 0!"},
-    { OPTION_MIRRORX,                 "",          global_options::option_type::BOOLEAN,  "Divides monitor x into two halves" },
+    { OPTION_MIRRORX,                 "false",     global_options::option_type::BOOLEAN,  "Divides monitor x into two halves" },
     { OPTION_ROTATIONX,               "0",         global_options::option_type::INTEGER,  "Rotation of monitor x (0, 1, 2, 3)" },
 
     { nullptr,                        nullptr,     global_options::option_type::HEADER,   "WINDOW OPTIONS" },
@@ -70,6 +70,7 @@ const global_options::options_entry global_options::s_option_entries[] =
     { OPTION_UNLOADSDL,                "false",    global_options::option_type::BOOLEAN,  "Close SDL when launching a game, MUST be true for RPI" },
     { OPTION_MINIMIZEONFOCUSLOSS,      "false",    global_options::option_type::BOOLEAN,  "Minimize RetroFE when focus is lost" },
     { OPTION_AVDECTHREADTYPE,          "2",        global_options::option_type::INTEGER,  "Type of threading in the case of software decoding (1=frame, 2=slice)" },
+    { OPTION_GLSWAPINTERVAL,           "1",        global_options::option_type::INTEGER,  "OpenGL Swap Interval (0=immediate updates, 1=synchronized vsync, -1=adaptive vsync" },
 
     { nullptr,                         nullptr,    global_options::option_type::HEADER,   "CUSTOMIZATION OPTIONS" },
     { OPTION_LAYOUT,                   "Arcades",  global_options::option_type::STRING,   "Theme to be used in RetroFE, a folder name in /layouts" },

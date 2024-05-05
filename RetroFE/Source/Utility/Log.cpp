@@ -31,8 +31,7 @@ bool Logger::initialize(std::string file, Configuration* config)
 {
     // Open the log file in truncate mode to clear it, then switch to append mode
     writeFileStream_.open(file.c_str(), std::ios::out | std::ios::trunc);
-    if (!writeFileStream_.is_open())
-    {
+    if (!writeFileStream_.is_open()) {
         return false;
     }
 
@@ -49,10 +48,8 @@ bool Logger::initialize(std::string file, Configuration* config)
 
 void Logger::deInitialize()
 {
-    if (writeFileStream_.is_open())
-    {
+    if (writeFileStream_.is_open()) {
         writeFileStream_.close();
-
     }
 
     std::cerr.rdbuf(cerrStream_);
@@ -122,8 +119,7 @@ bool Logger::isLevelEnabled(const std::string& zone) {
 
 std::string Logger::zoneToString(Zone zone)
 {
-    switch (zone)
-    {
+    switch (zone) {
     case ZONE_INFO:
         return "INFO";
     case ZONE_DEBUG:
