@@ -63,15 +63,13 @@ SDL_Texture *GStreamerVideo::getTexture() const
 
 bool GStreamerVideo::initialize()
 {
-    if(initialized_)
-    {
+    if(initialized_) {
         initialized_ = true;
         paused_ = false;
         return true;
     }
 
-    if (!gst_is_initialized())
-    {
+    if (!gst_is_initialized()) {
         LOG_DEBUG("GStreamer", "Initializing in instance");
         gst_init(nullptr, nullptr);
         std::string path = Utils::combinePath(Configuration::absolutePath, "retrofe");
@@ -98,14 +96,12 @@ bool GStreamerVideo::deInitialize()
 
 bool GStreamerVideo::stop()
 {
-    if (!initialized_)
-    {
+    if (!initialized_) {
         return false;
     }
 
     // Disable handoffs for videoSink
-    if (videoSink_) 
-    {
+    if (videoSink_) {
         g_object_set(G_OBJECT(videoSink_), "signal-handoffs", FALSE, nullptr);
     }
 
@@ -121,15 +117,13 @@ bool GStreamerVideo::stop()
     }
 
     // Release the custom video sink bin
-    if (videoBin_)
-    {
+    if (videoBin_) {
         gst_object_unref(videoBin_);
         videoBin_ = nullptr;
     }
 
     // Initiate the transition of playbin to GST_STATE_NULL without waiting
-    if (playbin_)
-        {
+    if (playbin_) {
         gst_element_set_state(playbin_, GST_STATE_NULL);
 
         // Optionally perform a quick, non-blocking state check
@@ -140,21 +134,18 @@ bool GStreamerVideo::stop()
     }
 
     // Release SDL Texture
-    if (texture_)
-    {
+    if (texture_) {
         SDL_DestroyTexture(texture_);
         texture_ = nullptr;
     }
 
     // Unref the video buffer
-    if (videoBuffer_)
-    {
+    if (videoBuffer_) {
         gst_clear_buffer(&videoBuffer_);
     }
 
     // Free GStreamer elements and related resources
-    if (playbin_)
-    {
+    if (playbin_) {
         gst_object_unref(GST_OBJECT(playbin_));
         playbin_ = nullptr;
     }
@@ -186,26 +177,22 @@ bool GStreamerVideo::play(const std::string& file)
 
 #if defined(WIN32)
     enablePlugin("directsoundsink");
-    if (!Configuration::HardwareVideoAccel) 
-    {
+    if (!Configuration::HardwareVideoAccel) {
         //enablePlugin("openh264dec");
         disablePlugin("d3d11h264dec");
         disablePlugin("d3d11h265dec");
     }
 #elif defined(__APPLE__)
-    if (Configuration::HardwareVideoAccel) 
-    {
+    if (Configuration::HardwareVideoAccel) {
         enablePlugin("vah264dec");
         enablePlugin("vah265dec");
     }
 #else
-    if (Configuration::HardwareVideoAccel) 
-    {
+    if (Configuration::HardwareVideoAccel) {
         enablePlugin("vah264dec");
         enablePlugin("vah265dec");
     }
-    if (!Configuration::HardwareVideoAccel) 
-    {
+    if (!Configuration::HardwareVideoAccel) {
         disablePlugin("vah264dec");
         disablePlugin("vah265dec");
         enablePlugin("avdec_h264");
@@ -220,8 +207,7 @@ bool GStreamerVideo::play(const std::string& file)
         return false;
 
     // Start playing
-    if (GstStateChangeReturn playState = gst_element_set_state(GST_ELEMENT(playbin_), GST_STATE_PLAYING); playState != GST_STATE_CHANGE_ASYNC)
-    {
+    if (GstStateChangeReturn playState = gst_element_set_state(GST_ELEMENT(playbin_), GST_STATE_PLAYING); playState != GST_STATE_CHANGE_ASYNC) {
         isPlaying_ = false;
         LOG_ERROR("Video", "Unable to set the pipeline to the playing state.");
         stop();
@@ -319,17 +305,14 @@ bool GStreamerVideo::initializeGstElements(const std::string& file)
 void GStreamerVideo::elementSetupCallback([[maybe_unused]] GstElement const* playbin, GstElement* element, [[maybe_unused]] GStreamerVideo const* video) {
 
     gchar* elementName = gst_element_get_name(element);
-    if (!Configuration::HardwareVideoAccel)
-    {
-        if (g_str_has_prefix(elementName, "avdec_h26"))
-        {
+    if (!Configuration::HardwareVideoAccel) {
+        if (g_str_has_prefix(elementName, "avdec_h26")) {
             // Modify the properties of the avdec_h265 element here
             g_object_set(G_OBJECT(element), "thread-type", Configuration::AvdecThreadType, "max-threads", Configuration::AvdecMaxThreads, "direct-rendering", false, nullptr);
         }
     }
 #ifdef WIN32
-    if (strstr(elementName, "wasapi2") != nullptr)
-    {
+    if (strstr(elementName, "wasapi2") != nullptr) {
         g_object_set(G_OBJECT(element), "low-latency", TRUE, nullptr);
     }
 #endif
@@ -372,41 +355,33 @@ void GStreamerVideo::processNewBuffer(GstElement const* /* fakesink */, GstBuffe
 void GStreamerVideo::update(float /* dt */)
 {
 
-    if (!playbin_ || !videoBuffer_ || paused_)
-    {
+    if (!playbin_ || !videoBuffer_ || paused_) {
          return;
     }
     
     SDL_LockMutex(SDL::getMutex());
     
-    if (!texture_ && width_ != 0)
-    {
-        if (useD3dHardware_ || useVaHardware_)
-        {
+    if (!texture_ && width_ != 0) {
+        if (useD3dHardware_ || useVaHardware_) {
             texture_ = SDL_CreateTexture(SDL::getRenderer(monitor_), SDL_PIXELFORMAT_NV12,
                 SDL_TEXTUREACCESS_STREAMING, width_, height_);
         }
-        else
-        {
+        else {
             texture_ = SDL_CreateTexture(SDL::getRenderer(monitor_), SDL_PIXELFORMAT_IYUV,
                 SDL_TEXTUREACCESS_STREAMING, width_, height_);
         }
         SDL_SetTextureBlendMode(texture_, SDL_BLENDMODE_BLEND);
     }
 
-    if (videoBuffer_)
-    {
+    if (videoBuffer_) {
         // Lambda functions for handling each case
-        auto handleContiguous = [&]()
-            {
+        auto handleContiguous = [&]() {
                 GstMapInfo bufInfo;
                 gst_buffer_map(videoBuffer_, &bufInfo, GST_MAP_READ);
-                if (bufInfo.size == expectedBufSize_)
-                {
+                if (bufInfo.size == expectedBufSize_) {
                     SDL_UpdateTexture(texture_, nullptr, bufInfo.data, width_);
                 }
-                else if (!Configuration::HardwareVideoAccel)
-                {
+                else if (!Configuration::HardwareVideoAccel) {
                     int y_stride, u_stride, v_stride;
                     const Uint8* y_plane, * u_plane, * v_plane;
 
@@ -421,9 +396,7 @@ void GStreamerVideo::update(float /* dt */)
                         u_plane, u_stride,
                         v_plane, v_stride);
                 }
-                else
-                {
-
+                else {
                     if (!videoMeta_)
                         videoMeta_ = gst_buffer_get_video_meta(videoBuffer_);
                     GstMapInfo bufInfo;
@@ -493,26 +466,21 @@ void GStreamerVideo::update(float /* dt */)
 
 
 
-        if (bufferLayout_ == UNKNOWN)
-        {
+        if (bufferLayout_ == UNKNOWN) {
             GstVideoMeta const* meta;
             meta = gst_buffer_get_video_meta(videoBuffer_);
-            if (!meta)
-            {
+            if (!meta) {
                 bufferLayout_ = CONTIGUOUS;
                 if(Logger::isLevelEnabled("DEBUG"))
                     LOG_DEBUG("Video", "Buffer for " + Utils::getFileName(currentFile_) + " is Contiguous");
             }
-            else
-            {
-                if (useD3dHardware_ || useVaHardware_)
-                {
+            else {
+                if (useD3dHardware_ || useVaHardware_) {
                     bufferLayout_ = CONTIGUOUS;
                     if (Logger::isLevelEnabled("DEBUG"))
                         LOG_DEBUG("Video", "Buffer for " + Utils::getFileName(currentFile_) + " is Contiguous");
                 }
-                else
-                {
+                else {
                     bufferLayout_ = NON_CONTIGUOUS;
                     if (Logger::isLevelEnabled("DEBUG"))
                         LOG_DEBUG("Video", "Buffer for " + Utils::getFileName(currentFile_) + " is Non-Contiguous");
@@ -522,17 +490,14 @@ void GStreamerVideo::update(float /* dt */)
             }
         }
 
-        switch (bufferLayout_)
-        {
-        case CONTIGUOUS:
-        {
+        switch (bufferLayout_) {
+        case CONTIGUOUS: {
             handleContiguous();
             break;
         }
 
 
-        case NON_CONTIGUOUS:
-        {
+        case NON_CONTIGUOUS: {
             handleNonContiguous();
             break;
         }
@@ -551,16 +516,13 @@ void GStreamerVideo::update(float /* dt */)
 
 void GStreamerVideo::loopHandler()
 {
-    if(videoBus_)
-    {
+    if(videoBus_) {
         GstMessage *msg = gst_bus_pop_filtered(videoBus_, GST_MESSAGE_EOS);
-        if(msg)
-        {
+        if(msg) {
             playCount_++;
 
             // If the number of loops is 0 or greater than the current playCount_, seek the playback to the beginning.
-            if(!numLoops_ || numLoops_ > playCount_)
-            {
+            if(!numLoops_ || numLoops_ > playCount_) {
                 gst_element_seek(playbin_,
                              1.0,
                              GST_FORMAT_TIME,
@@ -570,8 +532,7 @@ void GStreamerVideo::loopHandler()
                              GST_SEEK_TYPE_NONE,
                              GST_CLOCK_TIME_NONE);
             }
-            else
-            {
+            else {
                 stop();
             }
             gst_message_unref(msg);
@@ -580,16 +541,13 @@ void GStreamerVideo::loopHandler()
 }
 
 void GStreamerVideo::volumeUpdate()
-{   
-
+{
     bool shouldMute = false;
     double targetVolume = 0.0;
-    if (bool muteVideo = Configuration::MuteVideo; muteVideo)
-    {
+    if (bool muteVideo = Configuration::MuteVideo; muteVideo) {
         shouldMute = true;
     }
-    else
-    {
+    else {
         if (volume_ > 1.0)
             volume_ = 1.0;
         if (currentVolume_ > volume_ || currentVolume_ + 0.005 >= volume_)
@@ -602,14 +560,12 @@ void GStreamerVideo::volumeUpdate()
     }
 
     // Only set the volume if it has changed since the last call.
-    if (targetVolume != lastSetVolume_)
-    {
+    if (targetVolume != lastSetVolume_) {
         gst_stream_volume_set_volume(GST_STREAM_VOLUME(playbin_), GST_STREAM_VOLUME_FORMAT_LINEAR, targetVolume);
         lastSetVolume_ = targetVolume;
     }
     // Only set the mute state if it has changed since the last call.
-    if (shouldMute != lastSetMuteState_)
-    {
+    if (shouldMute != lastSetMuteState_) {
         gst_stream_volume_set_mute(GST_STREAM_VOLUME(playbin_), shouldMute);
         lastSetMuteState_ = shouldMute;
     }
