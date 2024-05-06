@@ -35,7 +35,7 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - Placed jbKey's behind a jukebox key to not bother mapping [@aidenjbass](https://github.com/aidenjbass)
 - Rebuilt the layout getter in pageBuilder [@aidenjbass](https://github.com/aidenjbass)
 
-## [10.34.4] - 2024-02-03
+## [10.34.4] - 2024-02-03 - The Forgotten Universe Atarashii Release
 
 ### Added
 - local launchers that are restricted to their own collections [@inigomontoya](https://github.com/inigomontoya)
