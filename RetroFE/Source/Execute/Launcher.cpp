@@ -198,7 +198,7 @@ void Launcher::LEDBlinky( int command, std::string collection, Item *collectionI
 	bool wait = false;
 	if ( command == 2 ) {
         bool LEDBlinkyCloseOnExit;
-        config_.getProperty("LEDBlinkyCloseOnExit", LEDBlinkyCloseOnExit);
+        config_.getProperty(OPTION_LEDBLINKYCLOSEONEXIT, LEDBlinkyCloseOnExit);
         if (LEDBlinkyCloseOnExit == true) {
             wait = true;
         }

@@ -375,7 +375,7 @@ bool RetroFE::run( )
     config_.getProperty( OPTION_ATTRACTMODEMAXTIME, attractModeMaxTime );
     config_.getProperty( OPTION_FIRSTCOLLECTION, firstCollection );
     config_.getProperty( OPTION_ATTRACTMODEFAST, attractModeFast);
-    config_.getProperty( "LEDBlinkyCloseOnExit", LEDBlinkyCloseOnExit); // added checks for LEDBLINKY closing or not closing boolean
+    config_.getProperty( OPTION_LEDBLINKYCLOSEONEXIT, LEDBlinkyCloseOnExit);
 
     attract_.idleTime           = static_cast<float>(attractModeTime);
     attract_.idleNextTime       = static_cast<float>(attractModeNextTime);
@@ -1683,13 +1683,13 @@ bool RetroFE::run( )
         // Wait for onExit animation to finish before quitting RetroFE
         case RETROFE_QUIT:
             bool LEDBlinkyCloseOnExit = true;
-             config_.getProperty("LEDBlinkyCloseOnExit", LEDBlinkyCloseOnExit);
-             if ( currentPage_->isGraphicsIdle() ) {
-                 if (LEDBlinkyCloseOnExit == true) {
-                     l.LEDBlinky(2);
-                     running = false;
-                 }
-                 else running = false;
+            config_.getProperty(OPTION_LEDBLINKYCLOSEONEXIT, LEDBlinkyCloseOnExit);
+            if ( currentPage_->isGraphicsIdle() ) {
+                if (LEDBlinkyCloseOnExit == true) {
+                    l.LEDBlinky(2);
+                    running = false;
+                }
+                else running = false;
              }
             break;
         }
