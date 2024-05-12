@@ -148,7 +148,7 @@ void Component::setTweens(AnimationEvents *set)
 
 std::string_view Component::filePath()
 {
-    return std::string();
+    return "";
 }
 
 bool Component::update(float dt)

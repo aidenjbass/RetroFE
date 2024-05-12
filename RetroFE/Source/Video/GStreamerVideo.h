@@ -65,7 +65,7 @@ public:
     unsigned long long getCurrent() override;
     unsigned long long getDuration() override;
     bool isPaused() override;
-    bool getFrameReady();
+    bool getFrameReady() override;
     // Helper functions...
     static void enablePlugin(const std::string& pluginName);
     static void disablePlugin(const std::string& pluginName);
