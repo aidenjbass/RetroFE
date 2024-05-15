@@ -11,7 +11,15 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 [@arghs15](https://github.com/arghs15)
 [@bluestang2006](https://github.com/bluestang2006)
 
-## [10.34.5] - TBA
+## Version TBA
+### Added
+- Window to display if splash.xml is invalid [@aidenjbass](https://github.com/aidenjbass)
+- Added subtractive logging values, ie ALL,-INFO is all logging but INFO [@aidenjbass](https://github.com/aidenjbass)
+
+### Changed
+### Fixed
+
+## [10.34.5] - 2024-02-18
 
 ### Added
 - added default.conf for default game info [@monkofthefunk](https://github.com/monkofthefunk)
@@ -28,8 +36,6 @@ and this project adheres to [Semantic Versioning](http://semver.org/).
 - layoutFromAnotherCollection key, search in layouts/\<layout>/collections/\<collectionName>/layout/ [@aidenjbass](https://github.com/aidenjbass)
 - File existence checks for settings.conf etc, could result in seg faults under certain conditions [@aidenjbass](https://github.com/aidenjbass)
 - If init fails GUI textbox will show instead of just logging to console [@aidenjbass](https://github.com/aidenjbass)
-- Window to display if splash.xml is invalid [@aidenjbass](https://github.com/aidenjbass)
-- Added subtractive logging values, ie ALL,-INFO is all logging but INFO [@aidenjbass](https://github.com/aidenjbass)
 
 ### Changed
 - Moved all global settings to GlobalOpts data class [@aidenjbass](https://github.com/aidenjbass)
