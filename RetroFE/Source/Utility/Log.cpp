@@ -103,9 +103,16 @@ bool Logger::isLevelEnabled(const std::string& zone) {
             else if (token == "WARNING") isWarningEnabled = true;
             else if (token == "ERROR") isErrorEnabled = true;
 			else if (token == "FILECACHE") isFileCacheEnabled = true;
+            
+            else if (token == "-DEBUG") isDebugEnabled = false;
+            else if (token == "-INFO") isInfoEnabled = false;
+            else if (token == "-NOTICE") isNoticeEnabled = false;
+            else if (token == "-WARNING") isWarningEnabled = false;
+            else if (token == "-ERROR") isErrorEnabled = false;
+            else if (token == "-FILECACHE") isFileCacheEnabled = false;
+            
             else if (token == "ALL") {
                 isDebugEnabled = isInfoEnabled = isNoticeEnabled = isWarningEnabled = isErrorEnabled = isFileCacheEnabled = true;
-                break;
             }
         }
     }
