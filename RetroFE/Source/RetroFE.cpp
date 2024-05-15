@@ -2700,6 +2700,7 @@ Page *RetroFE::loadSplashPage( )
     Page * page = pb.buildPage( );
     if (!page) {
         LOG_ERROR("RetroFE", "Could not create splash page");
+        SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_ERROR, "Configuration Error", "RetroFE is unable to create a splash page from the given splash.xml", NULL);
     }
     else {
         page->start();
