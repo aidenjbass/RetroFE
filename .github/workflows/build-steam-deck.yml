@@ -3,6 +3,8 @@ name: Build for Steam Deck
 on:
   push:
     branches: [ main ]
+  workflow_dispatch:
+
 
 jobs:
   build:
