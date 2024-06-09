@@ -1834,8 +1834,8 @@ std::vector<std::string> RetroFE::getPlaylistCycle()
         // use the global setting as overide if firstCollection == current
         if (cycleString == "" || firstCollection != collectionName) {
             // check if collection has different setting
-            if (config_.propertyExists(settingPrefix + "cyclePlaylist")) {
-                config_.getProperty(settingPrefix + "cyclePlaylist", cycleString);
+            if (config_.propertyExists(settingPrefix + OPTION_CYCLEPLAYLIST)) {
+                config_.getProperty(settingPrefix + OPTION_CYCLEPLAYLIST, cycleString);
             }
         }
         Utils::listToVector(cycleString, cycleVector_, ',');
