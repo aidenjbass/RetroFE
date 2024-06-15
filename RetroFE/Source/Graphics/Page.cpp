@@ -40,8 +40,6 @@ Page::Page(Configuration &config, int layoutWidth, int layoutHeight)
     , playlistMenu_(NULL)
     , menuDepth_(0)
     , scrollActive_(false)
-    , playlistScrollActive_(false)
-    , gameScrollActive_(false)
     , selectedItem_(NULL)
     , textStatusComponent_(NULL)
     , loadSoundChunk_(NULL)
@@ -295,9 +293,6 @@ bool Page::addComponent(Component *c)
 
 bool Page::isMenuIdle()
 {
-    if (!playlistMenu_->isScrollingListIdle())
-        return false;
-
     for(auto it = menus_.begin(); it != menus_.end(); ++it) {
         for(auto it2 = it->begin(); it2 != it->end(); ++it2) {
             ScrollingList *menu = *it2;
@@ -678,8 +673,7 @@ void Page::setScrolling(ScrollDirection direction)
             {
                 menuScroll();
             }
-            scrollActive_ = gameScrollActive_ = true;
-            playlistScrollActive_ = false;
+            scrollActive_ = true;
             break;
         case ScrollDirectionPlaylistForward:
         case ScrollDirectionPlaylistBack:
@@ -687,12 +681,11 @@ void Page::setScrolling(ScrollDirection direction)
             {
                 playlistScroll();
             }
-            scrollActive_ = playlistScrollActive_ = true;
-            gameScrollActive_ = false;
+            scrollActive_ = true;
             break;
         case ScrollDirectionIdle:
         default:
-            scrollActive_ = playlistScrollActive_ = gameScrollActive_ = false;
+            scrollActive_ = false;
             break;
     }
 
@@ -1485,15 +1478,6 @@ bool Page::isMenuScrolling() const
     return scrollActive_;
 }
 
-bool Page::isPlaylistScrolling() const
-{
-    return playlistScrollActive_;
-}
-
-bool Page::isGamesScrolling() const
-{
-    return gameScrollActive_;
-}
 
 bool Page::isPlaying() const
 {
