@@ -14,43 +14,50 @@
  * along with RetroFE.  If not, see <http://www.gnu.org/licenses/>.
  */
 #pragma once
-#include "Component.h"
-#include "Image.h"
-#include "../Page.h"
-#include "../../Collection/Item.h"
+
+#include "../../Graphics/ViewInfo.h"
+#include "../../SDL.h"
+#include "../../Utility/Log.h"
+#include "../../Utility/Utils.h"
 #include "../../Video/IVideo.h"
 #include "../../Video/VideoFactory.h"
-#include <SDL2/SDL.h>
-#include <string>
+#include "../Page.h"
+#include "Component.h"
+#include "SDL_rect.h"
+#include "SDL_render.h"
 
-class VideoComponent : public Component
-{
+#include <memory>
+
+class VideoComponent : public Component {
 public:
-    VideoComponent(Page &p, const std::string& videoFile, int monitor, int numLoops);
-    virtual ~VideoComponent();
-    bool update(float dt) override;
-    void draw() override;
-    void freeGraphicsMemory() override;
-    void allocateGraphicsMemory() override;
-    bool isPlaying() override;
-    void skipForward( ) override;
-    void skipBackward( ) override;
-    void skipForwardp( ) override;
-    void skipBackwardp( ) override;
-    void pause( ) override;
-    void restart( ) override;
-    unsigned long long getCurrent( ) override;
-    unsigned long long getDuration( ) override;
-    bool isPaused( ) override;
-    std::string_view filePath() override;
+  VideoComponent(Page &p, const std::string &videoFile, int monitor,
+                 int numLoops);
+  ~VideoComponent();
+
+  bool update(float dt) override;
+  void draw() override;
+  void allocateGraphicsMemory() override;
+  void freeGraphicsMemory() override;
+
+  bool isPlaying();
+  std::string_view filePath();
+  void skipForward();
+  void skipBackward();
+  void skipForwardp();
+  void skipBackwardp();
+  void pause();
+  void restart();
+  unsigned long long getCurrent();
+  unsigned long long getDuration();
+  bool isPaused();
 
 private:
-    std::string videoFile_;
-    std::string name_;
-    IVideo* videoInst_{ nullptr };
-    bool isPlaying_{ false };
-    bool hasBeenOnScreen_{ false };
-    int numLoops_;
-    int monitor_;
-    Page* currentPage_{ nullptr };
+  std::unique_ptr<IVideo> videoInst_;
+  std::string videoFile_;
+  bool isPlaying_ = false;
+  bool hasBeenOnScreen_ = false;
+  bool textureInitialized_ = false;
+  int numLoops_;
+  int monitor_;
+  Page *currentPage_;
 };
