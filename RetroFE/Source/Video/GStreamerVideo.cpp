@@ -283,7 +283,7 @@ bool GStreamerVideo::initializeGstElements(const std::string &file)
     // Set properties of playbin and videoSink
     const guint PLAYBIN_FLAGS = 0x00000001 | 0x00000002;
     g_object_set(G_OBJECT(playbin_), "uri", uriFile, "video-sink", videoBin_, "instant-uri", TRUE, "flags",
-                 PLAYBIN_FLAGS, "buffer-size", -1, nullptr);
+                 PLAYBIN_FLAGS, nullptr);
     g_free(uriFile);
 
     GstPad *pad = gst_element_get_static_pad(videoSink_, "sink");
@@ -296,9 +296,11 @@ bool GStreamerVideo::initializeGstElements(const std::string &file)
     // Configure the appsink
     gst_app_sink_set_emit_signals(GST_APP_SINK(videoSink_),
                                   false); // Ensure signals are not emitted
+
+    g_object_set(GST_APP_SINK(videoSink_), "emit-signals", FALSE, "sync", TRUE, "enable-last-sample", TRUE,
+        "wait-on-eos", FALSE, "max-buffers", 30, NULL);
     gst_app_sink_set_drop(GST_APP_SINK(videoSink_), true);
-    gst_app_sink_set_max_buffers(GST_APP_SINK(videoSink_), 1);
-    GstAppSinkCallbacks callbacks{NULL, NULL, GStreamerVideo::new_buffer, NULL, 0};
+    GstAppSinkCallbacks callbacks{NULL, GStreamerVideo::new_buffer, GStreamerVideo::new_buffer, NULL, 0};
     gst_app_sink_set_callbacks(GST_APP_SINK(videoSink_), &callbacks, this, NULL);
 
     elementSetupHandlerId_ = g_signal_connect(playbin_, "element-setup", G_CALLBACK(elementSetupCallback), this);
@@ -358,62 +360,72 @@ void GStreamerVideo::elementSetupCallback([[maybe_unused]] GstElement const *pla
     g_free(elementName);
 }
 
-GstFlowReturn GStreamerVideo::new_buffer(GstAppSink *app_sink, gpointer userdata)
+GstFlowReturn GStreamerVideo::new_buffer(GstAppSink* app_sink, gpointer userdata)
 {
-    GStreamerVideo *video = static_cast<GStreamerVideo *>(userdata);
-
-    // Pull the sample from the appsink.
-    GstSample *sample = gst_app_sink_pull_sample(app_sink);
-    if (!sample)
-    {
-        // Finished playing.
-        return GST_FLOW_ERROR;
-    }
+    GStreamerVideo* video = static_cast<GStreamerVideo*>(userdata);
+    GstFlowReturn ret = GST_FLOW_OK;
 
     // Lock the mutex to ensure thread safety.
-    // SDL_LockMutex(SDL::getMutex());
+    SDL_LockMutex(SDL::getMutex());
+
     if (video && video->isPlaying_ && !video->frameReady_)
     {
-        // Retrieve caps and set width/height if not yet set.
-        if (!video->width_ || !video->height_)
-        {
-            GstCaps *caps = gst_sample_get_caps(sample);
-            if (caps)
-            {
-                GstStructure *s = gst_caps_get_structure(caps, 0);
-                gst_structure_get_int(s, "width", &video->width_);
-                gst_structure_get_int(s, "height", &video->height_);
-            }
-        }
+        // Get the last sample (non-blocking).
+        GstSample* sample = nullptr;
+        g_object_get(app_sink, "last-sample", &sample, NULL);
 
-        if (video->height_ && video->width_)
+        if (sample != nullptr)
         {
-            // Get the buffer from the sample.
-            GstBuffer *buffer = gst_sample_get_buffer(sample);
-            if (!buffer)
+            // Retrieve caps and set width/height if not yet set.
+            if (!video->width_ || !video->height_)
+            {
+                GstCaps* caps = gst_sample_get_caps(sample);
+                if (caps)
+                {
+                    GstStructure* s = gst_caps_get_structure(caps, 0);
+                    gst_structure_get_int(s, "width", &video->width_);
+                    gst_structure_get_int(s, "height", &video->height_);
+                }
+            }
+
+            if (video->height_ && video->width_)
+            {
+                // Get the buffer from the sample.
+                GstBuffer* buffer = gst_buffer_ref(gst_sample_get_buffer(sample));
+                if (!buffer)
+                {
+                    gst_sample_unref(sample);
+                    SDL_UnlockMutex(SDL::getMutex());
+                    return GST_FLOW_OK;
+                }
+
+                // Clear the existing videoBuffer_ if it exists.
+                if (video->videoBuffer_)
+                {
+                    gst_clear_buffer(&video->videoBuffer_);
+                }
+
+                // Make a copy of the incoming buffer and set it as the new videoBuffer_.
+                video->videoBuffer_ = gst_buffer_copy(buffer);
+                gst_buffer_unref(buffer);  // Unref the buffer after copying
+                video->frameReady_ = true;
+            }
+
+            // Cleanup stack of samples (non-blocking).
+            while (sample != nullptr)
             {
                 gst_sample_unref(sample);
-                return GST_FLOW_ERROR;
+                sample = gst_app_sink_try_pull_sample(app_sink, 0);
             }
-
-            // Clear the existing videoBuffer_ if it exists.
-            if (video->videoBuffer_)
-            {
-                gst_clear_buffer(&video->videoBuffer_);
-            }
-
-            // Make a copy of the incoming buffer and set it as the new
-            // videoBuffer_.
-            video->videoBuffer_ = gst_buffer_copy(buffer);
-            video->frameReady_ = true;
+        }
+        else
+        {
+            ret = GST_FLOW_FLUSHING;
         }
     }
-    // SDL_UnlockMutex(SDL::getMutex());
 
-    // Unref the sample to release the memory.
-    gst_sample_unref(sample);
-
-    return GST_FLOW_OK;
+    SDL_UnlockMutex(SDL::getMutex());
+    return ret;
 }
 
 void GStreamerVideo::update(float /* dt */)
@@ -443,14 +455,13 @@ void GStreamerVideo::update(float /* dt */)
 
     if (videoBuffer_ && texture_)
     {
+
         GstVideoFrame vframe;
         auto map_flags = static_cast<GstMapFlags>(GST_MAP_READ | GST_VIDEO_FRAME_MAP_FLAG_NO_REF);
         if (gst_video_frame_map(&vframe, &videoInfo_, videoBuffer_, map_flags))
         {
             LOG_DEBUG("Video", "Video frame mapped successfully. Updating texture...");
 
-            if (texture_)
-            {
                 if (Configuration::HardwareVideoAccel)
                 {
 
@@ -477,7 +488,7 @@ void GStreamerVideo::update(float /* dt */)
                         LOG_ERROR("Video", "SDL_UpdateYUVTexture failed: " + std::string(SDL_GetError()));
                     }
                 }
-            }
+            
             gst_video_frame_unmap(&vframe);
         }
 
