@@ -68,29 +68,25 @@ class GStreamerVideo final : public IVideo
     static void disablePlugin(const std::string &pluginName);
 
   private:
-    enum BufferLayout
-    {
-        UNKNOWN,        // Initial state
-        CONTIGUOUS,     // Contiguous buffer layout
-        NON_CONTIGUOUS, // Non-contiguous buffer layout
-    };
-
     static void elementSetupCallback([[maybe_unused]] GstElement const *playbin, GstElement *element,
                                      [[maybe_unused]] GStreamerVideo const *video);
     static GstFlowReturn new_buffer(GstAppSink *app_sink, gpointer userdata);
     bool initializeGstElements(const std::string &file);
+    static GstPadProbeReturn padProbeCallback(GstPad *pad, GstPadProbeInfo *info,
+                                       gpointer user_data);
     GstElement *playbin_{nullptr};
     GstElement *videoBin_{nullptr};
     GstElement *videoSink_{nullptr};
     GstElement *capsFilter_{nullptr};
     GstBus *videoBus_{nullptr};
+    GstVideoInfo videoInfo_;
     SDL_Texture *texture_{nullptr};
-    gulong elementSetupHandlerId_{0};
-    gulong handoffHandlerId_{0};
+    guint elementSetupHandlerId_{0};
+    guint handoffHandlerId_{0};
+    guint padProbeId_{0};
     gint height_{0};
     gint width_{0};
     GstBuffer *videoBuffer_{nullptr};
-    const GstVideoMeta *videoMeta_{nullptr};
     bool frameReady_{false};
     bool isPlaying_{false};
     static bool initialized_;
@@ -103,12 +99,6 @@ class GStreamerVideo final : public IVideo
     bool paused_{false};
     double lastSetVolume_{0.0};
     bool lastSetMuteState_{false};
-    gsize expectedBufSize_{0};
 
-    bool useD3dHardware_{Configuration::HardwareVideoAccel && SDL::getRendererBackend(0) == "direct3d11"};
-    bool useVaHardware_{Configuration::HardwareVideoAccel && SDL::getRendererBackend(0) == "opengl" &&
-                        Utils::getOSType() == "linux"};
-
-    BufferLayout bufferLayout_{UNKNOWN};
     std::string generateDotFileName(const std::string &prefix, const std::string &videoFilePath);
 };
