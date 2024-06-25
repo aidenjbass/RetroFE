@@ -240,7 +240,7 @@ bool GStreamerVideo::initializeGstElements(const std::string &file)
     if (!uriFile)
         return false;
 
-    playbin_ = gst_element_factory_make("playbin", "player");
+    playbin_ = gst_element_factory_make("playbin3", "player");
     videoBin_ = gst_bin_new("SinkBin");
     videoSink_ = gst_element_factory_make("appsink", "video_sink");
     capsFilter_ = gst_element_factory_make("capsfilter", "caps_filter");
@@ -323,11 +323,6 @@ GstPadProbeReturn GStreamerVideo::padProbeCallback(GstPad *pad, GstPadProbeInfo 
         {
             if (gst_video_info_from_caps(&video->videoInfo_, caps))
             {
-                video->width_ = video->videoInfo_.width;
-                video->height_ = video->videoInfo_.height;
-                LOG_DEBUG("GStreamerVideo", "Video dimensions: width = " + std::to_string(video->width_) +
-                                                ", height = " + std::to_string(video->height_));
-
                 // Remove the pad probe after getting the video dimensions
                 gst_pad_remove_probe(pad, video->padProbeId_);
             }
@@ -376,11 +371,21 @@ GstFlowReturn GStreamerVideo::new_buffer(GstAppSink* app_sink, gpointer userdata
 
         if (sample != nullptr)
         {
-
+            // Retrieve caps and set width/height if not yet set.
+            if (!video->width_ || !video->height_)
+            {
+                GstCaps* caps = gst_sample_get_caps(sample);
+                if (caps)
+                {
+                    GstStructure* s = gst_caps_get_structure(caps, 0);
+                    gst_structure_get_int(s, "width", &video->width_);
+                    gst_structure_get_int(s, "height", &video->height_);
+                }
+            }
             if (video->height_ && video->width_)
             {
                 // Get the buffer from the sample.
-                GstBuffer* buffer = gst_buffer_ref(gst_sample_get_buffer(sample));
+                GstBuffer* buffer = gst_sample_get_buffer(sample);
                 if (!buffer)
                 {
                     gst_sample_unref(sample);
@@ -396,7 +401,7 @@ GstFlowReturn GStreamerVideo::new_buffer(GstAppSink* app_sink, gpointer userdata
 
                 // Make a copy of the incoming buffer and set it as the new videoBuffer_.
                 video->videoBuffer_ = gst_buffer_copy(buffer);
-                gst_buffer_unref(buffer);  // Unref the buffer after copying
+                //gst_clear_buffer(&buffer);  // Unref the buffer after copying
                 video->frameReady_ = true;
             }
 
@@ -420,11 +425,6 @@ GstFlowReturn GStreamerVideo::new_buffer(GstAppSink* app_sink, gpointer userdata
 void GStreamerVideo::update(float /* dt */)
 {
 
-    if (!playbin_ || !videoBuffer_ || paused_)
-    {
-        return;
-    }
-
     SDL_LockMutex(SDL::getMutex());
 
     if (!texture_ && width_ != 0 && height_ !=0)
@@ -442,47 +442,67 @@ void GStreamerVideo::update(float /* dt */)
         SDL_SetTextureBlendMode(texture_, SDL_BLENDMODE_BLEND);
     }
 
-    if (videoBuffer_ && texture_)
+    if (videoBuffer_)
     {
+        GstVideoMeta* meta;
+        meta = gst_buffer_get_video_meta(videoBuffer_);
 
-        GstVideoFrame vframe;
-        auto map_flags = static_cast<GstMapFlags>(GST_MAP_READ | GST_VIDEO_FRAME_MAP_FLAG_NO_REF);
-        if (gst_video_frame_map(&vframe, &videoInfo_, videoBuffer_, map_flags))
+        // Presence of meta indicates non-contiguous data in the buffer
+        if (!meta)
         {
-            LOG_DEBUG("Video", "Video frame mapped successfully. Updating texture...");
+            void* pixels;
+            int pitch;
+            unsigned int vbytes = width_ * height_;
+            vbytes += (vbytes / 2);
+            gsize bufSize = gst_buffer_get_size(videoBuffer_);
 
-                if (Configuration::HardwareVideoAccel)
-                {
+            if (bufSize == vbytes)
+            {
+                SDL_LockTexture(texture_, NULL, &pixels, &pitch);
+                gst_buffer_extract(videoBuffer_, 0, pixels, vbytes);
+                SDL_UnlockTexture(texture_);
+            }
+            else
+            {
+                GstMapInfo bufInfo;
+                unsigned int y_stride, u_stride, v_stride;
+                const Uint8* y_plane, * u_plane, * v_plane;
 
-                    if (SDL_UpdateNVTexture(texture_, nullptr,
-                                            static_cast<const Uint8 *>(GST_VIDEO_FRAME_PLANE_DATA(&vframe, 0)),
-                                            GST_VIDEO_FRAME_PLANE_STRIDE(&vframe, 0),
-                                            static_cast<const Uint8 *>(GST_VIDEO_FRAME_PLANE_DATA(&vframe, 1)),
-                                            GST_VIDEO_FRAME_PLANE_STRIDE(&vframe, 1)) != 0)
-                    {
-                        LOG_ERROR("Video", "SDL_UpdateNVTexture failed: " + std::string(SDL_GetError()));
-                    }
-                }
-                else
-                {
+                y_stride = GST_ROUND_UP_4(width_);
+                u_stride = v_stride = GST_ROUND_UP_4(y_stride / 2);
 
-                    if (SDL_UpdateYUVTexture(texture_, nullptr,
-                                             static_cast<const Uint8 *>(GST_VIDEO_FRAME_PLANE_DATA(&vframe, 0)),
-                                             GST_VIDEO_FRAME_PLANE_STRIDE(&vframe, 0),
-                                             static_cast<const Uint8 *>(GST_VIDEO_FRAME_PLANE_DATA(&vframe, 1)),
-                                             GST_VIDEO_FRAME_PLANE_STRIDE(&vframe, 1),
-                                             static_cast<const Uint8 *>(GST_VIDEO_FRAME_PLANE_DATA(&vframe, 2)),
-                                             GST_VIDEO_FRAME_PLANE_STRIDE(&vframe, 2)) != 0)
-                    {
-                        LOG_ERROR("Video", "SDL_UpdateYUVTexture failed: " + std::string(SDL_GetError()));
-                    }
-                }
-            
-            gst_video_frame_unmap(&vframe);
+                gst_buffer_map(videoBuffer_, &bufInfo, GST_MAP_READ);
+                y_plane = bufInfo.data;
+                u_plane = y_plane + (height_ * y_stride);
+                v_plane = u_plane + ((height_ / 2) * u_stride);
+                SDL_UpdateYUVTexture(texture_, NULL,
+                    (const Uint8*)y_plane, y_stride,
+                    (const Uint8*)u_plane, u_stride,
+                    (const Uint8*)v_plane, v_stride);
+                gst_buffer_unmap(videoBuffer_, &bufInfo);
+            }
+        }
+        else
+        {
+            GstMapInfo y_info, u_info, v_info;
+            void* y_plane, * u_plane, * v_plane;
+            int y_stride, u_stride, v_stride;
+
+            gst_video_meta_map(meta, 0, &y_info, &y_plane, &y_stride, GST_MAP_READ);
+            gst_video_meta_map(meta, 1, &u_info, &u_plane, &u_stride, GST_MAP_READ);
+            gst_video_meta_map(meta, 2, &v_info, &v_plane, &v_stride, GST_MAP_READ);
+            SDL_UpdateYUVTexture(texture_, NULL,
+                (const Uint8*)y_plane, y_stride,
+                (const Uint8*)u_plane, u_stride,
+                (const Uint8*)v_plane, v_stride);
+            gst_video_meta_unmap(meta, 0, &y_info);
+            gst_video_meta_unmap(meta, 1, &u_info);
+            gst_video_meta_unmap(meta, 2, &v_info);
         }
 
         gst_clear_buffer(&videoBuffer_);
     }
+
     SDL_UnlockMutex(SDL::getMutex());
 }
 
