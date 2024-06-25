@@ -427,7 +427,7 @@ void GStreamerVideo::update(float /* dt */)
 
     SDL_LockMutex(SDL::getMutex());
 
-    if (!texture_ && width_ != 0)
+    if (!texture_ && width_ != 0 && height_ !=0)
     {
         if (Configuration::HardwareVideoAccel)
         {
