@@ -19,7 +19,6 @@
 #include "../SDL.h"
 #include "../Utility/Utils.h"
 #include "IVideo.h"
-#include <atomic>
 extern "C"
 {
 #if (__APPLE__)
@@ -88,7 +87,7 @@ class GStreamerVideo final : public IVideo
     gint height_{0};
     gint width_{0};
     GstBuffer *videoBuffer_{nullptr};
-    std::atomic<bool> frameReady_{false};
+    bool frameReady_{false};
     bool isPlaying_{false};
     static bool initialized_;
     int playCount_{0};

@@ -56,10 +56,7 @@ void GStreamerVideo::setNumLoops(int n)
 
 SDL_Texture *GStreamerVideo::getTexture() const
 {
-    SDL_LockMutex(SDL::getMutex());
-    SDL_Texture* texture = texture_;
-    SDL_UnlockMutex(SDL::getMutex());
-    return texture;
+    return texture_;
 }
 
 bool GStreamerVideo::initialize()
@@ -423,8 +420,10 @@ GstFlowReturn GStreamerVideo::new_buffer(GstAppSink* app_sink, gpointer userdata
 void GStreamerVideo::update(float /* dt */)
 {
 
-    if (texture_)
+    if (!playbin_ || !videoBuffer_ || paused_)
+    {
         return;
+    }
 
     SDL_LockMutex(SDL::getMutex());
 
@@ -443,6 +442,47 @@ void GStreamerVideo::update(float /* dt */)
         SDL_SetTextureBlendMode(texture_, SDL_BLENDMODE_BLEND);
     }
 
+    if (videoBuffer_ && texture_)
+    {
+
+        GstVideoFrame vframe;
+        auto map_flags = static_cast<GstMapFlags>(GST_MAP_READ | GST_VIDEO_FRAME_MAP_FLAG_NO_REF);
+        if (gst_video_frame_map(&vframe, &videoInfo_, videoBuffer_, map_flags))
+        {
+            LOG_DEBUG("Video", "Video frame mapped successfully. Updating texture...");
+
+                if (Configuration::HardwareVideoAccel)
+                {
+
+                    if (SDL_UpdateNVTexture(texture_, nullptr,
+                                            static_cast<const Uint8 *>(GST_VIDEO_FRAME_PLANE_DATA(&vframe, 0)),
+                                            GST_VIDEO_FRAME_PLANE_STRIDE(&vframe, 0),
+                                            static_cast<const Uint8 *>(GST_VIDEO_FRAME_PLANE_DATA(&vframe, 1)),
+                                            GST_VIDEO_FRAME_PLANE_STRIDE(&vframe, 1)) != 0)
+                    {
+                        LOG_ERROR("Video", "SDL_UpdateNVTexture failed: " + std::string(SDL_GetError()));
+                    }
+                }
+                else
+                {
+
+                    if (SDL_UpdateYUVTexture(texture_, nullptr,
+                                             static_cast<const Uint8 *>(GST_VIDEO_FRAME_PLANE_DATA(&vframe, 0)),
+                                             GST_VIDEO_FRAME_PLANE_STRIDE(&vframe, 0),
+                                             static_cast<const Uint8 *>(GST_VIDEO_FRAME_PLANE_DATA(&vframe, 1)),
+                                             GST_VIDEO_FRAME_PLANE_STRIDE(&vframe, 1),
+                                             static_cast<const Uint8 *>(GST_VIDEO_FRAME_PLANE_DATA(&vframe, 2)),
+                                             GST_VIDEO_FRAME_PLANE_STRIDE(&vframe, 2)) != 0)
+                    {
+                        LOG_ERROR("Video", "SDL_UpdateYUVTexture failed: " + std::string(SDL_GetError()));
+                    }
+                }
+            
+            gst_video_frame_unmap(&vframe);
+        }
+
+        gst_clear_buffer(&videoBuffer_);
+    }
     SDL_UnlockMutex(SDL::getMutex());
 }
 
@@ -517,42 +557,7 @@ int GStreamerVideo::getWidth()
 
 void GStreamerVideo::draw()
 {
-    // Lock the program-wide mutex to ensure thread safety
-    SDL_LockMutex(SDL::getMutex());
-
-    if (frameReady_.load())
-    {
-        if (videoBuffer_ && texture_)
-        {
-            GstVideoFrame vframe;
-            auto map_flags = static_cast<GstMapFlags>(GST_MAP_READ | GST_VIDEO_FRAME_MAP_FLAG_NO_REF);
-            if (gst_video_frame_map(&vframe, &videoInfo_, videoBuffer_, map_flags))
-            {
-                if (Configuration::HardwareVideoAccel)
-                {
-                    SDL_UpdateNVTexture(texture_, nullptr,
-                        static_cast<const Uint8*>(GST_VIDEO_FRAME_PLANE_DATA(&vframe, 0)),
-                        GST_VIDEO_FRAME_PLANE_STRIDE(&vframe, 0),
-                        static_cast<const Uint8*>(GST_VIDEO_FRAME_PLANE_DATA(&vframe, 1)),
-                        GST_VIDEO_FRAME_PLANE_STRIDE(&vframe, 1));
-                }
-                else
-                {
-                    SDL_UpdateYUVTexture(texture_, nullptr,
-                        static_cast<const Uint8*>(GST_VIDEO_FRAME_PLANE_DATA(&vframe, 0)),
-                        GST_VIDEO_FRAME_PLANE_STRIDE(&vframe, 0),
-                        static_cast<const Uint8*>(GST_VIDEO_FRAME_PLANE_DATA(&vframe, 1)),
-                        GST_VIDEO_FRAME_PLANE_STRIDE(&vframe, 1),
-                        static_cast<const Uint8*>(GST_VIDEO_FRAME_PLANE_DATA(&vframe, 2)),
-                        GST_VIDEO_FRAME_PLANE_STRIDE(&vframe, 2));
-                }
-                gst_video_frame_unmap(&vframe);
-            }
-        }
-        frameReady_ = false;
-    }
-
-    SDL_UnlockMutex(SDL::getMutex());
+    frameReady_ = false;
 }
 
 bool GStreamerVideo::isPlaying()
