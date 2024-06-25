@@ -376,17 +376,6 @@ GstFlowReturn GStreamerVideo::new_buffer(GstAppSink* app_sink, gpointer userdata
 
         if (sample != nullptr)
         {
-            // Retrieve caps and set width/height if not yet set.
-            if (!video->width_ || !video->height_)
-            {
-                GstCaps* caps = gst_sample_get_caps(sample);
-                if (caps)
-                {
-                    GstStructure* s = gst_caps_get_structure(caps, 0);
-                    gst_structure_get_int(s, "width", &video->width_);
-                    gst_structure_get_int(s, "height", &video->height_);
-                }
-            }
 
             if (video->height_ && video->width_)
             {
