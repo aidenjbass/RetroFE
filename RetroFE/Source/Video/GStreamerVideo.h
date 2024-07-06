@@ -63,7 +63,6 @@ class GStreamerVideo final : public IVideo
     unsigned long long getCurrent() override;
     unsigned long long getDuration() override;
     bool isPaused() override;
-    bool getFrameReady() override;
     // Helper functions...
     static void enablePlugin(const std::string &pluginName);
     static void disablePlugin(const std::string &pluginName);
@@ -71,14 +70,9 @@ class GStreamerVideo final : public IVideo
   private:
     static void elementSetupCallback([[maybe_unused]] GstElement const *playbin, GstElement *element,
                                      [[maybe_unused]] GStreamerVideo const *video);
-    static GstFlowReturn new_buffer(GstAppSink *app_sink, gpointer userdata);
     bool initializeGstElements(const std::string &file);
-    static GstPadProbeReturn padProbeCallback(GstPad *pad, GstPadProbeInfo *info,
-                                       gpointer user_data);
     GstElement *playbin_{nullptr};
-    GstElement *videoBin_{nullptr};
     GstElement *videoSink_{nullptr};
-    GstElement *capsFilter_{nullptr};
     GstBus *videoBus_{nullptr};
     GstVideoInfo videoInfo_;
     SDL_Texture *texture_{nullptr};
@@ -87,8 +81,6 @@ class GStreamerVideo final : public IVideo
     guint padProbeId_{0};
     gint height_{0};
     gint width_{0};
-    GstBuffer *videoBuffer_{nullptr};
-    bool frameReady_{false};
     bool isPlaying_{false};
     static bool initialized_;
     int playCount_{0};

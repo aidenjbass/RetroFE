@@ -54,9 +54,12 @@ void GStreamerVideo::setNumLoops(int n)
         numLoops_ = n;
 }
 
-SDL_Texture *GStreamerVideo::getTexture() const
+SDL_Texture* GStreamerVideo::getTexture() const
 {
-    return texture_;
+    SDL_LockMutex(SDL::getMutex());
+    SDL_Texture* texture = texture_;
+    SDL_UnlockMutex(SDL::getMutex());
+    return texture;
 }
 
 bool GStreamerVideo::initialize()
@@ -100,42 +103,47 @@ bool GStreamerVideo::stop()
         return false;
     }
 
-    // Initiate the transition of playbin to GST_STATE_NULL without waiting
     if (playbin_)
     {
+        // Set the pipeline state to NULL to clean up
         gst_element_set_state(playbin_, GST_STATE_NULL);
 
-        // Optionally perform a quick, non-blocking state check
-        GstStateChangeReturn ret = gst_element_get_state(playbin_, nullptr, nullptr, 0);
-        if (ret != GST_STATE_CHANGE_SUCCESS && ret != GST_STATE_CHANGE_ASYNC)
-        {
-            LOG_ERROR("Video", "Unexpected state change result when stopping playback");
-        }
-    }
+        isPlaying_ = false;
 
+        // Disconnect the signal handler for element setup if connected
+        if (elementSetupHandlerId_ != 0)
+        {
+            g_signal_handler_disconnect(playbin_, elementSetupHandlerId_);
+            elementSetupHandlerId_ = 0;
+        }
+
+        // Unreference the bus
+        if (videoBus_)
+        {
+            gst_object_unref(videoBus_);
+            videoBus_ = nullptr;
+        }
+
+        // Unreference and nullify the elements
+        gst_object_unref(playbin_);
+        playbin_ = nullptr;
+        videoSink_ = nullptr;  // We don't unref videoSink_ because it's unrefed by playbin_
+
+        LOG_DEBUG("Video", "GStreamer pipeline and elements cleaned up");
+    }
+    SDL_LockMutex(SDL::getMutex());
     // Release SDL Texture
     if (texture_)
     {
         SDL_DestroyTexture(texture_);
         texture_ = nullptr;
     }
-
-    // Free GStreamer elements and related resources
-    if (playbin_)
-    {
-        gst_object_unref(GST_OBJECT(playbin_));
-        playbin_ = nullptr;
-    }
-
+    SDL_UnlockMutex(SDL::getMutex());
     // Reset remaining pointers and variables to ensure the object is in a clean state.
     videoBus_ = nullptr;
     playbin_ = nullptr;
-    videoBin_ = nullptr;
-    capsFilter_ = nullptr;
     videoSink_ = nullptr;
-    videoBuffer_ = nullptr;
 
-    isPlaying_ = false;
 
     return true;
 }
@@ -214,28 +222,31 @@ bool GStreamerVideo::play(const std::string &file)
             // Generate dot file for playbin_
             std::string playbinDotFileName = generateDotFileName("playbin", currentFile_);
             GST_DEBUG_BIN_TO_DOT_FILE(GST_BIN(playbin_), GST_DEBUG_GRAPH_SHOW_ALL, playbinDotFileName.c_str());
-
-            // Generate dot file for videoBin_
-            std::string videoBinDotFileName = generateDotFileName("videobin", currentFile_);
-            GST_DEBUG_BIN_TO_DOT_FILE(GST_BIN(videoBin_), GST_DEBUG_GRAPH_SHOW_ALL, videoBinDotFileName.c_str());
         }
     }
 
     return true;
 }
 
-bool GStreamerVideo::initializeGstElements(const std::string &file)
+bool GStreamerVideo::initializeGstElements(const std::string& file)
 {
-    gchar *uriFile = gst_filename_to_uri(file.c_str(), nullptr);
+    gchar* uriFile = gst_filename_to_uri(file.c_str(), nullptr);
 
     if (!uriFile)
         return false;
 
-    playbin_ = gst_element_factory_make("playbin3", "player");
-    videoBin_ = gst_bin_new("SinkBin");
-    videoSink_ = gst_element_factory_make("appsink", "video_sink");
-    capsFilter_ = gst_element_factory_make("capsfilter", "caps_filter");
-    GstCaps *videoConvertCaps;
+    playbin_ = gst_element_factory_make("playbin3", "playbin");
+    videoSink_ = gst_element_factory_make("appsink", "appsink");
+
+    if (!playbin_ || !videoSink_)
+    {
+        LOG_DEBUG("Video", "Could not create elements");
+        if (uriFile)
+            g_free(uriFile);
+        return false;
+    }
+
+    GstCaps* videoConvertCaps;
     if (Configuration::HardwareVideoAccel)
     {
         videoConvertCaps = gst_caps_from_string("video/x-raw,format=(string)NV12,pixel-aspect-ratio=(fraction)1/1");
@@ -247,54 +258,17 @@ bool GStreamerVideo::initializeGstElements(const std::string &file)
         sdlFormat_ = SDL_PIXELFORMAT_IYUV;
     }
 
-    if (!playbin_ || !videoSink_ || !capsFilter_)
-    {
-        LOG_DEBUG("Video", "Could not create elements");
-        return false;
-    }
-
-    g_object_set(G_OBJECT(capsFilter_), "caps", videoConvertCaps, nullptr);
-    gst_caps_unref(videoConvertCaps);
-    videoConvertCaps = nullptr;
-
-    gst_bin_add_many(GST_BIN(videoBin_), capsFilter_, videoSink_, nullptr);
-
-    // Directly link capsFilter to videoSink
-    if (!gst_element_link(capsFilter_, videoSink_))
-    {
-        LOG_DEBUG("Video", "Could not link video processing elements");
-        return false;
-    }
-
-    GstPad *sinkPad = nullptr;
-    sinkPad = gst_element_get_static_pad(capsFilter_, "sink");
-
-    GstPad *ghostPad = gst_ghost_pad_new("sink", sinkPad);
-    gst_element_add_pad(videoBin_, ghostPad);
-    gst_object_unref(sinkPad);
-
-    // Set properties of playbin and videoSink
-    const guint PLAYBIN_FLAGS = 0x00000001 | 0x00000002;
-    g_object_set(G_OBJECT(playbin_), "uri", uriFile, "video-sink", videoBin_, "instant-uri", TRUE, "flags",
-                 PLAYBIN_FLAGS, nullptr);
-    g_free(uriFile);
-
-    GstPad *pad = gst_element_get_static_pad(videoSink_, "sink");
-    if (pad)
-    {
-        padProbeId_ = gst_pad_add_probe(pad, GST_PAD_PROBE_TYPE_EVENT_DOWNSTREAM, padProbeCallback, this, nullptr);
-        gst_object_unref(pad);
-    }
-
     // Configure the appsink
-    gst_app_sink_set_emit_signals(GST_APP_SINK(videoSink_),
-                                  TRUE); 
-
+    gst_app_sink_set_emit_signals(GST_APP_SINK(videoSink_), TRUE);
     g_object_set(GST_APP_SINK(videoSink_), "sync", TRUE, "enable-last-sample", TRUE,
-        "wait-on-eos", FALSE, "max-buffers", 30, NULL);
+        "wait-on-eos", FALSE, "max-buffers", 30, "caps", videoConvertCaps, nullptr);
     gst_app_sink_set_drop(GST_APP_SINK(videoSink_), true);
-    //GstAppSinkCallbacks callbacks{NULL, GStreamerVideo::new_buffer, GStreamerVideo::new_buffer, NULL, 0};
-    //gst_app_sink_set_callbacks(GST_APP_SINK(videoSink_), &callbacks, this, NULL);
+    gst_caps_unref(videoConvertCaps);
+
+    // Set properties of playbin
+    const guint PLAYBIN_FLAGS = 0x00000001 | 0x00000002;
+    g_object_set(G_OBJECT(playbin_), "uri", uriFile, "video-sink", videoSink_, "flags", PLAYBIN_FLAGS, nullptr);
+    g_free(uriFile);
 
     elementSetupHandlerId_ = g_signal_connect(playbin_, "element-setup", G_CALLBACK(elementSetupCallback), this);
     videoBus_ = gst_pipeline_get_bus(GST_PIPELINE(playbin_));
@@ -303,27 +277,6 @@ bool GStreamerVideo::initializeGstElements(const std::string &file)
     return true;
 }
 
-GstPadProbeReturn GStreamerVideo::padProbeCallback(GstPad *pad, GstPadProbeInfo *info, gpointer user_data)
-{
-    auto *video = static_cast<GStreamerVideo *>(user_data);
-
-    auto *event = GST_PAD_PROBE_INFO_EVENT(info);
-    if (GST_EVENT_TYPE(event) == GST_EVENT_CAPS)
-    {
-        GstCaps *caps = nullptr;
-        gst_event_parse_caps(event, &caps);
-        if (caps)
-        {
-                GstStructure* s = gst_caps_get_structure(caps, 0);
-                gst_structure_get_int(s, "width", &video->width_);
-                gst_structure_get_int(s, "height", &video->height_);
-                gst_pad_remove_probe(pad, video->padProbeId_);
-            
-            gst_caps_unref(caps);
-        }
-    }
-    return GST_PAD_PROBE_OK;
-}
 
 void GStreamerVideo::elementSetupCallback([[maybe_unused]] GstElement const *playbin, GstElement *element,
                                           [[maybe_unused]] GStreamerVideo const *video)
@@ -425,7 +378,7 @@ int GStreamerVideo::getWidth()
 
 void GStreamerVideo::draw()
 {
-    if (!playbin_)
+    if (!playbin_ || !videoSink_)
     {
         return;
     }
@@ -644,11 +597,6 @@ unsigned long long GStreamerVideo::getDuration()
 bool GStreamerVideo::isPaused()
 {
     return paused_;
-}
-
-bool GStreamerVideo::getFrameReady()
-{
-    return frameReady_;
 }
 
 std::string GStreamerVideo::generateDotFileName(const std::string &prefix, const std::string &videoFilePath)
