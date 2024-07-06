@@ -261,7 +261,7 @@ bool GStreamerVideo::initializeGstElements(const std::string& file)
     // Configure the appsink
     gst_app_sink_set_emit_signals(GST_APP_SINK(videoSink_), TRUE);
     g_object_set(GST_APP_SINK(videoSink_), "sync", TRUE, "enable-last-sample", TRUE,
-        "wait-on-eos", FALSE, "max-buffers", 30, "caps", videoConvertCaps, nullptr);
+        "wait-on-eos", FALSE, "max-buffers", 1, "caps", videoConvertCaps, nullptr);
     gst_app_sink_set_drop(GST_APP_SINK(videoSink_), true);
     gst_caps_unref(videoConvertCaps);
 
