@@ -159,7 +159,7 @@ bool GStreamerVideo::play(const std::string &file)
     enablePlugin("directsoundsink");
     if (!Configuration::HardwareVideoAccel)
     {
-        // enablePlugin("openh264dec");
+        enablePlugin("openh264dec");
         disablePlugin("d3d11h264dec");
         disablePlugin("d3d11h265dec");
     }
@@ -179,8 +179,7 @@ bool GStreamerVideo::play(const std::string &file)
     {
         disablePlugin("vah264dec");
         disablePlugin("vah265dec");
-        enablePlugin("avdec_h264");
-        enablePlugin("avdec_h265");
+        enablePlugin("openh264dec");
     }
 #endif
 
