@@ -235,7 +235,7 @@ bool GStreamerVideo::initializeGstElements(const std::string& file)
     if (!uriFile)
         return false;
 
-    playbin_ = gst_element_factory_make("playbin3", "playbin");
+    playbin_ = gst_element_factory_make("playbin", "playbin");
     videoSink_ = gst_element_factory_make("appsink", "appsink");
 
     if (!playbin_ || !videoSink_)
@@ -298,6 +298,15 @@ void GStreamerVideo::elementSetupCallback([[maybe_unused]] GstElement const *pla
         g_object_set(G_OBJECT(element), "low-latency", TRUE, nullptr);
     }
 #endif
+    if (strstr(elementName, "vconv") != nullptr)
+    {
+        g_object_set(G_OBJECT(element), "use-converters", FALSE, nullptr);
+    }
+    if (g_str_has_prefix(elementName, "inputselector"))
+    {
+        // Modify the properties of the avdec_h265 element here
+        g_object_set(G_OBJECT(element), "sync-mode", 0, "sync-streams", TRUE, "cache-buffers", TRUE, nullptr);
+    }
     g_free(elementName);
 }
 
@@ -405,25 +414,26 @@ void GStreamerVideo::draw()
         return;
     }
 
-    GstVideoInfo videoInfo;
-    if (!gst_video_info_from_caps(&videoInfo, caps))
+    GstVideoInfo* videoInfo = gst_video_info_new();
+    if (!gst_video_info_from_caps(videoInfo, caps))
     {
         gst_sample_unref(sample);
+        gst_video_info_free(videoInfo); // Free the allocated memory for videoInfo
         return;
     }
 
     SDL_LockMutex(SDL::getMutex());
 
-    if (!texture_ && videoInfo.width != 0 && videoInfo.height != 0)
+    if (!texture_ && videoInfo->width != 0 && videoInfo->height != 0)
     {
-        texture_ = SDL_CreateTexture(SDL::getRenderer(monitor_), sdlFormat_, SDL_TEXTUREACCESS_STREAMING, videoInfo.width, videoInfo.height);
+        texture_ = SDL_CreateTexture(SDL::getRenderer(monitor_), sdlFormat_, SDL_TEXTUREACCESS_STREAMING, videoInfo->width, videoInfo->height);
         SDL_SetTextureBlendMode(texture_, SDL_BLENDMODE_BLEND);
     }
 
     if (texture_)
     {
         GstVideoFrame vframe;
-        if (gst_video_frame_map(&vframe, &videoInfo, buffer, (GstMapFlags)(GST_MAP_READ | GST_VIDEO_FRAME_MAP_FLAG_NO_REF)))
+        if (gst_video_frame_map(&vframe, videoInfo, buffer, (GstMapFlags)(GST_MAP_READ | GST_VIDEO_FRAME_MAP_FLAG_NO_REF)))
         {
             if (sdlFormat_ == SDL_PIXELFORMAT_NV12)
             {
@@ -459,6 +469,7 @@ void GStreamerVideo::draw()
     }
 
     gst_sample_unref(sample);
+    gst_video_info_free(videoInfo); // Free the allocated memory for videoInfo
     SDL_UnlockMutex(SDL::getMutex());
 }
 
