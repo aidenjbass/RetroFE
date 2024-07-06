@@ -249,13 +249,7 @@ bool GStreamerVideo::initializeGstElements(const std::string& file)
     GstCaps* videoConvertCaps = gst_caps_new_empty();
     if (Configuration::HardwareVideoAccel)
     {
-#ifdef __linux__
-        videoConvertCaps = gst_caps_from_string("video/x-raw(memory:VAMemory),format=(string)NV12,pixel-aspect-ratio=(fraction)1/1");
-#elif WIN32
-        videoConvertCaps = gst_caps_from_string("video/x-raw(memory:D3D11Memory),format=(string)NV12,pixel-aspect-ratio=(fraction)1/1");
-#else
         videoConvertCaps = gst_caps_from_string("video/x-raw,format=(string)NV12,pixel-aspect-ratio=(fraction)1/1");
-#endif
         sdlFormat_ = SDL_PIXELFORMAT_NV12;
     }
     else
@@ -267,7 +261,7 @@ bool GStreamerVideo::initializeGstElements(const std::string& file)
     // Configure the appsink
     gst_app_sink_set_emit_signals(GST_APP_SINK(videoSink_), TRUE);
     g_object_set(GST_APP_SINK(videoSink_), "sync", TRUE, "enable-last-sample", TRUE,
-        "wait-on-eos", FALSE, "max-buffers", 1, "caps", videoConvertCaps, nullptr);
+        "wait-on-eos", FALSE, "max-buffers", 15, "caps", videoConvertCaps, nullptr);
     gst_app_sink_set_drop(GST_APP_SINK(videoSink_), true);
     gst_caps_unref(videoConvertCaps);
 
@@ -304,10 +298,10 @@ void GStreamerVideo::elementSetupCallback([[maybe_unused]] GstElement const *pla
         g_object_set(G_OBJECT(element), "low-latency", TRUE, nullptr);
     }
 #endif
-    if (strstr(elementName, "vconv") != nullptr)
-    {
-        g_object_set(G_OBJECT(element), "use-converters", FALSE, nullptr);
-    }
+   // if (strstr(elementName, "vconv") != nullptr)
+    //{
+     //   g_object_set(G_OBJECT(element), "use-converters", FALSE, nullptr);
+    //}
     g_free(elementName);
 }
 
