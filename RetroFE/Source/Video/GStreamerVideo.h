@@ -44,6 +44,7 @@ class GStreamerVideo final : public IVideo
     bool stop() override;
     bool deInitialize() override;
     SDL_Texture *getTexture() const override;
+    SDL_PixelFormatEnum sdlFormat_{ SDL_PIXELFORMAT_UNKNOWN };
     void update(float dt) override;
     void loopHandler() override;
     void volumeUpdate() override;
