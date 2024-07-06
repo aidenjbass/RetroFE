@@ -249,7 +249,7 @@ bool GStreamerVideo::initializeGstElements(const std::string& file)
     GstCaps* videoConvertCaps = gst_caps_new_empty();
     if (Configuration::HardwareVideoAccel)
     {
-#ifdef __linux
+#ifdef __linux__
         videoConvertCaps = gst_caps_from_string("video/x-raw(memory:VAMemory),format=(string)NV12,pixel-aspect-ratio=(fraction)1/1");
 #elif WIN32
         videoConvertCaps = gst_caps_from_string("video/x-raw(memory:D3D11Memory),format=(string)NV12,pixel-aspect-ratio=(fraction)1/1");
