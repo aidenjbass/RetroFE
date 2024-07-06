@@ -302,11 +302,6 @@ void GStreamerVideo::elementSetupCallback([[maybe_unused]] GstElement const *pla
     {
         g_object_set(G_OBJECT(element), "use-converters", FALSE, nullptr);
     }
-    if (g_str_has_prefix(elementName, "inputselector"))
-    {
-        // Modify the properties of the avdec_h265 element here
-        g_object_set(G_OBJECT(element), "sync-mode", 0, "sync-streams", TRUE, "cache-buffers", TRUE, nullptr);
-    }
     g_free(elementName);
 }
 
