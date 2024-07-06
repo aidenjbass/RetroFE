@@ -74,7 +74,6 @@ class GStreamerVideo final : public IVideo
     GstElement *playbin_{nullptr};
     GstElement *videoSink_{nullptr};
     GstBus *videoBus_{nullptr};
-    GstVideoInfo videoInfo_;
     SDL_Texture *texture_{nullptr};
     guint elementSetupHandlerId_{0};
     guint handoffHandlerId_{0};

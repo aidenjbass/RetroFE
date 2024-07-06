@@ -246,7 +246,7 @@ bool GStreamerVideo::initializeGstElements(const std::string& file)
         return false;
     }
 
-    GstCaps* videoConvertCaps;
+    GstCaps* videoConvertCaps = gst_caps_new_empty();
     if (Configuration::HardwareVideoAccel)
     {
         videoConvertCaps = gst_caps_from_string("video/x-raw,format=(string)NV12,pixel-aspect-ratio=(fraction)1/1");
