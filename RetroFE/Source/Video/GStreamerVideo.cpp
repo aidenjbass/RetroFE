@@ -159,7 +159,7 @@ bool GStreamerVideo::play(const std::string &file)
     enablePlugin("directsoundsink");
     if (!Configuration::HardwareVideoAccel)
     {
-        enablePlugin("openh264dec");
+        //enablePlugin("openh264dec");
         disablePlugin("d3d11h264dec");
         disablePlugin("d3d11h265dec");
     }
@@ -179,7 +179,7 @@ bool GStreamerVideo::play(const std::string &file)
     {
         disablePlugin("vah264dec");
         disablePlugin("vah265dec");
-        enablePlugin("openh264dec");
+        //enablePlugin("openh264dec");
     }
 #endif
 
@@ -260,7 +260,7 @@ bool GStreamerVideo::initializeGstElements(const std::string& file)
     // Configure the appsink
     gst_app_sink_set_emit_signals(GST_APP_SINK(videoSink_), TRUE);
     g_object_set(GST_APP_SINK(videoSink_), "sync", TRUE, "enable-last-sample", TRUE,
-        "wait-on-eos", FALSE, "max-buffers", 15, "caps", videoConvertCaps, nullptr);
+        "wait-on-eos", FALSE, "max-buffers", 5, "caps", videoConvertCaps, nullptr);
     gst_app_sink_set_drop(GST_APP_SINK(videoSink_), true);
     gst_caps_unref(videoConvertCaps);
 
@@ -308,6 +308,25 @@ void GStreamerVideo::elementSetupCallback([[maybe_unused]] GstElement const *pla
 void GStreamerVideo::update(float /* dt */)
 {
 
+}
+
+void GStreamerVideo::setVisibility(bool isVisible)
+{
+    if (isVisible != isVisible_)
+    {
+        isVisible_ = isVisible;
+
+        if (!isVisible_)
+        {
+            // Set max-buffers to 1 to flush the appsink when the video is not visible
+            g_object_set(GST_APP_SINK(videoSink_), "max-buffers", 1, nullptr);
+        }
+        else
+        {
+            // Reset max-buffers to 15 when the video becomes visible
+            g_object_set(GST_APP_SINK(videoSink_), "max-buffers", 5, nullptr);
+        }
+    }
 }
 
 void GStreamerVideo::loopHandler()

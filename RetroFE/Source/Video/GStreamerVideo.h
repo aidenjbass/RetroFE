@@ -46,6 +46,7 @@ class GStreamerVideo final : public IVideo
     SDL_Texture *getTexture() const override;
     SDL_PixelFormatEnum sdlFormat_{ SDL_PIXELFORMAT_UNKNOWN };
     void update(float dt) override;
+    void setVisibility(bool isVisible) override;
     void loopHandler() override;
     void volumeUpdate() override;
     void draw() override;
@@ -91,6 +92,7 @@ class GStreamerVideo final : public IVideo
     bool paused_{false};
     double lastSetVolume_{0.0};
     bool lastSetMuteState_{false};
+    bool isVisible_{ false };
 
     std::string generateDotFileName(const std::string &prefix, const std::string &videoFilePath);
 };

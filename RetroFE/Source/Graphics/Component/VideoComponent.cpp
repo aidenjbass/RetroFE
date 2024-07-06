@@ -59,8 +59,13 @@ bool VideoComponent::update(float dt)
 
         bool isCurrentlyVisible = baseViewInfo.Alpha > 0.0;
 
-        if (isCurrentlyVisible)
+        if (isCurrentlyVisible) {
+            videoInst_->setVisibility(true);
             hasBeenOnScreen_ = true;
+        }
+        else {
+            videoInst_->setVisibility(false);
+        }
 
         // Handle Pause/Resume based on visibility and PauseOnScroll setting
         if (baseViewInfo.PauseOnScroll)
