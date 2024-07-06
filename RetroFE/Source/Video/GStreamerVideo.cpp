@@ -258,7 +258,7 @@ bool GStreamerVideo::initializeGstElements(const std::string& file)
     }
 
     // Configure the appsink
-    gst_app_sink_set_emit_signals(GST_APP_SINK(videoSink_), TRUE);
+    gst_app_sink_set_emit_signals(GST_APP_SINK(videoSink_), FALSE);
     g_object_set(GST_APP_SINK(videoSink_), "sync", TRUE, "enable-last-sample", TRUE,
         "wait-on-eos", FALSE, "max-buffers", 5, "caps", videoConvertCaps, nullptr);
     gst_app_sink_set_drop(GST_APP_SINK(videoSink_), true);
@@ -297,10 +297,10 @@ void GStreamerVideo::elementSetupCallback([[maybe_unused]] GstElement const *pla
         g_object_set(G_OBJECT(element), "low-latency", TRUE, nullptr);
     }
 #endif
-   // if (strstr(elementName, "vconv") != nullptr)
-    //{
-     //   g_object_set(G_OBJECT(element), "use-converters", FALSE, nullptr);
-    //}
+   if (strstr(elementName, "vconv") != nullptr)
+    {
+        g_object_set(G_OBJECT(element), "use-converters", FALSE, nullptr);
+    }
     g_free(elementName);
 }
 
@@ -405,8 +405,7 @@ void GStreamerVideo::draw()
         return;
     }
 
-    GstSample* sample = nullptr;
-    g_signal_emit_by_name(videoSink_, "try-pull-sample", 0, &sample);
+    GstSample* sample = gst_app_sink_try_pull_sample(GST_APP_SINK(videoSink_), 0);
 
     if (!sample)
     {
