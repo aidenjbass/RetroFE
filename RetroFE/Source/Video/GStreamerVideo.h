@@ -73,9 +73,12 @@ class GStreamerVideo final : public IVideo
                                      [[maybe_unused]] GStreamerVideo const *video);
     void initializePlugins();
     bool initializeGstElements(const std::string &file);
+    static void onPadAdded(GstElement* src, GstPad* newPad, GStreamerVideo* data);
+    static GstPadProbeReturn padProbeCallback(GstPad* pad, GstPadProbeInfo* info, gpointer user_data);
     GstElement *playbin_{nullptr};
     GstElement *videoSink_{nullptr};
     GstBus *videoBus_{nullptr};
+    GstVideoInfo* videoInfo_{ gst_video_info_new() };
     SDL_Texture *texture_{nullptr};
     guint elementSetupHandlerId_{0};
     guint handoffHandlerId_{0};

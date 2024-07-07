@@ -63,7 +63,7 @@ void GStreamerVideo::initializePlugins()
             // enablePlugin("openh264dec");
             disablePlugin("d3d11h264dec");
             disablePlugin("d3d11h265dec");
-            disablePlugin("GstNvH264Dec");
+            disablePlugin("nvh264dec");
             enablePlugin("avdec_h264");
             enablePlugin("avdec_h265");
         }
@@ -180,6 +180,8 @@ bool GStreamerVideo::stop()
             videoBus_ = nullptr;
         }
 
+        gst_video_info_free(videoInfo_);
+
         // Unreference and nullify the elements
         gst_object_unref(playbin_);
         playbin_ = nullptr;
@@ -295,7 +297,13 @@ bool GStreamerVideo::initializeGstElements(const std::string& file)
     const guint PLAYBIN_FLAGS = 0x00000001 | 0x00000002;
     g_object_set(G_OBJECT(playbin_), "uri", uriFile, "video-sink", videoSink_, "flags", PLAYBIN_FLAGS, nullptr);
     g_free(uriFile);
-
+    
+    if (GstPad* pad = gst_element_get_static_pad(videoSink_, "sink"))
+    {
+        padProbeId_ = gst_pad_add_probe(pad, GST_PAD_PROBE_TYPE_EVENT_DOWNSTREAM, padProbeCallback, this, nullptr);
+        gst_object_unref(pad);
+    }
+    
     elementSetupHandlerId_ = g_signal_connect(playbin_, "element-setup", G_CALLBACK(elementSetupCallback), this);
     videoBus_ = gst_pipeline_get_bus(GST_PIPELINE(playbin_));
     gst_object_unref(videoBus_);
@@ -303,6 +311,33 @@ bool GStreamerVideo::initializeGstElements(const std::string& file)
     return true;
 }
 
+GstPadProbeReturn GStreamerVideo::padProbeCallback(GstPad* pad, GstPadProbeInfo* info, gpointer user_data)
+{
+    auto* video = static_cast<GStreamerVideo*>(user_data);
+
+    auto* event = GST_PAD_PROBE_INFO_EVENT(info);
+    if (GST_EVENT_TYPE(event) == GST_EVENT_CAPS)
+    {
+        GstCaps* caps = nullptr;
+        gst_event_parse_caps(event, &caps);
+        if (caps)
+        {
+            if (gst_video_info_from_caps(video->videoInfo_, caps))
+            {
+                video->width_ = video->videoInfo_->width;
+                video->height_ = video->videoInfo_->height;
+                LOG_DEBUG("GStreamerVideo", "Video dimensions: width = " + std::to_string(video->width_) +
+                    ", height = " + std::to_string(video->height_));
+
+                // Remove the pad probe after getting the video dimensions
+                gst_pad_remove_probe(pad, video->padProbeId_);
+                video->padProbeId_ = 0;
+            }
+            gst_caps_unref(caps);
+        }
+    }
+    return GST_PAD_PROBE_OK;
+}
 
 void GStreamerVideo::elementSetupCallback([[maybe_unused]] GstElement const *playbin, GstElement *element,
                                           [[maybe_unused]] GStreamerVideo const *video)
@@ -446,33 +481,18 @@ void GStreamerVideo::draw()
         return;
     }
 
-    GstCaps* caps = gst_sample_get_caps(sample);
-    if (!caps)
-    {
-        gst_sample_unref(sample);
-        return;
-    }
-
-    GstVideoInfo* videoInfo = gst_video_info_new();
-    if (!gst_video_info_from_caps(videoInfo, caps))
-    {
-        gst_sample_unref(sample);
-        gst_video_info_free(videoInfo); // Free the allocated memory for videoInfo
-        return;
-    }
-
     SDL_LockMutex(SDL::getMutex());
 
-    if (!texture_ && videoInfo->width != 0 && videoInfo->height != 0)
+    if (!texture_ && videoInfo_->width != 0 && videoInfo_->height != 0)
     {
-        texture_ = SDL_CreateTexture(SDL::getRenderer(monitor_), sdlFormat_, SDL_TEXTUREACCESS_STREAMING, videoInfo->width, videoInfo->height);
+        texture_ = SDL_CreateTexture(SDL::getRenderer(monitor_), sdlFormat_, SDL_TEXTUREACCESS_STREAMING, videoInfo_->width, videoInfo_->height);
         SDL_SetTextureBlendMode(texture_, SDL_BLENDMODE_BLEND);
     }
 
     if (texture_)
     {
         GstVideoFrame vframe(GST_VIDEO_FRAME_INIT);
-        if (gst_video_frame_map(&vframe, videoInfo, buffer, (GstMapFlags)(GST_MAP_READ | GST_VIDEO_FRAME_MAP_FLAG_NO_REF)))
+        if (gst_video_frame_map(&vframe, videoInfo_, buffer, (GstMapFlags)(GST_MAP_READ | GST_VIDEO_FRAME_MAP_FLAG_NO_REF)))
         {
             if (sdlFormat_ == SDL_PIXELFORMAT_NV12)
             {
@@ -508,7 +528,7 @@ void GStreamerVideo::draw()
     }
 
     gst_sample_unref(sample);
-    gst_video_info_free(videoInfo); // Free the allocated memory for videoInfo
+    //gst_clear_sample(&sample);
     SDL_UnlockMutex(SDL::getMutex());
 }
 
