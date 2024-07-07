@@ -153,8 +153,16 @@ bool GStreamerVideo::stop()
 
     if (playbin_)
     {
-        // Set the pipeline state to NULL to clean up
+        // Set the pipeline state to NULL
         gst_element_set_state(playbin_, GST_STATE_NULL);
+
+        // Wait for the state change to complete
+        GstState state;
+        GstStateChangeReturn ret = gst_element_get_state(playbin_, &state, nullptr, GST_CLOCK_TIME_NONE);
+        if (ret != GST_STATE_CHANGE_SUCCESS)
+        {
+            LOG_ERROR("Video", "Failed to change playbin state to NULL");
+        }
 
         isPlaying_ = false;
 
@@ -424,17 +432,7 @@ void GStreamerVideo::draw()
         return;
     }
 
-
-    GstSample* sample = nullptr;
-
-    // Attempt to pull a normal sample
-    sample = gst_app_sink_try_pull_sample(GST_APP_SINK(videoSink_), 0); // Non-blocking call
-
-    // If no normal sample, attempt to pull a preroll sample
-    if (!sample)
-    {
-        sample = gst_app_sink_try_pull_preroll(GST_APP_SINK(videoSink_), 0); // Non-blocking call
-    }
+    GstSample* sample = gst_app_sink_try_pull_sample(GST_APP_SINK(videoSink_), 0);
 
     if (!sample)
     {
