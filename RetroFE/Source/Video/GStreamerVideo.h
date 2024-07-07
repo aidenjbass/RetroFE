@@ -71,6 +71,7 @@ class GStreamerVideo final : public IVideo
   private:
     static void elementSetupCallback([[maybe_unused]] GstElement const *playbin, GstElement *element,
                                      [[maybe_unused]] GStreamerVideo const *video);
+    void initializePlugins();
     bool initializeGstElements(const std::string &file);
     GstElement *playbin_{nullptr};
     GstElement *videoSink_{nullptr};
@@ -83,6 +84,7 @@ class GStreamerVideo final : public IVideo
     gint width_{0};
     bool isPlaying_{false};
     static bool initialized_;
+    static bool pluginsInitialized_;
     int playCount_{0};
     std::string currentFile_{};
     int numLoops_{0};

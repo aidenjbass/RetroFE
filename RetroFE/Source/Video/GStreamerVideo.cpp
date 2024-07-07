@@ -35,6 +35,7 @@
 #include <vector>
 
 bool GStreamerVideo::initialized_ = false;
+bool GStreamerVideo::pluginsInitialized_ = false;
 
 GStreamerVideo::GStreamerVideo(int monitor)
 
@@ -47,6 +48,53 @@ GStreamerVideo::~GStreamerVideo()
 {
     GStreamerVideo::stop();
 }
+
+void GStreamerVideo::initializePlugins()
+{
+    if (!pluginsInitialized_)
+    {
+        pluginsInitialized_ = true;
+
+#if defined(WIN32)
+        enablePlugin("directsoundsink");
+        disablePlugin("mfdeviceprovider");
+        if (!Configuration::HardwareVideoAccel)
+        {
+            // enablePlugin("openh264dec");
+            disablePlugin("d3d11h264dec");
+            disablePlugin("d3d11h265dec");
+            disablePlugin("GstNvH264Dec");
+            enablePlugin("avdec_h264");
+            enablePlugin("avdec_h265");
+        }
+        else
+        {
+            enablePlugin("d3d11h264dec");
+
+            // enablePlugin("qsvh264dec");
+        }
+#elif defined(__APPLE__)
+        // if (Configuration::HardwareVideoAccel) {
+        //     enablePlugin("vah264dec");
+        //     enablePlugin("vah265dec");
+        // }
+#else
+        if (Configuration::HardwareVideoAccel)
+        {
+            enablePlugin("vah264dec");
+            enablePlugin("vah265dec");
+        }
+        if (!Configuration::HardwareVideoAccel)
+        {
+            disablePlugin("vah264dec");
+            disablePlugin("vah265dec");
+            enablePlugin("avdec_h264");
+            enablePlugin("avdec_h265");
+        }
+#endif
+    }
+}
+
 
 void GStreamerVideo::setNumLoops(int n)
 {
@@ -81,7 +129,7 @@ bool GStreamerVideo::initialize()
         gst_registry_scan_path(registry, path.c_str());
 #endif
     }
-
+    initializePlugins();
     initialized_ = true;
     paused_ = false;
 
@@ -154,35 +202,6 @@ bool GStreamerVideo::play(const std::string &file)
 
     if (!initialized_)
         return false;
-
-#if defined(WIN32)
-    enablePlugin("directsoundsink");
-    if (!Configuration::HardwareVideoAccel)
-    {
-        //enablePlugin("openh264dec");
-        disablePlugin("d3d11h264dec");
-        disablePlugin("d3d11h265dec");
-    }
-#elif defined(__APPLE__)
-    if (Configuration::HardwareVideoAccel)
-    {
-        enablePlugin("vah264dec");
-        enablePlugin("vah265dec");
-    }
-#else
-    if (Configuration::HardwareVideoAccel)
-    {
-        enablePlugin("vah264dec");
-        enablePlugin("vah265dec");
-    }
-    if (!Configuration::HardwareVideoAccel)
-    {
-        disablePlugin("vah264dec");
-        disablePlugin("vah265dec");
-        //enablePlugin("openh264dec");
-    }
-#endif
-
     currentFile_ = file;
 
     if (!initializeGstElements(file))
