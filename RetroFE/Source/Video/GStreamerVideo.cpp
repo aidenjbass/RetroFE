@@ -264,7 +264,7 @@ bool GStreamerVideo::initializeGstElements(const std::string& file)
         return false;
     }
 
-    GstCaps* videoConvertCaps = gst_caps_new_empty();
+    GstCaps* videoConvertCaps;
     if (Configuration::HardwareVideoAccel)
     {
         videoConvertCaps = gst_caps_from_string("video/x-raw,format=(string)NV12,pixel-aspect-ratio=(fraction)1/1");
@@ -424,7 +424,17 @@ void GStreamerVideo::draw()
         return;
     }
 
-    GstSample* sample = gst_app_sink_try_pull_sample(GST_APP_SINK(videoSink_), 0);
+
+    GstSample* sample = nullptr;
+
+    // Attempt to pull a normal sample
+    sample = gst_app_sink_try_pull_sample(GST_APP_SINK(videoSink_), 0); // Non-blocking call
+
+    // If no normal sample, attempt to pull a preroll sample
+    if (!sample)
+    {
+        sample = gst_app_sink_try_pull_preroll(GST_APP_SINK(videoSink_), 0); // Non-blocking call
+    }
 
     if (!sample)
     {
