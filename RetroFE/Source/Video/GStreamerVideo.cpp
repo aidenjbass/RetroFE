@@ -444,7 +444,7 @@ void GStreamerVideo::draw()
 
     if (texture_)
     {
-        GstVideoFrame vframe;
+        GstVideoFrame vframe(GST_VIDEO_FRAME_INIT);
         if (gst_video_frame_map(&vframe, videoInfo, buffer, (GstMapFlags)(GST_MAP_READ | GST_VIDEO_FRAME_MAP_FLAG_NO_REF)))
         {
             if (sdlFormat_ == SDL_PIXELFORMAT_NV12)
