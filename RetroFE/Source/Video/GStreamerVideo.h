@@ -95,6 +95,7 @@ class GStreamerVideo final : public IVideo
     double lastSetVolume_{0.0};
     bool lastSetMuteState_{false};
     bool isVisible_{ false };
+    GMutex drawMutex_; // GMutex to protect draw and stop methods
 
     std::string generateDotFileName(const std::string &prefix, const std::string &videoFilePath);
 };

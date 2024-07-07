@@ -42,11 +42,13 @@ GStreamerVideo::GStreamerVideo(int monitor)
     : monitor_(monitor)
 
 {
+    g_mutex_init(&drawMutex_);
 }
 
 GStreamerVideo::~GStreamerVideo()
 {
     GStreamerVideo::stop();
+    g_mutex_clear(&drawMutex_);
 }
 
 void GStreamerVideo::initializePlugins()
@@ -146,22 +148,28 @@ bool GStreamerVideo::deInitialize()
 
 bool GStreamerVideo::stop()
 {
+    g_mutex_lock(&drawMutex_); // Lock the GMutex to synchronize with draw()
+
     if (!initialized_)
     {
+        g_mutex_unlock(&drawMutex_);
         return false;
     }
 
     if (playbin_)
     {
-        // Set the pipeline state to NULL
+        // Set the pipeline state to NULL to clean up
         gst_element_set_state(playbin_, GST_STATE_NULL);
 
-        // Wait for the state change to complete
+        // Wait for the state change to complete and verify the state
         GstState state;
         GstStateChangeReturn ret = gst_element_get_state(playbin_, &state, nullptr, GST_CLOCK_TIME_NONE);
-        if (ret != GST_STATE_CHANGE_SUCCESS)
+
+        if (ret != GST_STATE_CHANGE_SUCCESS || state != GST_STATE_NULL)
         {
-            LOG_ERROR("Video", "Failed to change playbin state to NULL");
+            LOG_ERROR("Video", "Failed to transition playbin_ to NULL state");
+            g_mutex_unlock(&drawMutex_);
+            return false;
         }
 
         isPlaying_ = false;
@@ -187,6 +195,7 @@ bool GStreamerVideo::stop()
 
         LOG_DEBUG("Video", "GStreamer pipeline and elements cleaned up");
     }
+
     SDL_LockMutex(SDL::getMutex());
     // Release SDL Texture
     if (texture_)
@@ -195,12 +204,13 @@ bool GStreamerVideo::stop()
         texture_ = nullptr;
     }
     SDL_UnlockMutex(SDL::getMutex());
+
     // Reset remaining pointers and variables to ensure the object is in a clean state.
     videoBus_ = nullptr;
     playbin_ = nullptr;
     videoSink_ = nullptr;
 
-
+    g_mutex_unlock(&drawMutex_);
     return true;
 }
 
@@ -427,15 +437,28 @@ int GStreamerVideo::getWidth()
 
 void GStreamerVideo::draw()
 {
+    g_mutex_lock(&drawMutex_); // Lock the GMutex to synchronize with stop()
+
     if (!playbin_ || !videoSink_)
     {
+        g_mutex_unlock(&drawMutex_);
         return;
     }
 
-    GstSample* sample = gst_app_sink_try_pull_sample(GST_APP_SINK(videoSink_), 0);
+    GstSample* sample = nullptr;
+
+    // Attempt to pull a normal sample
+    sample = gst_app_sink_try_pull_sample(GST_APP_SINK(videoSink_), 0); // Non-blocking call
+
+    // If no normal sample, attempt to pull a preroll sample
+    if (!sample)
+    {
+        sample = gst_app_sink_try_pull_preroll(GST_APP_SINK(videoSink_), 0); // Non-blocking call
+    }
 
     if (!sample)
     {
+        g_mutex_unlock(&drawMutex_);
         return;
     }
 
@@ -443,6 +466,7 @@ void GStreamerVideo::draw()
     if (!buffer)
     {
         gst_sample_unref(sample);
+        g_mutex_unlock(&drawMutex_);
         return;
     }
 
@@ -450,29 +474,30 @@ void GStreamerVideo::draw()
     if (!caps)
     {
         gst_sample_unref(sample);
+        g_mutex_unlock(&drawMutex_);
         return;
     }
 
-    GstVideoInfo* videoInfo = gst_video_info_new();
-    if (!gst_video_info_from_caps(videoInfo, caps))
+    GstVideoInfo videoInfo;
+    if (!gst_video_info_from_caps(&videoInfo, caps))
     {
         gst_sample_unref(sample);
-        gst_video_info_free(videoInfo); // Free the allocated memory for videoInfo
+        g_mutex_unlock(&drawMutex_);
         return;
     }
 
     SDL_LockMutex(SDL::getMutex());
 
-    if (!texture_ && videoInfo->width != 0 && videoInfo->height != 0)
+    if (!texture_ && videoInfo.width != 0 && videoInfo.height != 0)
     {
-        texture_ = SDL_CreateTexture(SDL::getRenderer(monitor_), sdlFormat_, SDL_TEXTUREACCESS_STREAMING, videoInfo->width, videoInfo->height);
+        texture_ = SDL_CreateTexture(SDL::getRenderer(monitor_), sdlFormat_, SDL_TEXTUREACCESS_STREAMING, videoInfo.width, videoInfo.height);
         SDL_SetTextureBlendMode(texture_, SDL_BLENDMODE_BLEND);
     }
 
     if (texture_)
     {
-        GstVideoFrame vframe(GST_VIDEO_FRAME_INIT);
-        if (gst_video_frame_map(&vframe, videoInfo, buffer, (GstMapFlags)(GST_MAP_READ | GST_VIDEO_FRAME_MAP_FLAG_NO_REF)))
+        GstVideoFrame vframe;
+        if (gst_video_frame_map(&vframe, &videoInfo, buffer, (GstMapFlags)(GST_MAP_READ | GST_VIDEO_FRAME_MAP_FLAG_NO_REF)))
         {
             if (sdlFormat_ == SDL_PIXELFORMAT_NV12)
             {
@@ -505,11 +530,15 @@ void GStreamerVideo::draw()
 
             gst_video_frame_unmap(&vframe);
         }
+        else
+        {
+            LOG_ERROR("Video", "gst_video_frame_map failed");
+        }
     }
 
     gst_sample_unref(sample);
-    gst_video_info_free(videoInfo); // Free the allocated memory for videoInfo
     SDL_UnlockMutex(SDL::getMutex());
+    g_mutex_unlock(&drawMutex_);
 }
 
 bool GStreamerVideo::isPlaying()
