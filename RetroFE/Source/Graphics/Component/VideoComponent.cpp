@@ -47,7 +47,7 @@ bool VideoComponent::update(float dt)
         videoInst_->setVolume(baseViewInfo.Volume);
         //videoInst_->update(dt);
         videoInst_->volumeUpdate();
-        if (!currentPage_->isMenuScrolling())
+        if (videoInst_->getNeedsSeek())
             videoInst_->loopHandler();
 
         // video needs to run a frame to start getting size info

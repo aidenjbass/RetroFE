@@ -48,6 +48,7 @@ class GStreamerVideo final : public IVideo
     void update(float dt) override;
     void setVisibility(bool isVisible) override;
     void loopHandler() override;
+    bool getNeedsSeek() override;
     void volumeUpdate() override;
     void draw() override;
     void setNumLoops(int n);
@@ -73,11 +74,11 @@ class GStreamerVideo final : public IVideo
                                      [[maybe_unused]] GStreamerVideo const *video);
     void initializePlugins();
     bool initializeGstElements(const std::string &file);
+    static void aboutToFinishCallback(GstElement* playbin, gpointer userData);
     static void onPadAdded(GstElement* src, GstPad* newPad, GStreamerVideo* data);
     static GstPadProbeReturn padProbeCallback(GstPad* pad, GstPadProbeInfo* info, gpointer user_data);
     GstElement *playbin_{nullptr};
     GstElement *videoSink_{nullptr};
-    GstBus *videoBus_{nullptr};
     GstVideoInfo* videoInfo_{ gst_video_info_new() };
     SDL_Texture *texture_{nullptr};
     guint elementSetupHandlerId_{0};
@@ -98,6 +99,7 @@ class GStreamerVideo final : public IVideo
     double lastSetVolume_{0.0};
     bool lastSetMuteState_{false};
     bool isVisible_{ false };
+    bool needsSeek_{ false };
 
     std::string generateDotFileName(const std::string &prefix, const std::string &videoFilePath);
 };

@@ -45,4 +45,5 @@ public:
     virtual unsigned long long getDuration( ) = 0;
     virtual bool isPaused( ) = 0;
     virtual bool isPlaying() = 0;
+    virtual bool getNeedsSeek() = 0;
 };
