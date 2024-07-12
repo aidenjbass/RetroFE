@@ -98,6 +98,9 @@ void Component::initializeFonts()
 {
 }
 
+const std::string& Component::getAnimationRequestedType() const {
+    return animationRequestedType_;
+}
 
 void Component::triggerEvent(const std::string_view& event, int menuIndex)
 {

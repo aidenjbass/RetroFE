@@ -34,6 +34,7 @@ public:
     virtual void allocateGraphicsMemory();
     virtual void deInitializeFonts();
     virtual void initializeFonts();
+    const std::string& getAnimationRequestedType() const;
     void triggerEvent(const std::string_view& event, int menuIndex = -1);
     void setPlaylist(const std::string_view& name );
     void setNewItemSelected();

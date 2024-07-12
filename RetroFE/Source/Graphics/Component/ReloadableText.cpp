@@ -20,6 +20,7 @@
 #include "../../Database/GlobalOpts.h"
 #include "../../Utility/Log.h"
 #include "../../SDL.h"
+#include "ScrollingList.h"
 #include <fstream>
 #include <vector>
 #include <iostream>
@@ -58,7 +59,7 @@ ReloadableText::~ReloadableText()
 bool ReloadableText::update(float dt)
 {
     if (newItemSelected ||
-       (newScrollItemSelected && getMenuScrollReload()) ||
+        (newScrollItemSelected && getMenuScrollReload()) ||
         type_ == "time" || type_ == "current" || type_ == "duration" || type_ == "isPaused") {
         ReloadTexture();
         newItemSelected = false;
@@ -99,213 +100,235 @@ void ReloadableText::deInitializeFonts()
     fontInst_->deInitialize();
 }
 
+// Add a method to check the transition state
+bool ReloadableText::isInTransition() const {
+    return (getAnimationRequestedType() == "playlistExit" ||
+        getAnimationRequestedType() == "playlistPrevEnter" ||
+        getAnimationRequestedType() == "playlistPrevExit" ||
+        getAnimationRequestedType() == "playlistNextEnter" ||
+        getAnimationRequestedType() == "playlistNextExit");
+}
 
 void ReloadableText::ReloadTexture()
 {
-    if (imageInst_ != NULL) {
-        delete imageInst_;
-        imageInst_ = NULL;
+    // Check if the component is in a transition state
+    if (isInTransition()) {
+        // In transition state, do not update the text
+        currentType_.clear();
+        currentValue_.clear();
+        return;
     }
 
-    Item *selectedItem = page.getSelectedItem();
+    // Get the selected item
+    Item* selectedItem = page.getSelectedItem();
 
-    if (selectedItem != NULL) {
-        std::stringstream ss;
-        std::string text = "";
-        if (type_ == "time") {
-            time_t    now = time(0);
-            struct tm tstruct;
-            char      buf[80];
-            tstruct = *localtime(&now);
-            strftime(buf, sizeof(buf), timeFormat_.c_str(), &tstruct);
-            ss << buf;
-        }
-        if (type_ == "numberButtons") {
-            text = selectedItem->numberButtons;
-        }
-        else if (type_ == "numberPlayers") {
-            text = selectedItem->numberPlayers;
-        }
-        else if (type_ == "ctrlType") {
-            text = selectedItem->ctrlType;
-        }
-        else if (type_ == "numberJoyWays") {
-            text = selectedItem->joyWays;
-        }
-        else if (type_ == "rating") {
-            text = selectedItem->rating;
-        }
-        else if (type_ == "score") {
-            text = selectedItem->score;
-        }
-        else if (type_ == "year") {
-            text = selectedItem->year;
-        }
-        else if (type_ == "title") {
-            text = selectedItem->title;
-        }
-        else if(type_ == "developer") {
-            text = selectedItem->developer;
-            // Overwrite in case developer has not been specified
-            if (text == "") {
-                text = selectedItem->manufacturer;
-            }
-        }
-        else if (type_ == "manufacturer") {
+    // If there's no selected item, we might be in a transition state
+    if (selectedItem == nullptr) {
+        currentType_.clear();
+        currentValue_.clear();
+        return;
+    }
+
+    std::stringstream ss;
+    std::string text = "";
+
+    // Update text based on the type
+    if (type_ == "time") {
+        time_t now = time(0);
+        struct tm tstruct;
+        char buf[80];
+        tstruct = *localtime(&now);
+        strftime(buf, sizeof(buf), timeFormat_.c_str(), &tstruct);
+        ss << buf;
+    }
+    else if (type_ == "numberButtons") {
+        text = selectedItem->numberButtons;
+    }
+    else if (type_ == "numberPlayers") {
+        text = selectedItem->numberPlayers;
+    }
+    else if (type_ == "ctrlType") {
+        text = selectedItem->ctrlType;
+    }
+    else if (type_ == "numberJoyWays") {
+        text = selectedItem->joyWays;
+    }
+    else if (type_ == "rating") {
+        text = selectedItem->rating;
+    }
+    else if (type_ == "score") {
+        text = selectedItem->score;
+    }
+    else if (type_ == "year") {
+        text = selectedItem->year;
+    }
+    else if (type_ == "title") {
+        text = selectedItem->title;
+    }
+    else if (type_ == "developer") {
+        text = selectedItem->developer;
+        // Overwrite in case developer has not been specified
+        if (text.empty()) {
             text = selectedItem->manufacturer;
         }
-        else if (type_ == "genre") {
-            text = selectedItem->genre;
-        }
-        else if (type_ == "playCount") {
-            text = std::to_string(selectedItem->playCount);
-        }
-        else if (type_ == "lastPlayed") {
-            if (selectedItem->lastPlayed != "0") {
-                text = selectedItem->lastPlayed;// getTimeSince(selectedItem->lastPlayed);
-            }
-        }
-        else if (type_.rfind( "playlist", 0 ) == 0) {
-            text = playlistName;
-        }
-        else if (type_ == "firstLetter") {
-          text = selectedItem->fullTitle.at(0);
-        }
-        else if (type_ == "collectionName") {
-            text = page.getCollectionName();
-        }
-        else if (type_ == "collectionSize") {
-            if (page.getCollectionSize() == 0) {
-                ss << singlePrefix_ << page.getCollectionSize() << pluralPostfix_;
-            }
-            else if (page.getCollectionSize() == 1) {
-                ss << singlePrefix_ << page.getCollectionSize() << singlePostfix_;
-            }
-            else {
-                ss << pluralPrefix_ << page.getCollectionSize() << pluralPostfix_;
-            }
-        }
-        else if (type_ == "collectionIndex") {
-            if (page.getSelectedIndex() == 0) {
-                ss << singlePrefix_ << (page.getSelectedIndex()+1) << pluralPostfix_;
-            }
-            else if (page.getSelectedIndex() == 1) {
-                ss << singlePrefix_ << (page.getSelectedIndex()+1) << singlePostfix_;
-            }
-            else {
-                ss << pluralPrefix_ << (page.getSelectedIndex()+1) << pluralPostfix_;
-            }
-        }
-        else if (type_ == "collectionIndexSize") {
-            if (page.getSelectedIndex() == 0) {
-                ss << singlePrefix_ << (page.getSelectedIndex()+1) << "/" << page.getCollectionSize() << pluralPostfix_;
-            }
-            else if (page.getSelectedIndex() == 1) {
-                ss << singlePrefix_ << (page.getSelectedIndex()+1) << "/" << page.getCollectionSize() << singlePostfix_;
-            }
-            else {
-                ss << pluralPrefix_ << (page.getSelectedIndex()+1) << "/" << page.getCollectionSize() << pluralPostfix_;
-            }
-        }
-        else if (type_ == "isFavorite") {
-            if (selectedItem->isFavorite)
-                text = "yes";
-            else
-                text = "no";
-        }
-        else if (type_ == "isPaused") {
-            if (page.isPaused( ))
-                text = "Paused";
-            else
-                text = "";
-        }
-        else if (type_ == "current") {
-            unsigned long long current = 0;
-            current     = page.getCurrent( );
-            current    /= 1000000000;
-            int seconds = current%60;
-            int minutes = (current/60)%60;
-            int hours   = int( current/3600 );
-            text        = std::to_string( hours ) + ":";
-            if ( minutes < 10 )
-                text   += "0" + std::to_string( minutes ) + ":";
-            else
-                text   += std::to_string( minutes ) + ":";
-            if ( seconds < 10 )
-                text   +=  "0" + std::to_string( seconds );
-            else
-                text   += std::to_string( seconds );
-			if ( page.getDuration( ) == 0 )
-				text    = "--:--:--";
-        }
-        else if (type_ == "duration") {
-            unsigned long long duration = 0;
-            duration    = page.getDuration( );
-            duration   /= 1000000000;
-            int seconds = duration%60;
-            int minutes = (duration/60)%60;
-            int hours   = int( duration/3600 );
-            text        = std::to_string( hours ) + ":";
-            if ( minutes < 10 )
-                text   += "0" + std::to_string( minutes ) + ":";
-            else
-                text   += std::to_string( minutes ) + ":";
-            if ( seconds < 10 )
-                text   +=  "0" + std::to_string( seconds );
-            else
-                text   += std::to_string( seconds );
-			if ( page.getDuration( ) == 0 )
-				text    = "--:--:--";
-        }
-
-        if (text == "" && (!selectedItem->leaf || systemMode_)) // item is not a leaf
-        {
-            (void)config_.getProperty("collections." + selectedItem->name + "." + type_, text );
-        }
-
-        if (text == "" && systemMode_) // Get the system information in stead
-        {
-            (void)config_.getProperty("collections." + page.getCollectionName() + "." + type_, text );
-        }
-
-        bool overwriteXML = false;
-        config_.getProperty( OPTION_OVERWRITEXML, overwriteXML );
-        if ( text == "" || overwriteXML ) // No text was found yet; check the info in stead
-        {
-            std::string text_tmp;
-            selectedItem->getInfo( type_, text_tmp );
-            if ( text_tmp != "" )
-            {
-                text = text_tmp;
-            }
-        }
-
-        if (text == "0") {
-            text = singlePrefix_ + text + pluralPostfix_;
-        }
-        else if (text == "1") {
-            text = singlePrefix_ + text + singlePostfix_;
-        }
-        else if (text != "") {
-            text = pluralPrefix_ + text + pluralPostfix_;
-        }
-
-        if (text != "") {
-            if (textFormat_ == "uppercase") {
-                std::transform(text.begin(), text.end(), text.begin(), ::toupper);
-            }
-            if (textFormat_ == "lowercase") {
-                std::transform(text.begin(), text.end(), text.begin(), ::tolower);
-            }
-            ss << text;
-        }
-
-        if (!ss.str().empty()) {
-            imageInst_ = new Text(ss.str(), page, fontInst_, baseViewInfo.Monitor);
+    }
+    else if (type_ == "manufacturer") {
+        text = selectedItem->manufacturer;
+    }
+    else if (type_ == "genre") {
+        text = selectedItem->genre;
+    }
+    else if (type_ == "playCount") {
+        text = std::to_string(selectedItem->playCount);
+    }
+    else if (type_ == "lastPlayed") {
+        if (selectedItem->lastPlayed != "0") {
+            text = selectedItem->lastPlayed;
         }
     }
-}
+    else if (type_.rfind("playlist", 0) == 0) {
+        text = playlistName;
+    }
+    else if (type_ == "firstLetter") {
+        text = selectedItem->fullTitle.at(0);
+    }
+    else if (type_ == "collectionName") {
+        text = page.getCollectionName();
+    }
+    else if (type_ == "collectionSize") {
+        if (page.getCollectionSize() == 0) {
+            ss << singlePrefix_ << page.getCollectionSize() << pluralPostfix_;
+        }
+        else if (page.getCollectionSize() == 1) {
+            ss << singlePrefix_ << page.getCollectionSize() << singlePostfix_;
+        }
+        else {
+            ss << pluralPrefix_ << page.getCollectionSize() << pluralPostfix_;
+        }
+    }
+    else if (type_ == "collectionIndex") {
+        size_t index = page.getSelectedIndex();
+        if (index == 0) {
+            ss << singlePrefix_ << (index + 1) << pluralPostfix_;
+        }
+        else if (index == 1) {
+            ss << singlePrefix_ << (index + 1) << singlePostfix_;
+        }
+        else {
+            ss << pluralPrefix_ << (index + 1) << pluralPostfix_;
+        }
+    }
+    else if (type_ == "collectionIndexSize") {
+        size_t indexSize = page.getSelectedIndex();
+        if (indexSize == 0) {
+            ss << singlePrefix_ << (indexSize + 1) << "/" << page.getCollectionSize() << pluralPostfix_;
+        }
+        else if (indexSize == 1) {
+            ss << singlePrefix_ << (indexSize + 1) << "/" << page.getCollectionSize() << singlePostfix_;
+        }
+        else {
+            ss << pluralPrefix_ << (indexSize + 1) << "/" << page.getCollectionSize() << pluralPostfix_;
+        }
+    }
+    else if (type_ == "isFavorite") {
+        text = selectedItem->isFavorite ? "yes" : "no";
+    }
+    else if (type_ == "isPaused") {
+        text = page.isPaused() ? "Paused" : "";
+    }
+    else if (type_ == "current") {
+        unsigned long long current = 0;
+        current = page.getCurrent();
+        current /= 1000000000;
+        int seconds = current % 60;
+        int minutes = (current / 60) % 60;
+        int hours = int(current / 3600);
+        text = std::to_string(hours) + ":";
+        if (minutes < 10)
+            text += "0" + std::to_string(minutes) + ":";
+        else
+            text += std::to_string(minutes) + ":";
+        if (seconds < 10)
+            text += "0" + std::to_string(seconds);
+        else
+            text += std::to_string(seconds);
+        if (page.getDuration() == 0)
+            text = "--:--:--";
+    }
+    else if (type_ == "duration") {
+        unsigned long long duration = 0;
+        duration = page.getDuration();
+        duration /= 1000000000;
+        int seconds = duration % 60;
+        int minutes = (duration / 60) % 60;
+        int hours = int(duration / 3600);
+        text = std::to_string(hours) + ":";
+        if (minutes < 10)
+            text += "0" + std::to_string(minutes) + ":";
+        else
+            text += std::to_string(minutes) + ":";
+        if (seconds < 10)
+            text += "0" + std::to_string(seconds);
+        else
+            text += std::to_string(seconds);
+        if (page.getDuration() == 0)
+            text = "--:--:--";
+    }
 
+    if (text.empty() && (!selectedItem->leaf || systemMode_)) // item is not a leaf
+    {
+        (void)config_.getProperty("collections." + selectedItem->name + "." + type_, text);
+    }
+
+    if (text.empty() && systemMode_) // Get the system information instead
+    {
+        (void)config_.getProperty("collections." + page.getCollectionName() + "." + type_, text);
+    }
+
+    bool overwriteXML = false;
+    config_.getProperty(OPTION_OVERWRITEXML, overwriteXML);
+    if (text.empty() || overwriteXML) // No text was found yet; check the info instead
+    {
+        std::string text_tmp;
+        selectedItem->getInfo(type_, text_tmp);
+        if (!text_tmp.empty()) {
+            text = text_tmp;
+        }
+    }
+
+    if (text == "0") {
+        text = singlePrefix_ + text + pluralPostfix_;
+    }
+    else if (text == "1") {
+        text = singlePrefix_ + text + singlePostfix_;
+    }
+    else if (!text.empty()) {
+        text = pluralPrefix_ + text + pluralPostfix_;
+    }
+
+    if (!text.empty()) {
+        if (textFormat_ == "uppercase") {
+            std::transform(text.begin(), text.end(), text.begin(), ::toupper);
+        }
+        if (textFormat_ == "lowercase") {
+            std::transform(text.begin(), text.end(), text.begin(), ::tolower);
+        }
+        ss << text;
+    }
+
+    // Update the tracked attributes
+    if (currentType_ == type_ && currentValue_ == ss.str()) {
+        // No changes, no need to reload
+        return;
+    }
+
+    currentType_ = type_;
+    currentValue_ = ss.str();
+
+    if (!ss.str().empty()) {
+        imageInst_ = new Text(ss.str(), page, fontInst_, baseViewInfo.Monitor);
+    }
+}
 void ReloadableText::draw()
 {
     if(imageInst_) {

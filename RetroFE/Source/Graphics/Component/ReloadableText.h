@@ -35,6 +35,7 @@ public:
     void     initializeFonts();
 
 private:
+    bool isInTransition() const;
     void ReloadTexture();
     std::string getTimeSince(std::string sinceTimestamp);
 
@@ -50,4 +51,6 @@ private:
     std::string singlePostfix_;
     std::string pluralPrefix_;
     std::string pluralPostfix_;
+    std::string currentType_;
+    std::string currentValue_;
 };
