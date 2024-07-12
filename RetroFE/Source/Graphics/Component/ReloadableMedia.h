@@ -66,6 +66,8 @@ private:
     bool jukebox_;
     int  jukeboxNumLoops_;
     int numberOfImages_{ 27 };
+    std::string currentTypeLC_;
+    std::string currentBasename_;
     
     static inline const std::vector<std::string> imageExtensions = {
 #ifdef WIN32
