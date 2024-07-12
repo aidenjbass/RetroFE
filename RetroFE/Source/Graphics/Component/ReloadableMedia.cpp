@@ -203,7 +203,7 @@ Component* ReloadableMedia::reloadTexture()
     else if (typeLC.rfind("playlist", 0) == 0) {
         basename = page.getPlaylistName();
     }
-    else if (typeLC.rfind("video", 0) == 0) {
+    else if (isVideo_) {
         basename = selectedItem->name;
     }
     else {
@@ -223,6 +223,9 @@ Component* ReloadableMedia::reloadTexture()
         if (isVideo_) {
             if (name != "default" && typeLC.rfind("playlist", 0) == 0) {
                 name = page.getPlaylistName();
+            }
+            else {
+                name = selectedItem->name;
             }
 
             if (systemMode_) {
