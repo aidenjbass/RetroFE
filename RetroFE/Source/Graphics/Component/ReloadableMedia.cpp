@@ -203,6 +203,9 @@ Component* ReloadableMedia::reloadTexture()
     else if (typeLC.rfind("playlist", 0) == 0) {
         basename = page.getPlaylistName();
     }
+    else if (typeLC.rfind("video", 0) == 0) {
+        basename = selectedItem->name;
+    }
     else {
         basename = "default";
     }
