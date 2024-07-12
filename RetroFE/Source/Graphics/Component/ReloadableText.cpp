@@ -15,52 +15,44 @@
  */
 
 #include "ReloadableText.h"
-#include "../ViewInfo.h"
 #include "../../Database/Configuration.h"
 #include "../../Database/GlobalOpts.h"
-#include "../../Utility/Log.h"
 #include "../../SDL.h"
+#include "../../Utility/Log.h"
+#include "../../Utility/Utils.h"
+#include "../ViewInfo.h"
 #include "ScrollingList.h"
+#include <algorithm>
+#include <ctime>
 #include <fstream>
-#include <vector>
 #include <iostream>
 #include <time.h>
-#include <ctime>
-#include <algorithm>
-#include "../../Utility/Utils.h"
+#include <vector>
 
-ReloadableText::ReloadableText(std::string type, Page &page, Configuration &config, bool systemMode, Font *font, std::string layoutKey, std::string timeFormat, std::string textFormat, std::string singlePrefix, std::string singlePostfix, std::string pluralPrefix, std::string pluralPostfix)
-    : Component(page)
-    , config_(config)
-    , systemMode_(systemMode)
-    , imageInst_(NULL)
-    , type_(type)
-    , layoutKey_(layoutKey)
-    , fontInst_(font)
-    , timeFormat_(timeFormat)
-    , textFormat_(textFormat)
-    , singlePrefix_(singlePrefix)
-    , singlePostfix_(singlePostfix)
-    , pluralPrefix_(pluralPrefix)
-    , pluralPostfix_(pluralPostfix)
+ReloadableText::ReloadableText(std::string type, Page &page, Configuration &config, bool systemMode, Font *font,
+                               std::string layoutKey, std::string timeFormat, std::string textFormat,
+                               std::string singlePrefix, std::string singlePostfix, std::string pluralPrefix,
+                               std::string pluralPostfix)
+    : Component(page), config_(config), systemMode_(systemMode), imageInst_(NULL), type_(type), layoutKey_(layoutKey),
+      fontInst_(font), timeFormat_(timeFormat), textFormat_(textFormat), singlePrefix_(singlePrefix),
+      singlePostfix_(singlePostfix), pluralPrefix_(pluralPrefix), pluralPostfix_(pluralPostfix)
 {
     allocateGraphicsMemory();
 }
 
-
-
 ReloadableText::~ReloadableText()
 {
-    if (imageInst_ != NULL) {
+    if (imageInst_ != NULL)
+    {
         delete imageInst_;
     }
 }
 
 bool ReloadableText::update(float dt)
 {
-    if (newItemSelected ||
-        (newScrollItemSelected && getMenuScrollReload()) ||
-        type_ == "time" || type_ == "current" || type_ == "duration" || type_ == "isPaused") {
+    if (newItemSelected || (newScrollItemSelected && getMenuScrollReload()) || type_ == "time" || type_ == "current" ||
+        type_ == "duration" || type_ == "isPaused")
+    {
         ReloadTexture();
         newItemSelected = false;
     }
@@ -77,23 +69,21 @@ void ReloadableText::allocateGraphicsMemory()
     Component::allocateGraphicsMemory();
 }
 
-
 void ReloadableText::freeGraphicsMemory()
 {
     Component::freeGraphicsMemory();
 
-    if (imageInst_ != NULL) {
+    if (imageInst_ != NULL)
+    {
         delete imageInst_;
         imageInst_ = NULL;
     }
 }
 
-
 void ReloadableText::initializeFonts()
 {
     fontInst_->initialize();
 }
-
 
 void ReloadableText::deInitializeFonts()
 {
@@ -101,18 +91,18 @@ void ReloadableText::deInitializeFonts()
 }
 
 // Add a method to check the transition state
-bool ReloadableText::isInTransition() const {
-    return (getAnimationRequestedType() == "playlistExit" ||
-        getAnimationRequestedType() == "playlistPrevEnter" ||
-        getAnimationRequestedType() == "playlistPrevExit" ||
-        getAnimationRequestedType() == "playlistNextEnter" ||
-        getAnimationRequestedType() == "playlistNextExit");
+bool ReloadableText::isInTransition() const
+{
+    return (getAnimationRequestedType() == "playlistExit" || getAnimationRequestedType() == "playlistPrevEnter" ||
+            getAnimationRequestedType() == "playlistPrevExit" || getAnimationRequestedType() == "playlistNextEnter" ||
+            getAnimationRequestedType() == "playlistNextExit");
 }
 
 void ReloadableText::ReloadTexture()
 {
     // Check if the component is in a transition state
-    if (isInTransition()) {
+    if (isInTransition())
+    {
         // In transition state, do not update the text
         currentType_.clear();
         currentValue_.clear();
@@ -120,10 +110,11 @@ void ReloadableText::ReloadTexture()
     }
 
     // Get the selected item
-    Item* selectedItem = page.getSelectedItem();
+    Item *selectedItem = page.getSelectedItem();
 
     // If there's no selected item, we might be in a transition state
-    if (selectedItem == nullptr) {
+    if (selectedItem == nullptr)
+    {
         currentType_.clear();
         currentValue_.clear();
         return;
@@ -133,7 +124,8 @@ void ReloadableText::ReloadTexture()
     std::string text = "";
 
     // Update text based on the type
-    if (type_ == "time") {
+    if (type_ == "time")
+    {
         time_t now = time(0);
         struct tm tstruct;
         char buf[80];
@@ -141,102 +133,135 @@ void ReloadableText::ReloadTexture()
         strftime(buf, sizeof(buf), timeFormat_.c_str(), &tstruct);
         ss << buf;
     }
-    else if (type_ == "numberButtons") {
+    else if (type_ == "numberButtons")
+    {
         text = selectedItem->numberButtons;
     }
-    else if (type_ == "numberPlayers") {
+    else if (type_ == "numberPlayers")
+    {
         text = selectedItem->numberPlayers;
     }
-    else if (type_ == "ctrlType") {
+    else if (type_ == "ctrlType")
+    {
         text = selectedItem->ctrlType;
     }
-    else if (type_ == "numberJoyWays") {
+    else if (type_ == "numberJoyWays")
+    {
         text = selectedItem->joyWays;
     }
-    else if (type_ == "rating") {
+    else if (type_ == "rating")
+    {
         text = selectedItem->rating;
     }
-    else if (type_ == "score") {
+    else if (type_ == "score")
+    {
         text = selectedItem->score;
     }
-    else if (type_ == "year") {
+    else if (type_ == "year")
+    {
         text = selectedItem->year;
     }
-    else if (type_ == "title") {
+    else if (type_ == "title")
+    {
         text = selectedItem->title;
     }
-    else if (type_ == "developer") {
+    else if (type_ == "developer")
+    {
         text = selectedItem->developer;
         // Overwrite in case developer has not been specified
-        if (text.empty()) {
+        if (text.empty())
+        {
             text = selectedItem->manufacturer;
         }
     }
-    else if (type_ == "manufacturer") {
+    else if (type_ == "manufacturer")
+    {
         text = selectedItem->manufacturer;
     }
-    else if (type_ == "genre") {
+    else if (type_ == "genre")
+    {
         text = selectedItem->genre;
     }
-    else if (type_ == "playCount") {
+    else if (type_ == "playCount")
+    {
         text = std::to_string(selectedItem->playCount);
     }
-    else if (type_ == "lastPlayed") {
-        if (selectedItem->lastPlayed != "0") {
+    else if (type_ == "lastPlayed")
+    {
+        if (selectedItem->lastPlayed != "0")
+        {
             text = selectedItem->lastPlayed;
         }
     }
-    else if (type_.rfind("playlist", 0) == 0) {
+    else if (type_.rfind("playlist", 0) == 0)
+    {
         text = playlistName;
     }
-    else if (type_ == "firstLetter") {
+    else if (type_ == "firstLetter")
+    {
         text = selectedItem->fullTitle.at(0);
     }
-    else if (type_ == "collectionName") {
+    else if (type_ == "collectionName")
+    {
         text = page.getCollectionName();
     }
-    else if (type_ == "collectionSize") {
-        if (page.getCollectionSize() == 0) {
+    else if (type_ == "collectionSize")
+    {
+        if (page.getCollectionSize() == 0)
+        {
             ss << singlePrefix_ << page.getCollectionSize() << pluralPostfix_;
         }
-        else if (page.getCollectionSize() == 1) {
+        else if (page.getCollectionSize() == 1)
+        {
             ss << singlePrefix_ << page.getCollectionSize() << singlePostfix_;
         }
-        else {
+        else
+        {
             ss << pluralPrefix_ << page.getCollectionSize() << pluralPostfix_;
         }
     }
-    else if (type_ == "collectionIndex") {
-        size_t index = page.getSelectedIndex();
-        if (index == 0) {
-            ss << singlePrefix_ << (index + 1) << pluralPostfix_;
+    else if (type_ == "collectionIndex")
+    {
+        size_t test = page.getSelectedIndex();
+        if (test == 0)
+        {
+            ss << singlePrefix_ << (test + 1) << pluralPostfix_;
         }
-        else if (index == 1) {
-            ss << singlePrefix_ << (index + 1) << singlePostfix_;
+        else if (test == 1)
+        {
+            ss << singlePrefix_ << (test + 1) << singlePostfix_;
         }
-        else {
-            ss << pluralPrefix_ << (index + 1) << pluralPostfix_;
-        }
-    }
-    else if (type_ == "collectionIndexSize") {
-        size_t indexSize = page.getSelectedIndex();
-        if (indexSize == 0) {
-            ss << singlePrefix_ << (indexSize + 1) << "/" << page.getCollectionSize() << pluralPostfix_;
-        }
-        else if (indexSize == 1) {
-            ss << singlePrefix_ << (indexSize + 1) << "/" << page.getCollectionSize() << singlePostfix_;
-        }
-        else {
-            ss << pluralPrefix_ << (indexSize + 1) << "/" << page.getCollectionSize() << pluralPostfix_;
+        else
+        {
+            ss << pluralPrefix_ << (test + 1) << pluralPostfix_;
         }
     }
-    else if (type_ == "isFavorite") {
+    else if (type_ == "collectionIndexSize")
+    {
+        size_t test = page.getSelectedIndex();
+        if (test == 0)
+        {
+            ss << singlePrefix_ << (test + 1) << "/" << page.getCollectionSize() << pluralPostfix_;
+        }
+        else if (test == 1)
+        {
+            ss << singlePrefix_ << (test + 1) << "/" << page.getCollectionSize() << singlePostfix_;
+        }
+        else
+        {
+            ss << pluralPrefix_ << (test + 1) << "/" << page.getCollectionSize() << pluralPostfix_;
+        }
+    }
+    else if (type_ == "isFavorite")
+    {
         text = selectedItem->isFavorite ? "yes" : "no";
     }
-    else if (type_ == "isPaused") {
+    else if (type_ == "isPaused")
+    {
         text = page.isPaused() ? "Paused" : "";
     }
-    else if (type_ == "current") {
+    else if (type_ == "current")
+    {
         unsigned long long current = 0;
         current = page.getCurrent();
         current /= 1000000000;
@@ -255,7 +280,8 @@ void ReloadableText::ReloadTexture()
         if (page.getDuration() == 0)
             text = "--:--:--";
     }
-    else if (type_ == "duration") {
+    else if (type_ == "duration")
+    {
         unsigned long long duration = 0;
         duration = page.getDuration();
         duration /= 1000000000;
@@ -291,47 +317,65 @@ void ReloadableText::ReloadTexture()
     {
         std::string text_tmp;
         selectedItem->getInfo(type_, text_tmp);
-        if (!text_tmp.empty()) {
+        if (!text_tmp.empty())
+        {
             text = text_tmp;
         }
     }
 
-    if (text == "0") {
+    if (text == "0")
+    {
         text = singlePrefix_ + text + pluralPostfix_;
     }
-    else if (text == "1") {
+    else if (text == "1")
+    {
         text = singlePrefix_ + text + singlePostfix_;
     }
-    else if (!text.empty()) {
+    else if (!text.empty())
+    {
         text = pluralPrefix_ + text + pluralPostfix_;
     }
 
-    if (!text.empty()) {
-        if (textFormat_ == "uppercase") {
+    if (!text.empty())
+    {
+        if (textFormat_ == "uppercase")
+        {
             std::transform(text.begin(), text.end(), text.begin(), ::toupper);
         }
-        if (textFormat_ == "lowercase") {
+        if (textFormat_ == "lowercase")
+        {
             std::transform(text.begin(), text.end(), text.begin(), ::tolower);
         }
         ss << text;
     }
 
     // Update the tracked attributes
-    if (currentType_ == type_ && currentValue_ == ss.str()) {
-        // No changes, no need to reload
+    if (currentType_ == type_ && currentValue_ == ss.str())
+    {
+        // No changes, no need to reload, reuse the current component
         return;
+    }
+
+    // Delete the old component if a new one is required
+    if (imageInst_ != nullptr)
+    {
+        delete imageInst_;
+        imageInst_ = nullptr;
     }
 
     currentType_ = type_;
     currentValue_ = ss.str();
 
-    if (!ss.str().empty()) {
+    if (!ss.str().empty())
+    {
         imageInst_ = new Text(ss.str(), page, fontInst_, baseViewInfo.Monitor);
     }
 }
+
 void ReloadableText::draw()
 {
-    if(imageInst_) {
+    if (imageInst_)
+    {
         imageInst_->baseViewInfo = baseViewInfo;
         if (baseViewInfo.Alpha > 0.0f)
             imageInst_->draw();
@@ -341,17 +385,19 @@ void ReloadableText::draw()
 // thank you chatgpt
 std::string ReloadableText::getTimeSince(std::string sinceTimestamp)
 {
-    const char* timestamp = sinceTimestamp.c_str();
+    const char *timestamp = sinceTimestamp.c_str();
     std::time_t t2 = (time_t)strtol(timestamp, NULL, 10);
 
     // error checking, make sure timestamp is valid
-    if (t2 == 0 && errno == EINVAL) {
+    if (t2 == 0 && errno == EINVAL)
+    {
         return "";
     }
 
     // error checking, make sure the timestamp is not in the future
     std::time_t t1 = std::time(nullptr);
-    if (t2 > t1) {
+    if (t2 > t1)
+    {
         return "";
     }
 
@@ -365,24 +411,28 @@ std::string ReloadableText::getTimeSince(std::string sinceTimestamp)
     int daysDiff = tm1.tm_mday - tm2.tm_mday;
 
     // Adjust the difference in case of negative values
-    if (daysDiff < 0) {
+    if (daysDiff < 0)
+    {
         monthsDiff--;
         std::time_t tempT2 = t2;
         std::tm tempTm2 = tm2;
 
-        while (tempTm2.tm_mon != tm1.tm_mon) {
-            tempT2 += 24 * 60 * 60;  // Add 1 day
+        while (tempTm2.tm_mon != tm1.tm_mon)
+        {
+            tempT2 += 24 * 60 * 60; // Add 1 day
             tempTm2 = *std::localtime(&tempT2);
-            daysDiff += tempTm2.tm_mday;  // Add the number of days in the current month
+            daysDiff += tempTm2.tm_mday; // Add the number of days in the current month
         }
 
-        if (daysDiff < 0) {
+        if (daysDiff < 0)
+        {
             std::time_t tempT2 = t2;
             std::tm tempTm2 = tm2;
             int totalDaysDiff = 0;
 
-            while (tempTm2.tm_year != tm1.tm_year || tempTm2.tm_mon != tm1.tm_mon) {
-                tempT2 += 24 * 60 * 60;  // Add 1 day
+            while (tempTm2.tm_year != tm1.tm_year || tempTm2.tm_mon != tm1.tm_mon)
+            {
+                tempT2 += 24 * 60 * 60; // Add 1 day
                 tempTm2 = *std::localtime(&tempT2);
                 totalDaysDiff++;
             }
@@ -393,50 +443,60 @@ std::string ReloadableText::getTimeSince(std::string sinceTimestamp)
     }
 
     // Adjust the difference in case of negative months
-    if (monthsDiff < 0) {
+    if (monthsDiff < 0)
+    {
         yearsDiff--;
         monthsDiff += 12;
     }
 
     // Calculate the number of days in each month
-    const int daysInMonth[] = { 31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31 };
+    const int daysInMonth[] = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31};
 
     int totalDays = 0;
-    for (int i = tm2.tm_mon; i < 12; ++i) {
+    for (int i = tm2.tm_mon; i < 12; ++i)
+    {
         totalDays += daysInMonth[i];
     }
     totalDays -= tm2.tm_mday - 1;
 
-    for (int i = 0; i < tm1.tm_mon; ++i) {
+    for (int i = 0; i < tm1.tm_mon; ++i)
+    {
         totalDays += daysInMonth[i];
     }
     totalDays += tm1.tm_mday;
 
     // Adjust the difference by the total number of days
-    if (totalDays >= daysDiff) {
+    if (totalDays >= daysDiff)
+    {
         totalDays -= daysDiff;
     }
-    else {
+    else
+    {
         monthsDiff--;
         totalDays = daysInMonth[(tm1.tm_mon + 11) % 12] - (daysDiff - totalDays - 1);
     }
 
     // construct the result string
     std::string result = "";
-    if (yearsDiff > 0) {
+    if (yearsDiff > 0)
+    {
         result += std::to_string(yearsDiff) + (yearsDiff == 1 ? " year " : " years ");
     }
-    if (monthsDiff > 0) {
+    if (monthsDiff > 0)
+    {
         result += std::to_string(monthsDiff) + (monthsDiff == 1 ? " month " : " months ");
     }
-    if (daysDiff > 0) {
+    if (daysDiff > 0)
+    {
         result += std::to_string(daysDiff) + (daysDiff == 1 ? " day " : " days ");
     }
 
-    if (result == "") {
+    if (result == "")
+    {
         result = "today";
     }
-    else {
+    else
+    {
         result += "ago";
     }
 
