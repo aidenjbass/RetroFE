@@ -207,8 +207,8 @@ Component* ReloadableMedia::reloadTexture()
         basename = "default";
     }
 
-    // Reuse the existing component if the typeLC and basename match
-    if (loadedComponent_ && currentTypeLC_ == typeLC && currentBasename_ == basename) {
+    // Reuse the existing component if the typeLC and basename match unless basename is "default"
+    if (loadedComponent_ && currentTypeLC_ == typeLC && currentBasename_ == basename && currentBasename_ != "default") {
         return loadedComponent_;
     }
 
