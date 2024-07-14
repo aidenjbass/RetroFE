@@ -57,8 +57,7 @@ bool Launcher::run(std::string collection, Item *collectionItem, Page *currentPa
             if (config_.propertyPrefixExists(localLauncherKey)) {
                 // Use localLauncher if exists
                 launcherName = collection + "." + line;
-            }
-            else {
+            } else {
                 // Use specified launcher from conf file
                 launcherName = line;
             }
@@ -73,9 +72,6 @@ bool Launcher::run(std::string collection, Item *collectionItem, Page *currentPa
         }
     }
 
-    // Convert launcherName to lowercase for consistency
-   //launcherName = Utils::toLower(launcherName);
-
     std::string executablePath;
     std::string selectedItemsDirectory;
     std::string selectedItemsPath;
@@ -83,29 +79,28 @@ bool Launcher::run(std::string collection, Item *collectionItem, Page *currentPa
     std::string matchedExtension;
     std::string args;
 
-
-    if(!launcherExecutable(executablePath, launcherName)) {
+    if (!launcherExecutable(executablePath, launcherName)) {
         LOG_ERROR("Launcher", "Failed to find launcher executable (launcher: " + launcherName + " executable: " + executablePath + " collection: " + collectionItem->collectionInfo->name + " item: " + collectionItem->name + ")");
         return false;
     }
-    if(!extensions(extensionstr, collection)) {
+    if (!extensions(extensionstr, collection)) {
         LOG_ERROR("Launcher", "No file extensions configured for collection \"" + collection + "\"");
         return false;
     }
-    if(!collectionDirectory(selectedItemsDirectory, collection)) {
+    if (!collectionDirectory(selectedItemsDirectory, collection)) {
         LOG_ERROR("Launcher", "Could not find files in directory \"" + selectedItemsDirectory + "\" for collection \"" + collection + "\"");
         return false;
     }
-    if(!launcherArgs(args, launcherName)) {
+    if (!launcherArgs(args, launcherName)) {
         LOG_ERROR("Launcher", "No launcher arguments specified for launcher " + launcherName);
         return false;
     }
 
-
     // Overwrite selectedItemsDirectory if already set in the file
-    if (collectionItem->filepath != "") {
+    if (!collectionItem->filepath.empty()) {
         selectedItemsDirectory = collectionItem->filepath;
     }
+
     LOG_DEBUG("LauncherDebug", "selectedItemsPath pre-find file: " + selectedItemsPath);
     LOG_DEBUG("LauncherDebug", "selectedItemsDirectory pre - find file : " + selectedItemsDirectory);
     LOG_DEBUG("LauncherDebug", "matchedExtension pre - find file : " + matchedExtension);
@@ -114,50 +109,50 @@ bool Launcher::run(std::string collection, Item *collectionItem, Page *currentPa
     LOG_DEBUG("LauncherDebug", "collectionItem->file pre - find file: " + collectionItem->file);
 
     // It is ok to continue if the file could not be found. We could be launching a merged romset
-    if (collectionItem->file == "")
+    if (collectionItem->file.empty()) {
         findFile(selectedItemsPath, matchedExtension, selectedItemsDirectory, collectionItem->name, extensionstr);
-    else
+    } else {
         findFile(selectedItemsPath, matchedExtension, selectedItemsDirectory, collectionItem->file, extensionstr);
+    }
 
     LOG_DEBUG("LauncherDebug", "args: " + args);
     LOG_DEBUG("LauncherDebug", "selectedItemsPath: " + selectedItemsPath);
 
-
     args = replaceVariables(args,
-                            selectedItemsPath,
-                            collectionItem->name,
-                            Utils::getFileName(selectedItemsPath),
-                            selectedItemsDirectory,
-                            collection);
-    
+        selectedItemsPath,
+        collectionItem->name,
+        Utils::getFileName(selectedItemsPath),
+        selectedItemsDirectory,
+        collection);
+
     LOG_DEBUG("LauncherDebug", "executablePath: " + executablePath);
 
     executablePath = replaceVariables(executablePath,
-                                      selectedItemsPath,
-                                      collectionItem->name,
-                                      Utils::getFileName(selectedItemsPath),
-                                      selectedItemsDirectory,
-                                      collection);
+        selectedItemsPath,
+        collectionItem->name,
+        Utils::getFileName(selectedItemsPath),
+        selectedItemsDirectory,
+        collection);
 
     std::string currentDirectoryKey = "launchers." + launcherName + ".currentDirectory";
-    std::string currentDirectory    = Utils::getDirectory(executablePath);
+    std::string currentDirectory = Utils::getDirectory(executablePath);
 
     config_.getProperty(currentDirectoryKey, currentDirectory);
 
     currentDirectory = replaceVariables(currentDirectory,
-                                        selectedItemsPath,
-                                        collectionItem->name,
-                                        Utils::getFileName(selectedItemsPath),
-                                        selectedItemsDirectory,
-                                        collection);
+        selectedItemsPath,
+        collectionItem->name,
+        Utils::getFileName(selectedItemsPath),
+        selectedItemsDirectory,
+        collection);
 
-    if(!execute(executablePath, args, currentDirectory, true, currentPage)) {
+    if (!execute(executablePath, args, currentDirectory, true, currentPage)) {
         LOG_ERROR("Launcher", "Failed to launch.");
         return false;
     }
 
     bool reboot = false;
-	config_.getProperty("launchers." + launcherName + ".reboot", reboot);
+    config_.getProperty("launchers." + launcherName + ".reboot", reboot);
 
     return reboot;
 }
@@ -287,65 +282,65 @@ bool Launcher::execute(std::string executable, std::string args, std::string cur
     }
 
 #ifdef WIN32
-    STARTUPINFO startupInfo;
-    PROCESS_INFORMATION processInfo;
-    char applicationName[2048];
-    char currDir[2048];
-    memset(&applicationName, 0, sizeof(applicationName));
-    memset(&startupInfo, 0, sizeof(startupInfo));
-    memset(&processInfo, 0, sizeof(processInfo));
-    strncpy(applicationName, executionString.c_str(), sizeof(applicationName));
-    strncpy(currDir, currentDirectory.c_str(), sizeof(currDir));
-    startupInfo.dwFlags = STARTF_USESTDHANDLES;
-    startupInfo.hStdError = GetStdHandle(STD_ERROR_HANDLE);
-    startupInfo.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
-    startupInfo.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
-    startupInfo.wShowWindow = SW_SHOWDEFAULT;
+    
+    std::filesystem::current_path(Configuration::absolutePath);
 
-    if(!CreateProcess(nullptr, applicationName, nullptr, nullptr, FALSE, CREATE_NO_WINDOW, nullptr, currDir, &startupInfo, &processInfo))
+    // Ensure executablePath and currentDirectory are absolute paths
+    fs::path exePath(executable);
+    if (!exePath.is_absolute()) {
+        executable = fs::absolute(exePath).string();
+    }
+
+    fs::path currDir(currentDirectory);
+    if (!currDir.is_absolute()) {
+        currentDirectory = fs::absolute(currDir).string();
+    }
+
+    LOG_DEBUG("LauncherDebug", "Final executablePath: " + executable);
+    LOG_DEBUG("LauncherDebug", "Final currentDirectory: " + currentDirectory);
+    
+    SHELLEXECUTEINFO shExecInfo;
+    memset(&shExecInfo, 0, sizeof(SHELLEXECUTEINFO));
+    shExecInfo.cbSize = sizeof(SHELLEXECUTEINFO);
+    shExecInfo.fMask = SEE_MASK_NOCLOSEPROCESS;
+    shExecInfo.hwnd = nullptr;
+    shExecInfo.lpVerb = "open";
+    shExecInfo.lpFile = executable.c_str();
+    shExecInfo.lpParameters = args.empty() ? nullptr : args.c_str();
+    shExecInfo.lpDirectory = currentDirectory.c_str();
+    shExecInfo.nShow = SW_SHOWDEFAULT;
+
+    LOG_DEBUG("LauncherDebug", "Windows-specific execution using ShellExecuteEx:");
+    LOG_DEBUG("LauncherDebug", "Executable: " + executable);
+    LOG_DEBUG("LauncherDebug", "Arguments: " + args);
+    LOG_DEBUG("LauncherDebug", "Current Directory: " + currentDirectory);
+
+    if (!ShellExecuteEx(&shExecInfo)) {
+        LOG_WARNING("Launcher", "Failed to run: " + executable);
+    } else {
+        if (wait) {
+            WaitForSingleObject(shExecInfo.hProcess, INFINITE);
+        }
+
+        CloseHandle(shExecInfo.hProcess);
+        retVal = true;
+}
 #else
     const std::size_t last_slash_idx = executable.rfind(Utils::pathSeparator);
     if (last_slash_idx != std::string::npos) {
         std::string applicationName = executable.substr(last_slash_idx + 1);
         executionString = "cd \"" + currentDirectory + "\" && exec \"./" + applicationName + "\" " + args;
     }
-    if(system(executionString.c_str()) != 0)
-#endif
-    {
+
+    LOG_DEBUG("LauncherDebug", "Non-Windows-specific execution:");
+    LOG_DEBUG("LauncherDebug", "Execution String: " + executionString);
+
+    if (system(executionString.c_str()) != 0) {
         LOG_WARNING("Launcher", "Failed to run: " + executable);
-    }
-
-    else
-    {
-#ifdef WIN32
-        // lower priority
-        SetPriorityClass(GetCurrentProcess(), BELOW_NORMAL_PRIORITY_CLASS);
-
-		if ( wait ) {
-			while(WAIT_OBJECT_0 != MsgWaitForMultipleObjects(1, &processInfo.hProcess, FALSE, INFINITE, QS_ALLINPUT)) {
-				MSG msg;
-				while(PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
-					DispatchMessage(&msg);
-				}
-			}
-        }
-
-        //resume priority
-        bool highPriority = false;
-        config_.getProperty(OPTION_HIGHPRIORITY, highPriority);
-        if (highPriority) {
-            SetPriorityClass(GetCurrentProcess(), ABOVE_NORMAL_PRIORITY_CLASS);
-        }
-        else {
-            SetPriorityClass(GetCurrentProcess(), NORMAL_PRIORITY_CLASS);
-        }
-
-        // result = GetExitCodeProcess(processInfo.hProcess, &exitCode);
-        CloseHandle(processInfo.hProcess);
-        CloseHandle(processInfo.hThread);
-#endif
+    } else {
         retVal = true;
     }
+#endif
 
     if (multiple_display && stop_thread == false) {
         stop_thread = true;
@@ -504,7 +499,7 @@ bool Launcher::findFile(std::string& foundFilePath, std::string& foundFilename, 
         fs::path filePath = fs::path(directory) / (filenameWithoutExtension + "." + extension);
 
         if (fs::exists(filePath)) {
-            foundFilePath = filePath.string();
+            foundFilePath = fs::absolute(filePath).string();
             foundFilename = extension;
             fileFound = true;
             LOG_INFO("Launcher", "File found: " + foundFilePath);
