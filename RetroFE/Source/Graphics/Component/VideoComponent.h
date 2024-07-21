@@ -39,17 +39,17 @@ public:
   void allocateGraphicsMemory() override;
   void freeGraphicsMemory() override;
 
-  bool isPlaying();
-  std::string_view filePath();
-  void skipForward();
-  void skipBackward();
-  void skipForwardp();
-  void skipBackwardp();
-  void pause();
-  void restart();
-  unsigned long long getCurrent();
-  unsigned long long getDuration();
-  bool isPaused();
+  bool isPlaying()  override;
+  std::string_view filePath() override;
+  void skipForward() override;
+  void skipBackward() override;
+  void skipForwardp() override;
+  void skipBackwardp() override;
+  void pause() override ;
+  void restart() override;
+  unsigned long long getCurrent() override;
+  unsigned long long getDuration() override;
+  bool isPaused() override;
 
 private:
   std::unique_ptr<IVideo> videoInst_;
