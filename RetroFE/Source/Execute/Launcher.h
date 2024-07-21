@@ -31,14 +31,9 @@ public:
     void startScript();
     void exitScript();
 	void LEDBlinky( int command, std::string collection = "", Item *collectionItem = NULL);
-    void keepRendering(std::atomic<bool>& stop_thread, Page& currentPage);
+    void keepRendering(std::atomic<bool>& stop_thread, Page& currentPage) const;
 
 private:
-    std::string replaceString(
-        std::string subject,
-        const std::string &search,
-        const std::string &replace);
-
     bool launcherName(std::string &launcherName, std::string collection);
     bool launcherExecutable(std::string &executable, std::string launcherName);
     bool launcherArgs(std::string &args, std::string launcherName);
@@ -46,12 +41,5 @@ private:
     bool collectionDirectory(std::string &directory, std::string collection);
     bool findFile(std::string& foundFilePath, std::string& foundFilename, const std::string& directory, const std::string& filenameWithoutExtension, const std::string& extensions);
     bool execute(std::string executable, std::string arguments, std::string currentDirectory, bool wait = true, Page*currentPage = NULL);
-    std::string replaceVariables(std::string str,
-                                 std::string itemFilePath,
-                                 std::string itemName,
-                                 std::string itemFilename,
-                                 std::string itemDirectory,
-                                 std::string itemCollectionName);
-
     Configuration &config_;
 };

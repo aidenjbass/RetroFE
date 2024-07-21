@@ -42,7 +42,34 @@ Launcher::Launcher(Configuration &c)
 {
 }
 
-bool Launcher::run(std::string collection, Item *collectionItem, Page *currentPage)
+std::string replaceVariables(std::string str,
+    const std::string& itemFilePath,
+    const std::string& itemName,
+    const std::string& itemFilename,
+    const std::string& itemDirectory,
+    const std::string& itemCollectionName)
+{
+    str = Utils::replace(str, "%ITEM_FILEPATH%", itemFilePath);
+    str = Utils::replace(str, "%ITEM_NAME%", itemName);
+    str = Utils::replace(str, "%ITEM_FILENAME%", itemFilename);
+    str = Utils::replace(str, "%ITEM_DIRECTORY%", itemDirectory);
+    str = Utils::replace(str, "%ITEM_COLLECTION_NAME%", itemCollectionName);
+    str = Utils::replace(str, "%RETROFE_PATH%", Configuration::absolutePath);
+    str = Utils::replace(str, "%COLLECTION_PATH%", Utils::combinePath(Configuration::absolutePath, "collections", itemCollectionName));
+#ifdef WIN32
+    str = Utils::replace(str, "%RETROFE_EXEC_PATH%", Utils::combinePath(Configuration::absolutePath, "retrofe", "RetroFE.exe"));
+    const char* comspec = std::getenv("COMSPEC");
+    if (comspec) {
+        str = Utils::replace(str, "%CMD%", std::string(comspec));
+    }
+#else
+    str = Utils::replace(str, "%RETROFE_EXEC_PATH%", Utils::combinePath(Configuration::absolutePath, "RetroFE"));
+#endif
+
+    return str;
+}
+
+bool Launcher::run(std::string collection, Item* collectionItem, Page* currentPage)
 {
     // Initialize with the default launcher for the collection
     std::string launcherName = collectionItem->collectionInfo->launcher;
@@ -91,10 +118,7 @@ bool Launcher::run(std::string collection, Item *collectionItem, Page *currentPa
         LOG_ERROR("Launcher", "Could not find files in directory \"" + selectedItemsDirectory + "\" for collection \"" + collection + "\"");
         return false;
     }
-    if (!launcherArgs(args, launcherName)) {
-        LOG_ERROR("Launcher", "No launcher arguments specified for launcher " + launcherName);
-        return false;
-    }
+    launcherArgs(args, launcherName); // Ok if no args
 
     // Overwrite selectedItemsDirectory if already set in the file
     if (!collectionItem->filepath.empty()) {
@@ -234,33 +258,6 @@ void Launcher::LEDBlinky( int command, std::string collection, Item *collectionI
 }
 
 
-std::string Launcher::replaceVariables(std::string str,
-                                       std::string itemFilePath,
-                                       std::string itemName,
-                                       std::string itemFilename,
-                                       std::string itemDirectory,
-                                       std::string itemCollectionName)
-{
-    str = Utils::replace(str, "%ITEM_FILEPATH%", itemFilePath);
-    str = Utils::replace(str, "%ITEM_NAME%", itemName);
-    str = Utils::replace(str, "%ITEM_FILENAME%", itemFilename);
-    str = Utils::replace(str, "%ITEM_DIRECTORY%", itemDirectory);
-    str = Utils::replace(str, "%ITEM_COLLECTION_NAME%", itemCollectionName);
-    str = Utils::replace(str, "%RETROFE_PATH%", Configuration::absolutePath);
-    str = Utils::replace(str, "%COLLECTION_PATH%", Utils::combinePath(Configuration::absolutePath, "collections", itemCollectionName));
-#ifdef WIN32
-    str = Utils::replace(str, "%RETROFE_EXEC_PATH%", Utils::combinePath(Configuration::absolutePath, "retrofe", "RetroFE.exe"));
-    const char* comspec = std::getenv("COMSPEC");
-    if (comspec) {
-        str = Utils::replace(str, "%CMD%", std::string(comspec));
-    }
-#else
-    str = Utils::replace(str, "%RETROFE_EXEC_PATH%", Utils::combinePath(Configuration::absolutePath, "RetroFE"));
-#endif
-
-    return str;
-}
-
 bool Launcher::execute(std::string executable, std::string args, std::string currentDirectory, bool wait, Page* currentPage)
 {
     bool retVal = false;
@@ -271,70 +268,217 @@ bool Launcher::execute(std::string executable, std::string args, std::string cur
 
     std::atomic<bool> stop_thread = true;
     std::thread proc_thread;
-    bool multiple_display = SDL::getScreenCount() > 1;
+    bool multiple_display = SDL_GetNumVideoDisplays() > 1;
     bool animateDuringGame = true;
-    config_.getProperty(OPTION_ANIMATEDURINGGAME, animateDuringGame);
+    config_.getProperty("OPTION_ANIMATEDURINGGAME", animateDuringGame);
     if (animateDuringGame && multiple_display && currentPage != nullptr) {
         stop_thread = false;
-        proc_thread = std::thread([this, &stop_thread, &currentPage]() {
+        proc_thread = std::thread([this, &stop_thread, currentPage]() {
             this->keepRendering(std::ref(stop_thread), *currentPage);
             });
     }
 
 #ifdef WIN32
-    
+
+    // Ensure executable and currentDirectory are absolute paths
     std::filesystem::current_path(Configuration::absolutePath);
-
-    // Ensure executablePath and currentDirectory are absolute paths
-    fs::path exePath(executable);
+    std::filesystem::path exePath(executable);
     if (!exePath.is_absolute()) {
-        executable = fs::absolute(exePath).string();
+        exePath = std::filesystem::absolute(exePath);
     }
 
-    fs::path currDir(currentDirectory);
+    std::filesystem::path currDir(currentDirectory);
     if (!currDir.is_absolute()) {
-        currentDirectory = fs::absolute(currDir).string();
+        currDir = std::filesystem::absolute(currDir);
     }
 
-    LOG_DEBUG("LauncherDebug", "Final executablePath: " + executable);
-    LOG_DEBUG("LauncherDebug", "Final currentDirectory: " + currentDirectory);
-    
-    SHELLEXECUTEINFO shExecInfo;
-    memset(&shExecInfo, 0, sizeof(SHELLEXECUTEINFO));
-    shExecInfo.cbSize = sizeof(SHELLEXECUTEINFO);
-    shExecInfo.fMask = SEE_MASK_NOCLOSEPROCESS;
-    shExecInfo.hwnd = nullptr;
-    shExecInfo.lpVerb = "open";
-    shExecInfo.lpFile = executable.c_str();
-    shExecInfo.lpParameters = args.empty() ? nullptr : args.c_str();
-    shExecInfo.lpDirectory = currentDirectory.c_str();
-    shExecInfo.nShow = SW_SHOWDEFAULT;
+    LOG_DEBUG("LauncherDebug", "Final executablePath: " + exePath.string());
+    LOG_DEBUG("LauncherDebug", "Final currentDirectory: " + currDir.string());
 
-    LOG_DEBUG("LauncherDebug", "Windows-specific execution using ShellExecuteEx:");
-    LOG_DEBUG("LauncherDebug", "Executable: " + executable);
-    LOG_DEBUG("LauncherDebug", "Arguments: " + args);
-    LOG_DEBUG("LauncherDebug", "Current Directory: " + currentDirectory);
+    std::wstring exePathW = exePath.wstring();
+    std::wstring argsW = std::wstring(args.begin(), args.end());
+    std::wstring currDirW = currDir.wstring();
 
-    if (!ShellExecuteEx(&shExecInfo)) {
-        LOG_WARNING("Launcher", "Failed to run: " + executable);
-    } else {
-        if (wait) {
-            WaitForSingleObject(shExecInfo.hProcess, INFINITE);
+    DWORD launcherProcessId = GetCurrentProcessId();
+
+    // Lambda function to check if a window is fullscreen
+    auto isFullscreenWindow = [](HWND hwnd) -> bool {
+        RECT appBounds;
+        if (!GetWindowRect(hwnd, &appBounds))
+            return false;
+
+        // Get the monitor that the window is on
+        HMONITOR hMonitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
+        if (hMonitor == nullptr)
+            return false;
+
+        MONITORINFO monitorInfo;
+        monitorInfo.cbSize = sizeof(MONITORINFO);
+        if (!GetMonitorInfo(hMonitor, &monitorInfo))
+            return false;
+
+        // Check if the window occupies the entire monitor's work area
+        return (appBounds.bottom - appBounds.top) == (monitorInfo.rcMonitor.bottom - monitorInfo.rcMonitor.top)
+            && (appBounds.right - appBounds.left) == (monitorInfo.rcMonitor.right - monitorInfo.rcMonitor.left);
+        };
+
+    std::wstring executionStringW = exePathW + L" " + argsW;
+    PWSTR pszApplication = nullptr;
+    PWSTR pszCommandLine = nullptr;
+
+    HRESULT hr = SHEvaluateSystemCommandTemplate(executionStringW.c_str(), &pszApplication, &pszCommandLine, nullptr);
+    if (FAILED(hr)) {
+        LOG_ERROR("Launcher", "Invalid execution string error: " + std::to_string(hr));
+        return false;
+    }
+
+    LOG_INFO("Launcher", "Launching: " + Utils::wstringToString(executionStringW));
+
+    if (exePath.extension() == L".exe") {
+        // Use CreateProcessW for the evaluated command
+        STARTUPINFOW startupInfo;
+        PROCESS_INFORMATION processInfo;
+        memset(&startupInfo, 0, sizeof(startupInfo));
+        memset(&processInfo, 0, sizeof(processInfo));
+        startupInfo.cb = sizeof(startupInfo);
+        startupInfo.dwFlags = STARTF_USESHOWWINDOW;
+        startupInfo.hStdError = GetStdHandle(STD_ERROR_HANDLE);
+        startupInfo.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
+        startupInfo.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
+        startupInfo.wShowWindow = SW_SHOWDEFAULT;
+
+        if (!CreateProcessW(pszApplication, pszCommandLine, nullptr, nullptr, FALSE, CREATE_NO_WINDOW, nullptr, currDirW.c_str(), &startupInfo, &processInfo)) {
+            LOG_WARNING("Launcher", "Failed to run: " + executable + " with error code: " + std::to_string(GetLastError()));
+        } else {
+            HANDLE hLaunchedProcess = processInfo.hProcess;
+
+            // Lower priority
+            SetPriorityClass(GetCurrentProcess(), BELOW_NORMAL_PRIORITY_CLASS);
+
+            if (wait) {
+                while (WAIT_OBJECT_0 != MsgWaitForMultipleObjects(1, &hLaunchedProcess, FALSE, INFINITE, QS_ALLINPUT)) {
+                    MSG msg;
+                    while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
+                        DispatchMessage(&msg);
+                    }
+                }
+            }
+
+            // Resume priority
+            bool highPriority = false;
+            config_.getProperty("OPTION_HIGHPRIORITY", highPriority);
+            if (highPriority) {
+                SetPriorityClass(GetCurrentProcess(), ABOVE_NORMAL_PRIORITY_CLASS);
+            } else {
+                SetPriorityClass(GetCurrentProcess(), NORMAL_PRIORITY_CLASS);
+            }
+
+            CloseHandle(hLaunchedProcess);
+            CloseHandle(processInfo.hThread);
+            retVal = true;
         }
 
-        CloseHandle(shExecInfo.hProcess);
-        retVal = true;
-}
+    } else {
+        // Use ShellExecuteEx for other types like .lnk or .url
+        SHELLEXECUTEINFOW shExInfo = {0};
+        shExInfo.cbSize = sizeof(SHELLEXECUTEINFOW);
+        shExInfo.fMask = SEE_MASK_NOCLOSEPROCESS;
+        shExInfo.hwnd = nullptr;
+        shExInfo.lpVerb = L"open";
+        shExInfo.lpFile = pszApplication;
+        shExInfo.lpParameters = pszCommandLine;
+        shExInfo.lpDirectory = currDirW.c_str();
+        shExInfo.nShow = SW_SHOWDEFAULT;
+        shExInfo.hInstApp = nullptr;
+
+        if (!ShellExecuteExW(&shExInfo)) {
+            LOG_WARNING("Launcher", "ShellExecuteEx failed to run: " + executable + " with error code: " + std::to_string(GetLastError()));
+        } else {
+            HANDLE hLaunchedProcess = shExInfo.hProcess;
+
+            if (hLaunchedProcess) {
+                // If a valid handle is returned, simply wait for the process to exit
+                while (WAIT_OBJECT_0 != MsgWaitForMultipleObjects(1, &hLaunchedProcess, FALSE, INFINITE, QS_ALLINPUT)) {
+                    MSG msg;
+                    while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
+                        DispatchMessage(&msg);
+                    }
+                }
+            } else {
+                // If no valid handle is returned, proceed with fullscreen check
+                // Lower priority
+                SetPriorityClass(GetCurrentProcess(), BELOW_NORMAL_PRIORITY_CLASS);
+
+                auto start = std::chrono::high_resolution_clock::now();
+                bool timeoutOccurred = false;
+                HWND hwndFullscreen = nullptr;
+
+                // Wait for the fullscreen window to be found or timeout
+                while (true) {
+                    HWND hwnd = GetForegroundWindow();
+                    if (hwnd != nullptr) {
+                        DWORD windowProcessId;
+                        GetWindowThreadProcessId(hwnd, &windowProcessId);
+                        if (windowProcessId != launcherProcessId && isFullscreenWindow(hwnd)) {
+                            hwndFullscreen = hwnd;
+                            break;
+                        }
+                    }
+
+                    auto now = std::chrono::high_resolution_clock::now();
+                    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - start).count();
+
+                    if (elapsed > 40000) { // 40 seconds timeout
+                        LOG_WARNING("Launcher", "Timeout while waiting for fullscreen state.");
+                        timeoutOccurred = true;
+                        break;
+                    }
+
+                    Sleep(500); // Polling interval
+                }
+
+                if (!timeoutOccurred && hwndFullscreen) {
+                    // If a fullscreen window was found, wait for the associated process to exit
+                    DWORD gameProcessId;
+                    GetWindowThreadProcessId(hwndFullscreen, &gameProcessId);
+                    HANDLE hGameProcess = OpenProcess(SYNCHRONIZE, FALSE, gameProcessId);
+                    if (hGameProcess) {
+                        WaitForSingleObject(hGameProcess, INFINITE);
+                        CloseHandle(hGameProcess);
+                    }
+                }
+            }
+
+            // Resume priority
+            bool highPriority = false;
+            config_.getProperty("OPTION_HIGHPRIORITY", highPriority);
+            if (highPriority) {
+                SetPriorityClass(GetCurrentProcess(), ABOVE_NORMAL_PRIORITY_CLASS);
+            } else {
+                SetPriorityClass(GetCurrentProcess(), NORMAL_PRIORITY_CLASS);
+            }
+
+            if (hLaunchedProcess) {
+                CloseHandle(hLaunchedProcess);
+            }
+            retVal = true;
+        }
+    }
+
+    // Free memory allocated by SHEvaluateSystemCommandTemplate
+    if (pszApplication) {
+        CoTaskMemFree(pszApplication);
+    }
+    if (pszCommandLine) {
+        CoTaskMemFree(pszCommandLine);
+    }
+
 #else
     const std::size_t last_slash_idx = executable.rfind(Utils::pathSeparator);
     if (last_slash_idx != std::string::npos) {
         std::string applicationName = executable.substr(last_slash_idx + 1);
         executionString = "cd \"" + currentDirectory + "\" && exec \"./" + applicationName + "\" " + args;
     }
-
-    LOG_DEBUG("LauncherDebug", "Non-Windows-specific execution:");
-    LOG_DEBUG("LauncherDebug", "Execution String: " + executionString);
-
     if (system(executionString.c_str()) != 0) {
         LOG_WARNING("Launcher", "Failed to run: " + executable);
     } else {
@@ -352,7 +496,9 @@ bool Launcher::execute(std::string executable, std::string args, std::string cur
     return retVal;
 }
 
-void Launcher::keepRendering(std::atomic<bool> &stop_thread, Page &currentPage)
+
+
+void Launcher::keepRendering(std::atomic<bool> &stop_thread, Page &currentPage) const
 {
     float lastTime = 0;
     float currentTime = 0;
@@ -455,8 +601,8 @@ bool Launcher::launcherArgs(std::string& args, std::string launcherName) {
             // Finally, try with the global launcher prefix
             argsKey = "launchers." + launcherName + ".arguments";
             if (!config_.getProperty(argsKey, args)) {
-                LOG_ERROR("Launcher", "No arguments specified for: " + argsKey);
-                return false;
+                LOG_WARNING("Launcher", "No arguments specified for: " + argsKey);
+                args.clear(); // Ensure args is empty if not found
             }
         }
     }
