@@ -1541,7 +1541,7 @@ void Page::scroll(bool forward, bool playlist) {
         // Asynchronous version
         auto scrollFuture = pool_.enqueue([this, forward, playlist]() {
             for (auto& menu : activeMenu_) {
-                if (menu && (playlist && menu->isPlaylist() || !playlist && !menu->isPlaylist())) {
+                if (menu && ((playlist && menu->isPlaylist()) || (!playlist && !menu->isPlaylist()))) {
                     menu->scroll(forward);
                 }
             }
@@ -1559,7 +1559,7 @@ void Page::scroll(bool forward, bool playlist) {
     else {
         // Synchronous version
         for (auto& menu : activeMenu_) {
-            if (menu && (playlist && menu->isPlaylist() || !playlist && !menu->isPlaylist())) {
+            if (menu && ((playlist && menu->isPlaylist()) || (!playlist && !menu->isPlaylist()))) {
                 menu->scroll(forward);
             }
         }

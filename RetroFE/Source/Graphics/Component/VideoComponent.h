@@ -56,7 +56,6 @@ private:
   std::string videoFile_;
   bool isPlaying_ = false;
   bool hasBeenOnScreen_ = false;
-  bool textureInitialized_ = false;
   int numLoops_;
   int monitor_;
   Page *currentPage_;
