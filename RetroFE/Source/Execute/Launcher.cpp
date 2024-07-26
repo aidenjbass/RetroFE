@@ -334,6 +334,9 @@ bool Launcher::execute(std::string executable, std::string args, std::string cur
 
     LOG_INFO("Launcher", "Launching: " + Utils::wstringToString(executionStringW));
 
+    // Lower priority before launching the process
+    SetPriorityClass(GetCurrentProcess(), BELOW_NORMAL_PRIORITY_CLASS);
+
     if (exePath.extension() == L".exe") {
         // Use CreateProcessW for the evaluated command
         STARTUPINFOW startupInfo;
@@ -352,9 +355,6 @@ bool Launcher::execute(std::string executable, std::string args, std::string cur
         } else {
             HANDLE hLaunchedProcess = processInfo.hProcess;
 
-            // Lower priority
-            SetPriorityClass(GetCurrentProcess(), BELOW_NORMAL_PRIORITY_CLASS);
-
             if (wait) {
                 while (WAIT_OBJECT_0 != MsgWaitForMultipleObjects(1, &hLaunchedProcess, FALSE, INFINITE, QS_ALLINPUT)) {
                     MSG msg;
@@ -362,15 +362,6 @@ bool Launcher::execute(std::string executable, std::string args, std::string cur
                         DispatchMessage(&msg);
                     }
                 }
-            }
-
-            // Resume priority
-            bool highPriority = false;
-            config_.getProperty("OPTION_HIGHPRIORITY", highPriority);
-            if (highPriority) {
-                SetPriorityClass(GetCurrentProcess(), ABOVE_NORMAL_PRIORITY_CLASS);
-            } else {
-                SetPriorityClass(GetCurrentProcess(), NORMAL_PRIORITY_CLASS);
             }
 
             CloseHandle(hLaunchedProcess);
@@ -396,66 +387,61 @@ bool Launcher::execute(std::string executable, std::string args, std::string cur
         } else {
             HANDLE hLaunchedProcess = shExInfo.hProcess;
 
-            if (hLaunchedProcess) {
-                // If a valid handle is returned, simply wait for the process to exit
-                while (WAIT_OBJECT_0 != MsgWaitForMultipleObjects(1, &hLaunchedProcess, FALSE, INFINITE, QS_ALLINPUT)) {
-                    MSG msg;
-                    while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
-                        DispatchMessage(&msg);
-                    }
-                }
-            } else {
-                // If no valid handle is returned, proceed with fullscreen check
-                // Lower priority
-                SetPriorityClass(GetCurrentProcess(), BELOW_NORMAL_PRIORITY_CLASS);
-
-                auto start = std::chrono::high_resolution_clock::now();
-                bool timeoutOccurred = false;
-                HWND hwndFullscreen = nullptr;
-
-                // Wait for the fullscreen window to be found or timeout
-                while (true) {
-                    HWND hwnd = GetForegroundWindow();
-                    if (hwnd != nullptr) {
-                        DWORD windowProcessId;
-                        GetWindowThreadProcessId(hwnd, &windowProcessId);
-                        if (windowProcessId != launcherProcessId && isFullscreenWindow(hwnd)) {
-                            hwndFullscreen = hwnd;
-                            break;
+            if (wait) {
+                if (hLaunchedProcess) {
+                    // If a valid handle is returned, simply wait for the process to exit
+                    while (WAIT_OBJECT_0 != MsgWaitForMultipleObjects(1, &hLaunchedProcess, FALSE, INFINITE, QS_ALLINPUT)) {
+                        MSG msg;
+                        while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
+                            DispatchMessage(&msg);
                         }
                     }
+                } else {
+                    // If no valid handle is returned, proceed with fullscreen check
+                    auto start = std::chrono::high_resolution_clock::now();
+                    bool timeoutOccurred = false;
+                    HWND hwndFullscreen = nullptr;
 
-                    auto now = std::chrono::high_resolution_clock::now();
-                    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - start).count();
+                    // Wait for the fullscreen window to be found or timeout
+                    while (true) {
+                        HWND hwnd = GetForegroundWindow();
+                        if (hwnd != nullptr) {
+                            DWORD windowProcessId;
+                            GetWindowThreadProcessId(hwnd, &windowProcessId);
+                            if (windowProcessId != launcherProcessId && isFullscreenWindow(hwnd)) {
+                                hwndFullscreen = hwnd;
+                                break;
+                            }
+                        }
 
-                    if (elapsed > 40000) { // 40 seconds timeout
-                        LOG_WARNING("Launcher", "Timeout while waiting for fullscreen state.");
-                        timeoutOccurred = true;
-                        break;
+                        auto now = std::chrono::high_resolution_clock::now();
+                        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - start).count();
+
+                        if (elapsed > 40000) { // 40 seconds timeout
+                            LOG_WARNING("Launcher", "Timeout while waiting for fullscreen state.");
+                            timeoutOccurred = true;
+                            break;
+                        }
+
+                        Sleep(500); // Polling interval
                     }
 
-                    Sleep(500); // Polling interval
-                }
-
-                if (!timeoutOccurred && hwndFullscreen) {
-                    // If a fullscreen window was found, wait for the associated process to exit
-                    DWORD gameProcessId;
-                    GetWindowThreadProcessId(hwndFullscreen, &gameProcessId);
-                    HANDLE hGameProcess = OpenProcess(SYNCHRONIZE, FALSE, gameProcessId);
-                    if (hGameProcess) {
-                        WaitForSingleObject(hGameProcess, INFINITE);
-                        CloseHandle(hGameProcess);
+                    if (!timeoutOccurred && hwndFullscreen) {
+                        // If a fullscreen window was found, wait for the associated process to exit
+                        DWORD gameProcessId;
+                        GetWindowThreadProcessId(hwndFullscreen, &gameProcessId);
+                        HANDLE hGameProcess = OpenProcess(SYNCHRONIZE, FALSE, gameProcessId);
+                        if (hGameProcess) {
+                            while (WAIT_OBJECT_0 != MsgWaitForMultipleObjects(1, &hGameProcess, FALSE, INFINITE, QS_ALLINPUT)) {
+                                MSG msg;
+                                while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
+                                    DispatchMessage(&msg);
+                                }
+                            }
+                            CloseHandle(hGameProcess);
+                        }
                     }
                 }
-            }
-
-            // Resume priority
-            bool highPriority = false;
-            config_.getProperty("OPTION_HIGHPRIORITY", highPriority);
-            if (highPriority) {
-                SetPriorityClass(GetCurrentProcess(), ABOVE_NORMAL_PRIORITY_CLASS);
-            } else {
-                SetPriorityClass(GetCurrentProcess(), NORMAL_PRIORITY_CLASS);
             }
 
             if (hLaunchedProcess) {
@@ -463,6 +449,15 @@ bool Launcher::execute(std::string executable, std::string args, std::string cur
             }
             retVal = true;
         }
+    }
+
+    // Resume priority
+    bool highPriority = false;
+    config_.getProperty("OPTION_HIGHPRIORITY", highPriority);
+    if (highPriority) {
+        SetPriorityClass(GetCurrentProcess(), ABOVE_NORMAL_PRIORITY_CLASS);
+    } else {
+        SetPriorityClass(GetCurrentProcess(), NORMAL_PRIORITY_CLASS);
     }
 
     // Free memory allocated by SHEvaluateSystemCommandTemplate
