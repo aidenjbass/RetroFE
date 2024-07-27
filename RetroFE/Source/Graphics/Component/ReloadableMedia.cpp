@@ -206,9 +206,6 @@ Component* ReloadableMedia::reloadTexture()
     else if (isVideo_) {
         basename = selectedItem->name;
     }
-    else if (typeLC == "logo") {
-        basename = selectedItem->name;
-    }
     else {
         basename = "default";
     }
@@ -317,9 +314,6 @@ Component* ReloadableMedia::reloadTexture()
                 else {
                     name = std::to_string(static_cast<int>(ceil(static_cast<float>(position) / static_cast<float>(page.getCollectionSize()) * static_cast<float>(numberOfImages_))));
                 }
-            }
-            else if (typeLC == "logo") {
-                basename = selectedItem->name;
             }
 
             if (!selectedItem->leaf) {
