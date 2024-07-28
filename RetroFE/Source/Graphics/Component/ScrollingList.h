@@ -122,6 +122,9 @@ public:
     bool isPlaylist() const;
 private:
 
+    void clearPoints();
+    void clearTweenPoints();
+    
     void resetTweens(Component* c, AnimationEvents* sets, ViewInfo* currentViewInfo, ViewInfo* nextViewInfo, double scrollTime) const;
     inline size_t loopIncrement(size_t offset, size_t index, size_t size) const;
     inline size_t loopDecrement(size_t offset, size_t index, size_t size) const;
