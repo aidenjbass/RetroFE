@@ -31,7 +31,7 @@ public:
     void Push(std::shared_ptr<TweenSet> set);
     void Clear();
     std::vector<TweenSet *> *tweenSets();
-    TweenSet *tweenSet(unsigned int index);
+    std::shared_ptr<TweenSet> tweenSet(unsigned int index);
     size_t size() const;
 private:
     std::vector<std::shared_ptr<TweenSet>> animationVector_;

@@ -247,16 +247,16 @@ bool Component::animate() {
     }
     else {
         bool currentDone = true;
-        TweenSet* tweens = currentTweens_->tweenSet(currentTweenIndex_);
+        std::shared_ptr<TweenSet> tweens = currentTweens_->tweenSet(currentTweenIndex_);
         if (!tweens) return true; // Additional check for safety
 
         std::string playlist;
         bool foundFiltered;
 
         for (unsigned int i = 0; i < tweens->size(); i++) {
-            Tween const* tween = tweens->getTween(i);
+            const Tween* tween = tweens->getTween(i); // Ensure const correctness
 
-            // only animate if filter matches current playlist or in playlist1,playlist2,playlist3
+            // Only animate if filter matches current playlist or in playlist1,playlist2,playlist3
             if (!tween->playlistFilter.empty() && !playlistName.empty()) {
                 foundFiltered = false;
                 std::stringstream ss(tween->playlistFilter);
@@ -266,7 +266,7 @@ bool Component::animate() {
                         break;
                     }
                 }
-                if (!foundFiltered) continue; // didn't find match, skip
+                if (!foundFiltered) continue; // Didn't find match, skip
             }
 
             double elapsedTime = elapsedTweenTime_;

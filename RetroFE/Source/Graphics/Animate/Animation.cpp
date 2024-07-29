@@ -53,9 +53,9 @@ void Animation::Clear() {
     animationVector_.clear();
 }
 
-TweenSet* Animation::tweenSet(unsigned int index) {
+std::shared_ptr<TweenSet> Animation::tweenSet(unsigned int index) {
     if (index < animationVector_.size()) {
-        return animationVector_[index].get(); // Use get() to obtain the raw pointer
+        return animationVector_[index]; // Return the shared pointer directly
     }
     else {
         // Handle the error or return nullptr if the index is out of bounds
