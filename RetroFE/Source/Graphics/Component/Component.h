@@ -85,7 +85,7 @@ private:
     bool tweenSequencingComplete();
 
     AnimationEvents *tweens_;
-    Animation *currentTweens_;
+    std::shared_ptr<Animation> currentTweens_; // Use shared_ptr instead of raw pointer
     SDL_Texture *backgroundTexture_;
     bool         pauseOnScroll_;
     ViewInfo     storeViewInfo_;

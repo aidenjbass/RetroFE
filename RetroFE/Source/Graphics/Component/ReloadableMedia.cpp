@@ -50,6 +50,7 @@ ReloadableMedia::ReloadableMedia(Configuration& config, bool systemMode, bool la
 
 ReloadableMedia::~ReloadableMedia()
 {
+    Component::freeGraphicsMemory();
     if (loadedComponent_ != nullptr) {
         delete loadedComponent_;
         loadedComponent_ = nullptr;

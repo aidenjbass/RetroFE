@@ -42,10 +42,7 @@ ReloadableText::ReloadableText(std::string type, Page &page, Configuration &conf
 
 ReloadableText::~ReloadableText()
 {
-    if (imageInst_ != NULL)
-    {
-        delete imageInst_;
-    }
+    ReloadableText::freeGraphicsMemory();
 }
 
 bool ReloadableText::update(float dt)

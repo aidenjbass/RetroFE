@@ -1465,16 +1465,15 @@ void PageBuilder::buildViewInfo(xml_node<> *componentXml, ViewInfo &info, xml_no
 void PageBuilder::getTweenSet(const xml_node<>* node, Animation* animation) {
     if (node) {
         for (xml_node<>* set = node->first_node("set"); set; set = set->next_sibling("set")) {
-            // Create a unique_ptr to manage the TweenSet instance.
-            auto ts = std::make_unique<TweenSet>();
+            // Create a shared_ptr to manage the TweenSet instance.
+            auto ts = std::make_shared<TweenSet>();
             getAnimationEvents(set, *ts);
 
-            // Use std::move to transfer ownership of the unique_ptr to the Animation instance.
-            animation->Push(std::move(ts));
+            // Use the shared_ptr to transfer ownership of the TweenSet instance to the Animation instance.
+            animation->Push(ts);
         }
     }
 }
-
 void PageBuilder::getAnimationEvents(const xml_node<> *node, TweenSet &tweens)
 {
     xml_attribute<> const *durationXml = node->first_attribute("duration");

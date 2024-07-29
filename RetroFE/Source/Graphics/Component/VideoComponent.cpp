@@ -119,9 +119,9 @@ void VideoComponent::allocateGraphicsMemory()
 
 void VideoComponent::freeGraphicsMemory()
 {
+	Component::freeGraphicsMemory();
 	if (videoInst_)
 	{
-		Component::freeGraphicsMemory();
 		videoInst_.reset(); // Reset the unique_ptr, which deletes the managed object
 		isPlaying_ = false;
 		if (Logger::isLevelEnabled("DEBUG"))

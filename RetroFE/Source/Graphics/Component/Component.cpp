@@ -45,8 +45,7 @@ Component::Component(Page &p)
 
 Component::~Component() = default;
 
-void Component::freeGraphicsMemory()
-{
+void Component::freeGraphicsMemory() {
     animationRequestedType_ = "";
     animationType_ = "";
     animationRequested_ = false;
@@ -54,20 +53,19 @@ void Component::freeGraphicsMemory()
     newScrollItemSelected = false;
     menuIndex_ = -1;
 
-    currentTweens_ = nullptr;
+    // Reset the shared_ptr to release the memory
+    currentTweens_.reset();
     currentTweenIndex_ = 0;
     currentTweenComplete_ = true;
     elapsedTweenTime_ = 0;
 
-    if (backgroundTexture_)
-    {
+    if (backgroundTexture_) {
         SDL_LockMutex(SDL::getMutex());
         SDL_DestroyTexture(backgroundTexture_);
         SDL_UnlockMutex(SDL::getMutex());
-        
+
         backgroundTexture_ = nullptr;
     }
- 
 }
 
 // used to draw lines in the layout using <container>
@@ -159,13 +157,10 @@ std::string_view Component::filePath()
     return "";
 }
 
-bool Component::update(float dt)
-{
+bool Component::update(float dt) {
     elapsedTweenTime_ += dt;
-
     if (animationRequested_ && animationRequestedType_ != "") {
         std::shared_ptr<Animation> newTweens;
-
         if (menuIndex_ >= MENU_INDEX_HIGH) {
             newTweens = tweens_->getAnimation(animationRequestedType_, MENU_INDEX_HIGH);
             if (!(newTweens && newTweens->size() > 0)) {
@@ -175,34 +170,25 @@ bool Component::update(float dt)
         else {
             newTweens = tweens_->getAnimation(animationRequestedType_, menuIndex_);
         }
-
         if (newTweens && newTweens->size() > 0) {
             animationType_ = animationRequestedType_;
-            currentTweens_ = newTweens.get(); // Assign raw pointer
+            // Assign the new Animation
+            currentTweens_ = newTweens;
             currentTweenIndex_ = 0;
             elapsedTweenTime_ = 0;
             storeViewInfo_ = baseViewInfo;
             currentTweenComplete_ = false;
         }
-
         animationRequested_ = false;
     }
 
     if (tweens_ && currentTweenComplete_) {
         animationType_ = "idle";
-        std::shared_ptr<Animation> idleTweens = tweens_->getAnimation("idle", menuIndex_);
-
+        auto idleTweens = tweens_->getAnimation("idle", menuIndex_);
         if (idleTweens && idleTweens->size() == 0 && !page.isMenuScrolling()) {
             idleTweens = tweens_->getAnimation("menuIdle", menuIndex_);
         }
-
-        if (idleTweens && idleTweens->size() > 0) {
-            currentTweens_ = idleTweens.get(); // Assign raw pointer
-        }
-        else {
-            currentTweens_ = nullptr; // Ensure currentTweens_ is reset if no valid animation is found
-        }
-
+        currentTweens_ = idleTweens;
         currentTweenIndex_ = 0;
         elapsedTweenTime_ = 0;
         storeViewInfo_ = baseViewInfo;
@@ -211,9 +197,8 @@ bool Component::update(float dt)
     }
 
     currentTweenComplete_ = animate();
-
     if (currentTweenComplete_) {
-        currentTweens_ = nullptr;
+        currentTweens_.reset();
         currentTweenIndex_ = 0;
     }
 
@@ -247,7 +232,7 @@ bool Component::animate() {
     }
     else {
         bool currentDone = true;
-        std::shared_ptr<TweenSet> tweens = currentTweens_->tweenSet(currentTweenIndex_);
+        auto tweens = currentTweens_->tweenSet(currentTweenIndex_);
         if (!tweens) return true; // Additional check for safety
 
         std::string playlist;
@@ -256,7 +241,6 @@ bool Component::animate() {
         for (unsigned int i = 0; i < tweens->size(); i++) {
             const Tween* tween = tweens->getTween(i); // Ensure const correctness
 
-            // Only animate if filter matches current playlist or in playlist1,playlist2,playlist3
             if (!tween->playlistFilter.empty() && !playlistName.empty()) {
                 foundFiltered = false;
                 std::stringstream ss(tween->playlistFilter);
@@ -266,7 +250,7 @@ bool Component::animate() {
                         break;
                     }
                 }
-                if (!foundFiltered) continue; // Didn't find match, skip
+                if (!foundFiltered) continue;
             }
 
             double elapsedTime = elapsedTweenTime_;
@@ -379,48 +363,6 @@ bool Component::animate() {
                     baseViewInfo.Layer = static_cast<unsigned int>(tween->animate(elapsedTime));
                 else
                     baseViewInfo.Layer = static_cast<unsigned int>(tween->animate(elapsedTime, storeViewInfo_.Layer));
-                break;
-
-            case TWEEN_PROPERTY_CONTAINER_X:
-                if (tween->startDefined)
-                    baseViewInfo.ContainerX = tween->animate(elapsedTime);
-                else
-                    baseViewInfo.ContainerX = tween->animate(elapsedTime, storeViewInfo_.ContainerX);
-                break;
-
-            case TWEEN_PROPERTY_CONTAINER_Y:
-                if (tween->startDefined)
-                    baseViewInfo.ContainerY = tween->animate(elapsedTime);
-                else
-                    baseViewInfo.ContainerY = tween->animate(elapsedTime, storeViewInfo_.ContainerY);
-                break;
-
-            case TWEEN_PROPERTY_CONTAINER_WIDTH:
-                if (tween->startDefined)
-                    baseViewInfo.ContainerWidth = tween->animate(elapsedTime);
-                else
-                    baseViewInfo.ContainerWidth = tween->animate(elapsedTime, storeViewInfo_.ContainerWidth);
-                break;
-
-            case TWEEN_PROPERTY_CONTAINER_HEIGHT:
-                if (tween->startDefined)
-                    baseViewInfo.ContainerHeight = tween->animate(elapsedTime);
-                else
-                    baseViewInfo.ContainerHeight = tween->animate(elapsedTime, storeViewInfo_.ContainerHeight);
-                break;
-
-            case TWEEN_PROPERTY_VOLUME:
-                if (tween->startDefined)
-                    baseViewInfo.Volume = tween->animate(elapsedTime);
-                else
-                    baseViewInfo.Volume = tween->animate(elapsedTime, storeViewInfo_.Volume);
-                break;
-
-            case TWEEN_PROPERTY_MONITOR:
-                if (tween->startDefined)
-                    baseViewInfo.Monitor = static_cast<unsigned int>(tween->animate(elapsedTime));
-                else
-                    baseViewInfo.Monitor = static_cast<unsigned int>(tween->animate(elapsedTime, storeViewInfo_.Monitor));
                 break;
 
             case TWEEN_PROPERTY_NOP:
