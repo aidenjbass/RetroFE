@@ -993,61 +993,60 @@ AnimationEvents *PageBuilder::createTweenInstance(rapidxml::xml_node<> *componen
     return tweens;
 }
 
-void PageBuilder::buildTweenSet(AnimationEvents *tweens, xml_node<> *componentXml, const std::string& tagName, const std::string& tweenName)
-{
-    for(componentXml = componentXml->first_node(tagName.c_str()); componentXml; componentXml = componentXml->next_sibling(tagName.c_str())) {
-        xml_attribute<> const *indexXml = componentXml->first_attribute("menuIndex");
+void PageBuilder::buildTweenSet(AnimationEvents* tweens, xml_node<>* componentXml, const std::string& tagName, const std::string& tweenName) {
+    for (componentXml = componentXml->first_node(tagName.c_str()); componentXml; componentXml = componentXml->next_sibling(tagName.c_str())) {
+        xml_attribute<> const* indexXml = componentXml->first_attribute("menuIndex");
 
-        if(indexXml) {
+        if (indexXml) {
             std::string indexs = indexXml->value();
-            if(indexs[0] == '!') {
-                indexs.erase(0,1);
+            if (indexs[0] == '!') {
+                indexs.erase(0, 1);
                 int index = Utils::convertInt(indexs);
-                for(int i = 0; i < MENU_INDEX_HIGH-1; i++) {
-                    if(i != index) {
-                        auto *animation = new Animation();
-                        getTweenSet(componentXml, animation);
+                for (int i = 0; i < MENU_INDEX_HIGH - 1; i++) {
+                    if (i != index) {
+                        auto animation = std::make_shared<Animation>();
+                        getTweenSet(componentXml, animation.get());
                         tweens->setAnimation(tweenName, i, animation);
                     }
                 }
             }
-            else if(indexs[0] == '<') {
-                indexs.erase(0,1);
+            else if (indexs[0] == '<') {
+                indexs.erase(0, 1);
                 int index = Utils::convertInt(indexs);
-                for(int i = 0; i < MENU_INDEX_HIGH-1; i++) {
-                    if(i < index) {
-                        auto *animation = new Animation();
-                        getTweenSet(componentXml, animation);
+                for (int i = 0; i < MENU_INDEX_HIGH - 1; i++) {
+                    if (i < index) {
+                        auto animation = std::make_shared<Animation>();
+                        getTweenSet(componentXml, animation.get());
                         tweens->setAnimation(tweenName, i, animation);
                     }
                 }
             }
-            else if(indexs[0] == '>') {
-                indexs.erase(0,1);
+            else if (indexs[0] == '>') {
+                indexs.erase(0, 1);
                 int index = Utils::convertInt(indexs);
-                for(int i = 0; i < MENU_INDEX_HIGH-1; i++) {
-                    if(i > index) {
-                        auto *animation = new Animation();
-                        getTweenSet(componentXml, animation);
+                for (int i = 0; i < MENU_INDEX_HIGH - 1; i++) {
+                    if (i > index) {
+                        auto animation = std::make_shared<Animation>();
+                        getTweenSet(componentXml, animation.get());
                         tweens->setAnimation(tweenName, i, animation);
                     }
                 }
             }
-            else if(indexs[0] == 'i') {
-                auto *animation = new Animation();
-                getTweenSet(componentXml, animation);
+            else if (indexs[0] == 'i') {
+                auto animation = std::make_shared<Animation>();
+                getTweenSet(componentXml, animation.get());
                 tweens->setAnimation(tweenName, MENU_INDEX_HIGH, animation);
             }
             else {
                 int index = Utils::convertInt(indexXml->value());
-                auto *animation = new Animation();
-                getTweenSet(componentXml, animation);
+                auto animation = std::make_shared<Animation>();
+                getTweenSet(componentXml, animation.get());
                 tweens->setAnimation(tweenName, index, animation);
             }
         }
         else {
-            auto *animation = new Animation();
-            getTweenSet(componentXml, animation);
+            auto animation = std::make_shared<Animation>();
+            getTweenSet(componentXml, animation.get());
             tweens->setAnimation(tweenName, -1, animation);
         }
     }
