@@ -162,40 +162,47 @@ std::string_view Component::filePath()
 bool Component::update(float dt)
 {
     elapsedTweenTime_ += dt;
+
     if (animationRequested_ && animationRequestedType_ != "") {
-        Animation* newTweens;
-        // Check if this component is part of an active scrolling list
+        std::shared_ptr<Animation> newTweens;
+
         if (menuIndex_ >= MENU_INDEX_HIGH) {
-            // Check for animation at index i
             newTweens = tweens_->getAnimation(animationRequestedType_, MENU_INDEX_HIGH);
             if (!(newTweens && newTweens->size() > 0)) {
-                // Check for animation at the current menuIndex
                 newTweens = tweens_->getAnimation(animationRequestedType_, menuIndex_ - MENU_INDEX_HIGH);
             }
         }
         else {
-            // Check for animation at the current menuIndex
             newTweens = tweens_->getAnimation(animationRequestedType_, menuIndex_);
         }
+
         if (newTweens && newTweens->size() > 0) {
-            //todo delete old tweens?
             animationType_ = animationRequestedType_;
-            currentTweens_ = newTweens;
+            currentTweens_ = newTweens.get(); // Assign raw pointer
             currentTweenIndex_ = 0;
             elapsedTweenTime_ = 0;
             storeViewInfo_ = baseViewInfo;
             currentTweenComplete_ = false;
         }
+
         animationRequested_ = false;
     }
 
     if (tweens_ && currentTweenComplete_) {
         animationType_ = "idle";
-        currentTweens_ = tweens_->getAnimation("idle", menuIndex_);
-        if (currentTweens_ && currentTweens_->size() == 0 && !page.isMenuScrolling())
-        {
-            currentTweens_ = tweens_->getAnimation("menuIdle", menuIndex_);
+        std::shared_ptr<Animation> idleTweens = tweens_->getAnimation("idle", menuIndex_);
+
+        if (idleTweens && idleTweens->size() == 0 && !page.isMenuScrolling()) {
+            idleTweens = tweens_->getAnimation("menuIdle", menuIndex_);
         }
+
+        if (idleTweens && idleTweens->size() > 0) {
+            currentTweens_ = idleTweens.get(); // Assign raw pointer
+        }
+        else {
+            currentTweens_ = nullptr; // Ensure currentTweens_ is reset if no valid animation is found
+        }
+
         currentTweenIndex_ = 0;
         elapsedTweenTime_ = 0;
         storeViewInfo_ = baseViewInfo;
@@ -204,9 +211,10 @@ bool Component::update(float dt)
     }
 
     currentTweenComplete_ = animate();
-    if ( currentTweenComplete_ ) {
-      currentTweens_     = nullptr;
-      currentTweenIndex_ = 0;
+
+    if (currentTweenComplete_) {
+        currentTweens_ = nullptr;
+        currentTweenIndex_ = 0;
     }
 
     return currentTweenComplete_;

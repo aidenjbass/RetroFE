@@ -673,7 +673,7 @@ void ScrollingList::resetTweens(Component* c, AnimationEvents* sets, ViewInfo* c
 
     c->setTweens(sets);
 
-    Animation* scrollTween = sets->getAnimation("menuScroll");
+    std::shared_ptr<Animation> scrollTween = sets->getAnimation("menuScroll");
     scrollTween->Clear();
     c->baseViewInfo = *currentViewInfo;
 

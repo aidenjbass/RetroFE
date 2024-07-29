@@ -27,8 +27,8 @@ public:
     AnimationEvents();
     ~AnimationEvents();
 
-    Animation* getAnimation(const std::string& tween);
-    Animation* getAnimation(const std::string& tween, int index);
+    std::shared_ptr<Animation> getAnimation(const std::string& tween);
+    std::shared_ptr<Animation> getAnimation(const std::string& tween, int index);
     void setAnimation(const std::string& tween, int index, std::shared_ptr<Animation> animation);
     void clear();
 
