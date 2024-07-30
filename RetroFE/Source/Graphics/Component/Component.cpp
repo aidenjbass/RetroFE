@@ -35,7 +35,6 @@ Component::Component(Page &p)
     newScrollItemSelected = false;
     menuIndex_ = -1;
 
-    currentTweens_ = nullptr;
     currentTweenIndex_ = 0;
     currentTweenComplete_ = true;
     elapsedTweenTime_ = 0;
@@ -147,9 +146,8 @@ bool Component::isPlaylistScrolling() const
     return (!currentTweenComplete_ && animationType_ == "playlistScroll");
 }
 
-void Component::setTweens(AnimationEvents *set)
-{
-    tweens_ = set;
+void Component::setTweens(std::shared_ptr<AnimationEvents> set) {
+    tweens_ = std::move(set);
 }
 
 std::string_view Component::filePath()
@@ -159,8 +157,8 @@ std::string_view Component::filePath()
 
 bool Component::update(float dt) {
     elapsedTweenTime_ += dt;
-    if (animationRequested_ && animationRequestedType_ != "") {
-        std::shared_ptr<Animation> newTweens;
+    if (animationRequested_ && animationRequestedType_ != "" && !tweens_->getAnimationMap().empty()) {
+        std::shared_ptr<Animation> newTweens = nullptr;
         if (menuIndex_ >= MENU_INDEX_HIGH) {
             newTweens = tweens_->getAnimation(animationRequestedType_, MENU_INDEX_HIGH);
             if (!(newTweens && newTweens->size() > 0)) {
@@ -170,10 +168,14 @@ bool Component::update(float dt) {
         else {
             newTweens = tweens_->getAnimation(animationRequestedType_, menuIndex_);
         }
+
+        if (newTweens && newTweens->size() == 0) {
+            newTweens.reset();
+        }
+
         if (newTweens && newTweens->size() > 0) {
             animationType_ = animationRequestedType_;
-            // Assign the new Animation
-            currentTweens_ = newTweens;
+            currentTweens_ = newTweens;  // Assign to weak_ptr
             currentTweenIndex_ = 0;
             elapsedTweenTime_ = 0;
             storeViewInfo_ = baseViewInfo;
@@ -188,7 +190,7 @@ bool Component::update(float dt) {
         if (idleTweens && idleTweens->size() == 0 && !page.isMenuScrolling()) {
             idleTweens = tweens_->getAnimation("menuIdle", menuIndex_);
         }
-        currentTweens_ = idleTweens;
+        currentTweens_ = idleTweens;  // Assign to weak_ptr
         currentTweenIndex_ = 0;
         elapsedTweenTime_ = 0;
         storeViewInfo_ = baseViewInfo;
@@ -196,10 +198,17 @@ bool Component::update(float dt) {
         animationRequested_ = false;
     }
 
-    currentTweenComplete_ = animate();
-    if (currentTweenComplete_) {
-        currentTweens_.reset();
-        currentTweenIndex_ = 0;
+    // Lock weak_ptr before using
+    std::shared_ptr<Animation> lockedTweens = currentTweens_.lock();
+    if (lockedTweens) {
+        currentTweenComplete_ = animate();
+        if (currentTweenComplete_) {
+            currentTweens_.reset();
+            currentTweenIndex_ = 0;
+        }
+    }
+    else {
+        currentTweenComplete_ = true;
     }
 
     return currentTweenComplete_;
@@ -227,12 +236,14 @@ void Component::draw()
 
 bool Component::animate() {
     bool completeDone = false;
-    if (!currentTweens_ || currentTweenIndex_ >= currentTweens_->size()) {
+    auto sharedTweens = currentTweens_.lock(); // Lock the weak_ptr to get a shared_ptr
+
+    if (!sharedTweens || currentTweenIndex_ >= sharedTweens->size()) {
         completeDone = true;
     }
     else {
         bool currentDone = true;
-        auto tweens = currentTweens_->tweenSet(currentTweenIndex_);
+        auto tweens = sharedTweens->tweenSet(currentTweenIndex_);
         if (!tweens) return true; // Additional check for safety
 
         std::string playlist;
@@ -422,7 +433,7 @@ bool Component::animate() {
         }
     }
 
-    if (!currentTweens_ || currentTweenIndex_ >= currentTweens_->size()) {
+    if (!sharedTweens || currentTweenIndex_ >= sharedTweens->size()) {
         completeDone = true;
     }
 

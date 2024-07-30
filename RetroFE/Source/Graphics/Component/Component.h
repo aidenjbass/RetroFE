@@ -50,7 +50,7 @@ public:
     virtual std::string_view filePath();
     virtual bool update(float dt);
     virtual void draw();
-    void setTweens(AnimationEvents *set);
+    void setTweens(std::shared_ptr<AnimationEvents> set);
     virtual bool isPlaying();
     virtual bool isJukeboxPlaying();
     virtual void skipForward( ) {};
@@ -82,10 +82,9 @@ protected:
 private:
 
     bool animate();
-    bool tweenSequencingComplete();
 
-    AnimationEvents *tweens_;
-    std::shared_ptr<Animation> currentTweens_; // Use shared_ptr instead of raw pointer
+    std::shared_ptr<AnimationEvents> tweens_; // Use shared_ptr for tweens_
+    std::weak_ptr<Animation> currentTweens_; // Use shared_ptr instead of raw pointer
     SDL_Texture *backgroundTexture_;
     bool         pauseOnScroll_;
     ViewInfo     storeViewInfo_;

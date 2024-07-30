@@ -948,50 +948,50 @@ void PageBuilder::loadTweens(Component *c, xml_node<> *componentXml)
     c->setTweens(createTweenInstance(componentXml));
 }
 
-AnimationEvents *PageBuilder::createTweenInstance(rapidxml::xml_node<> *componentXml)
+std::shared_ptr<AnimationEvents> PageBuilder::createTweenInstance(rapidxml::xml_node<>* componentXml)
 {
-    auto *tweens = new AnimationEvents();
+    auto tweens = std::make_shared<AnimationEvents>();
 
-    buildTweenSet(tweens, componentXml, "onEnter",          "enter");
-    buildTweenSet(tweens, componentXml, "onExit",           "exit");
-    buildTweenSet(tweens, componentXml, "onIdle",           "idle");
-    buildTweenSet(tweens, componentXml, "onMenuIdle",       "menuIdle");
-    buildTweenSet(tweens, componentXml, "onMenuScroll",     "menuScroll");
-    buildTweenSet(tweens, componentXml, "onPlaylistScroll", "playlistScroll");
-    buildTweenSet(tweens, componentXml, "onHighlightEnter", "highlightEnter");
-    buildTweenSet(tweens, componentXml, "onHighlightExit",  "highlightExit");
-    buildTweenSet(tweens, componentXml, "onMenuEnter",      "menuEnter");
-    buildTweenSet(tweens, componentXml, "onMenuExit",       "menuExit");
-    buildTweenSet(tweens, componentXml, "onGameEnter",      "gameEnter");
-    buildTweenSet(tweens, componentXml, "onGameExit",       "gameExit");
-    buildTweenSet(tweens, componentXml, "onPlaylistEnter",  "playlistEnter");
-    buildTweenSet(tweens, componentXml, "onPlaylistExit",   "playlistExit");
-    buildTweenSet(tweens, componentXml, "onPlaylistNextEnter", "playlistNextEnter");
-    buildTweenSet(tweens, componentXml, "onPlaylistNextExit", "playlistNextExit");
-    buildTweenSet(tweens, componentXml, "onPlaylistPrevEnter", "playlistPrevEnter");
-    buildTweenSet(tweens, componentXml, "onPlaylistPrevExit", "playlistPrevExit");
-    buildTweenSet(tweens, componentXml, "onMenuJumpEnter",  "menuJumpEnter");
-    buildTweenSet(tweens, componentXml, "onMenuJumpExit",   "menuJumpExit");
-    buildTweenSet(tweens, componentXml, "onAttractEnter",   "attractEnter");
-    buildTweenSet(tweens, componentXml, "onAttract",        "attract");
-    buildTweenSet(tweens, componentXml, "onAttractExit",    "attractExit");
-    buildTweenSet(tweens, componentXml, "onJukeboxJump",    "jukeboxJump");
+    buildTweenSet(tweens.get(), componentXml, "onEnter", "enter");
+    buildTweenSet(tweens.get(), componentXml, "onExit", "exit");
+    buildTweenSet(tweens.get(), componentXml, "onIdle", "idle");
+    buildTweenSet(tweens.get(), componentXml, "onMenuIdle", "menuIdle");
+    buildTweenSet(tweens.get(), componentXml, "onMenuScroll", "menuScroll");
+    buildTweenSet(tweens.get(), componentXml, "onPlaylistScroll", "playlistScroll");
+    buildTweenSet(tweens.get(), componentXml, "onHighlightEnter", "highlightEnter");
+    buildTweenSet(tweens.get(), componentXml, "onHighlightExit", "highlightExit");
+    buildTweenSet(tweens.get(), componentXml, "onMenuEnter", "menuEnter");
+    buildTweenSet(tweens.get(), componentXml, "onMenuExit", "menuExit");
+    buildTweenSet(tweens.get(), componentXml, "onGameEnter", "gameEnter");
+    buildTweenSet(tweens.get(), componentXml, "onGameExit", "gameExit");
+    buildTweenSet(tweens.get(), componentXml, "onPlaylistEnter", "playlistEnter");
+    buildTweenSet(tweens.get(), componentXml, "onPlaylistExit", "playlistExit");
+    buildTweenSet(tweens.get(), componentXml, "onPlaylistNextEnter", "playlistNextEnter");
+    buildTweenSet(tweens.get(), componentXml, "onPlaylistNextExit", "playlistNextExit");
+    buildTweenSet(tweens.get(), componentXml, "onPlaylistPrevEnter", "playlistPrevEnter");
+    buildTweenSet(tweens.get(), componentXml, "onPlaylistPrevExit", "playlistPrevExit");
+    buildTweenSet(tweens.get(), componentXml, "onMenuJumpEnter", "menuJumpEnter");
+    buildTweenSet(tweens.get(), componentXml, "onMenuJumpExit", "menuJumpExit");
+    buildTweenSet(tweens.get(), componentXml, "onAttractEnter", "attractEnter");
+    buildTweenSet(tweens.get(), componentXml, "onAttract", "attract");
+    buildTweenSet(tweens.get(), componentXml, "onAttractExit", "attractExit");
+    buildTweenSet(tweens.get(), componentXml, "onJukeboxJump", "jukeboxJump");
 
+    buildTweenSet(tweens.get(), componentXml, "onGameInfoEnter", "gameInfoEnter");
+    buildTweenSet(tweens.get(), componentXml, "onGameInfoExit", "gameInfoExit");
+    buildTweenSet(tweens.get(), componentXml, "onCollectionInfoEnter", "collectionInfoEnter");
+    buildTweenSet(tweens.get(), componentXml, "onCollectionInfoExit", "collectionInfoExit");
+    buildTweenSet(tweens.get(), componentXml, "onBuildInfoEnter", "buildInfoEnter");
+    buildTweenSet(tweens.get(), componentXml, "onBuildInfoExit", "buildInfoExit");
 
-    buildTweenSet(tweens, componentXml, "onGameInfoEnter", "gameInfoEnter");
-    buildTweenSet(tweens, componentXml, "onGameInfoExit", "gameInfoExit");
-    buildTweenSet(tweens, componentXml, "onCollectionInfoEnter", "collectionInfoEnter");
-    buildTweenSet(tweens, componentXml, "onCollectionInfoExit", "collectionInfoExit");
-    buildTweenSet(tweens, componentXml, "onBuildInfoEnter", "buildInfoEnter");
-    buildTweenSet(tweens, componentXml, "onBuildInfoExit", "buildInfoExit");
-
-    buildTweenSet(tweens, componentXml, "onMenuActionInputEnter",  "menuActionInputEnter");
-    buildTweenSet(tweens, componentXml, "onMenuActionInputExit",   "menuActionInputExit");
-    buildTweenSet(tweens, componentXml, "onMenuActionSelectEnter", "menuActionSelectEnter");
-    buildTweenSet(tweens, componentXml, "onMenuActionSelectExit",  "menuActionSelectExit");
+    buildTweenSet(tweens.get(), componentXml, "onMenuActionInputEnter", "menuActionInputEnter");
+    buildTweenSet(tweens.get(), componentXml, "onMenuActionInputExit", "menuActionInputExit");
+    buildTweenSet(tweens.get(), componentXml, "onMenuActionSelectEnter", "menuActionSelectEnter");
+    buildTweenSet(tweens.get(), componentXml, "onMenuActionSelectExit", "menuActionSelectExit");
 
     return tweens;
 }
+
 
 void PageBuilder::buildTweenSet(AnimationEvents* tweens, xml_node<>* componentXml, const std::string& tagName, const std::string& tweenName) {
     for (componentXml = componentXml->first_node(tagName.c_str()); componentXml; componentXml = componentXml->next_sibling(tagName.c_str())) {
@@ -1006,7 +1006,7 @@ void PageBuilder::buildTweenSet(AnimationEvents* tweens, xml_node<>* componentXm
                     if (i != index) {
                         auto animation = std::make_shared<Animation>();
                         getTweenSet(componentXml, animation.get());
-                        tweens->setAnimation(tweenName, i, animation);
+                        tweens->setAnimation(tweenName, i, std::move(animation));
                     }
                 }
             }
@@ -1017,7 +1017,7 @@ void PageBuilder::buildTweenSet(AnimationEvents* tweens, xml_node<>* componentXm
                     if (i < index) {
                         auto animation = std::make_shared<Animation>();
                         getTweenSet(componentXml, animation.get());
-                        tweens->setAnimation(tweenName, i, animation);
+                        tweens->setAnimation(tweenName, i, std::move(animation));
                     }
                 }
             }
@@ -1028,26 +1028,26 @@ void PageBuilder::buildTweenSet(AnimationEvents* tweens, xml_node<>* componentXm
                     if (i > index) {
                         auto animation = std::make_shared<Animation>();
                         getTweenSet(componentXml, animation.get());
-                        tweens->setAnimation(tweenName, i, animation);
+                        tweens->setAnimation(tweenName, i, std::move(animation));
                     }
                 }
             }
             else if (indexs[0] == 'i') {
                 auto animation = std::make_shared<Animation>();
                 getTweenSet(componentXml, animation.get());
-                tweens->setAnimation(tweenName, MENU_INDEX_HIGH, animation);
+                tweens->setAnimation(tweenName, MENU_INDEX_HIGH, std::move(animation));
             }
             else {
                 int index = Utils::convertInt(indexXml->value());
                 auto animation = std::make_shared<Animation>();
                 getTweenSet(componentXml, animation.get());
-                tweens->setAnimation(tweenName, index, animation);
+                tweens->setAnimation(tweenName, index, std::move(animation));
             }
         }
         else {
             auto animation = std::make_shared<Animation>();
             getTweenSet(componentXml, animation.get());
-            tweens->setAnimation(tweenName, -1, animation);
+            tweens->setAnimation(tweenName, -1, std::move(animation));
         }
     }
 }
@@ -1160,15 +1160,14 @@ ScrollingList * PageBuilder::buildMenu(xml_node<> *menuXml, Page &page, int moni
 }
 
 
-void PageBuilder::buildCustomMenu(ScrollingList *menu, const xml_node<> *menuXml, xml_node<> *itemDefaults)
-{
-    auto *points = new std::vector<ViewInfo *>();
-    auto *tweenPoints = new std::vector<AnimationEvents *>();
+void PageBuilder::buildCustomMenu(ScrollingList* menu, const rapidxml::xml_node<>* menuXml, rapidxml::xml_node<>* itemDefaults) {
+    auto points = new std::vector<ViewInfo*>(); // Leave ViewInfo unchanged
+    auto tweenPoints = std::make_shared<std::vector<std::shared_ptr<AnimationEvents>>>();
 
     int i = 0;
 
-    for(xml_node<> *componentXml = menuXml->first_node("item"); componentXml; componentXml = componentXml->next_sibling("item")) {
-        auto *viewInfo = new ViewInfo();
+    for (auto* componentXml = menuXml->first_node("item"); componentXml; componentXml = componentXml->next_sibling("item")) {
+        auto* viewInfo = new ViewInfo(); // Leave ViewInfo unchanged
         viewInfo->Monitor = menu->baseViewInfo.Monitor;
         viewInfo->Layout = menu->baseViewInfo.Layout;
 
@@ -1178,7 +1177,7 @@ void PageBuilder::buildCustomMenu(ScrollingList *menu, const xml_node<> *menuXml
         points->push_back(viewInfo);
         tweenPoints->push_back(createTweenInstance(componentXml));
 
-        if(componentXml->first_attribute("selected")) {
+        if (componentXml->first_attribute("selected")) {
             menu->setSelectedIndex(i);
         }
 
@@ -1188,28 +1187,27 @@ void PageBuilder::buildCustomMenu(ScrollingList *menu, const xml_node<> *menuXml
     menu->setPoints(points, tweenPoints);
 }
 
-void PageBuilder::buildVerticalMenu(ScrollingList *menu, const xml_node<> *menuXml, xml_node<> *itemDefaults)
-{
-    auto *points = new std::vector<ViewInfo *>();
-    auto *tweenPoints = new std::vector<AnimationEvents *>();
+void PageBuilder::buildVerticalMenu(ScrollingList* menu, const rapidxml::xml_node<>* menuXml, rapidxml::xml_node<>* itemDefaults) {
+    auto points = new std::vector<ViewInfo*>(); // Leave ViewInfo unchanged
+    auto tweenPoints = std::make_shared<std::vector<std::shared_ptr<AnimationEvents>>>();
 
     int selectedIndex = MENU_FIRST;
-    std::map<int, xml_node<> *> overrideItems;
+    std::map<int, rapidxml::xml_node<>*> overrideItems;
 
     // By default the menu will automatically determine the offsets for your list items.
     // We can override individual menu points to have unique characteristics (i.e. make the first item opaque or
     // make the selected item a different color).
-    for(xml_node<> *componentXml = menuXml->first_node("item"); componentXml; componentXml = componentXml->next_sibling("item")) {
-        xml_attribute<> const *xmlIndex = componentXml->first_attribute("index");
+    for (auto* componentXml = menuXml->first_node("item"); componentXml; componentXml = componentXml->next_sibling("item")) {
+        const auto* xmlIndex = componentXml->first_attribute("index");
 
-        if(xmlIndex) {
+        if (xmlIndex) {
             int itemIndex = parseMenuPosition(xmlIndex->value());
             overrideItems[itemIndex] = componentXml;
 
             // check to see if the item specified is the selected index
-            xml_attribute<> const *xmlSelectedIndex = componentXml->first_attribute("selected");
+            const auto* xmlSelectedIndex = componentXml->first_attribute("selected");
 
-            if(xmlSelectedIndex) {
+            if (xmlSelectedIndex) {
                 selectedIndex = itemIndex;
             }
         }
@@ -1217,14 +1215,14 @@ void PageBuilder::buildVerticalMenu(ScrollingList *menu, const xml_node<> *menuX
 
     bool end = false;
 
-    //menu start
+    // menu start
 
     float height = 0;
     int index = 0;
 
-    if(overrideItems.find(MENU_START) != overrideItems.end()) {
-        xml_node<> *component = overrideItems[MENU_START];
-        ViewInfo *viewInfo = createMenuItemInfo(component, itemDefaults, menu->baseViewInfo);
+    if (overrideItems.find(MENU_START) != overrideItems.end()) {
+        auto* component = overrideItems[MENU_START];
+        auto* viewInfo = createMenuItemInfo(component, itemDefaults, menu->baseViewInfo);
         viewInfo->Y = menu->baseViewInfo.Y + height;
         points->push_back(viewInfo);
         tweenPoints->push_back(createTweenInstance(component));
@@ -1233,34 +1231,34 @@ void PageBuilder::buildVerticalMenu(ScrollingList *menu, const xml_node<> *menuX
         // increment the selected index to account for the new "invisible" menu item
         selectedIndex++;
     }
-    while(!end) {
-        auto *viewInfo = new ViewInfo();
+    while (!end) {
+        auto* viewInfo = new ViewInfo();
         viewInfo->Monitor = menu->baseViewInfo.Monitor;
         viewInfo->Layout = menu->baseViewInfo.Layout;
 
-        xml_node<> *component = itemDefaults;
+        auto* component = itemDefaults;
 
-        // uss overridden item setting if specified by layout for the given index
-        if(overrideItems.find(index) != overrideItems.end()) {
+        // use overridden item setting if specified by layout for the given index
+        if (overrideItems.find(index) != overrideItems.end()) {
             component = overrideItems[index];
         }
 
         // calculate the total height of our menu items if we can load any additional items
         buildViewInfo(component, *viewInfo, itemDefaults);
-        xml_attribute<> const *itemSpacingXml = component->first_attribute("spacing");
+        const auto* itemSpacingXml = component->first_attribute("spacing");
         int itemSpacing = itemSpacingXml ? Utils::convertInt(itemSpacingXml->value()) : 0;
         float nextHeight = height + viewInfo->Height + itemSpacing;
 
-        if(nextHeight >= menu->baseViewInfo.Height) {
+        if (nextHeight >= menu->baseViewInfo.Height) {
             end = true;
         }
 
-        // we have reached the last menuitem
-        if(end && overrideItems.find(MENU_LAST) != overrideItems.end()) {
+        // we have reached the last menu item
+        if (end && overrideItems.find(MENU_LAST) != overrideItems.end()) {
             component = overrideItems[MENU_LAST];
 
             buildViewInfo(component, *viewInfo, itemDefaults);
-            xml_attribute<> const *itemSpacingXml = component->first_attribute("spacing");
+            const auto* itemSpacingXml = component->first_attribute("spacing");
             int itemSpacing = itemSpacingXml ? Utils::convertInt(itemSpacingXml->value()) : 0;
             nextHeight = height + viewInfo->Height + itemSpacing;
         }
@@ -1272,28 +1270,27 @@ void PageBuilder::buildVerticalMenu(ScrollingList *menu, const xml_node<> *menuX
         height = nextHeight;
     }
 
-    //menu end
-    if(overrideItems.find(MENU_END) != overrideItems.end()) {
-        xml_node<> *component = overrideItems[MENU_END];
-        ViewInfo *viewInfo = createMenuItemInfo(component, itemDefaults, menu->baseViewInfo);
+    // menu end
+    if (overrideItems.find(MENU_END) != overrideItems.end()) {
+        auto* component = overrideItems[MENU_END];
+        auto* viewInfo = createMenuItemInfo(component, itemDefaults, menu->baseViewInfo);
         viewInfo->Y = menu->baseViewInfo.Y + height;
         points->push_back(viewInfo);
         tweenPoints->push_back(createTweenInstance(component));
     }
 
-    if(selectedIndex >= ((int)points->size())) {
+    if (selectedIndex >= static_cast<int>(points->size())) {
         std::stringstream ss;
+        ss << "Design error! Selected menu item was set to " << selectedIndex
+            << " although there are only " << points->size()
+            << " menu points that can be displayed";
 
-        ss << "Design error! Selected menu item was set to " << selectedIndex 
-           << " although there are only " << points->size()
-           << " menu points that can be displayed";
-
-        LOG_ERROR("Layout", "Design error! \"duration\" attribute");
+        LOG_ERROR("Layout", ss.str());
         selectedIndex = 0;
     }
 
     menu->setSelectedIndex(selectedIndex);
-    menu->setPoints(points, tweenPoints);
+    menu->setPoints(points, std::move(tweenPoints)); // Use std::move to transfer ownership of the shared pointer
 }
 
 ViewInfo *PageBuilder::createMenuItemInfo(xml_node<> *component, xml_node<> *defaults, const ViewInfo& menuViewInfo)
@@ -1474,6 +1471,7 @@ void PageBuilder::getTweenSet(const xml_node<>* node, Animation* animation) {
         }
     }
 }
+
 void PageBuilder::getAnimationEvents(const xml_node<> *node, TweenSet &tweens)
 {
     xml_attribute<> const *durationXml = node->first_attribute("duration");

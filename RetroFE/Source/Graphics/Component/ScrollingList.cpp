@@ -71,7 +71,6 @@ ScrollingList::ScrollingList( Configuration &c,
 
 ScrollingList::~ScrollingList() {
     clearPoints();
-    clearTweenPoints();
     destroyItems();
 }
 
@@ -88,15 +87,7 @@ void ScrollingList::clearPoints() {
 }
 
 void ScrollingList::clearTweenPoints() {
-    if (tweenPoints_) {
-        while (!tweenPoints_->empty()) {
-            AnimationEvents* tweenPoint = tweenPoints_->back();
-            delete tweenPoint;
-            tweenPoints_->pop_back();
-        }
-        delete tweenPoints_;
-        tweenPoints_ = nullptr;
-    }
+    tweenPoints_.reset(); // Using reset to clear the shared pointer
 }
 
 const std::vector<Item*>& ScrollingList::getItems() const
@@ -178,8 +169,7 @@ void ScrollingList::deallocateSpritePoints( )
     }
 }
 
-void ScrollingList::allocateSpritePoints()
-{
+void ScrollingList::allocateSpritePoints() {
     if (!items_ || items_->empty()) return;
     if (!scrollPoints_ || scrollPoints_->empty()) return;
     if (components_.empty()) return;
@@ -224,7 +214,7 @@ void ScrollingList::destroyItems()
     }
 }
 
-void ScrollingList::setPoints(std::vector<ViewInfo*>* scrollPoints, std::vector<AnimationEvents*>* tweenPoints) {
+void ScrollingList::setPoints(std::vector<ViewInfo*>* scrollPoints, std::shared_ptr<std::vector<std::shared_ptr<AnimationEvents>>> tweenPoints) {
     clearPoints();
     clearTweenPoints();
 
@@ -662,7 +652,7 @@ size_t ScrollingList::getSize() const
     return items_->size();
 }
 
-void ScrollingList::resetTweens(Component* c, AnimationEvents* sets, ViewInfo* currentViewInfo, ViewInfo* nextViewInfo, double scrollTime) const {
+void ScrollingList::resetTweens(Component* c, std::shared_ptr<AnimationEvents> sets, ViewInfo* currentViewInfo, ViewInfo* nextViewInfo, double scrollTime) const {
     if (!c || !sets || !currentViewInfo || !nextViewInfo) return;
 
     currentViewInfo->ImageHeight = c->baseViewInfo.ImageHeight;

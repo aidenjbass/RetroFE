@@ -51,3 +51,8 @@ void AnimationEvents::clear()
 {
     animationMap_.clear(); // std::unique_ptr will automatically clean up
 }
+
+// Getter for animationMap_
+const std::map<std::string, std::map<int, std::shared_ptr<Animation>>>& AnimationEvents::getAnimationMap() const {
+    return animationMap_;
+}

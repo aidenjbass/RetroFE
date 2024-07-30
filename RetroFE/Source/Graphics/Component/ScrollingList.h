@@ -80,7 +80,7 @@ public:
     void selectItemByName(std::string_view name);
     std::string getSelectedItemName();
     void destroyItems();
-    void setPoints(std::vector<ViewInfo*>* scrollPoints, std::vector<AnimationEvents*>* tweenPoints);
+    void setPoints(std::vector<ViewInfo*>* points, std::shared_ptr<std::vector<std::shared_ptr<AnimationEvents>>> tweenPoints);
     size_t getSelectedIndex() const;
     void setSelectedIndex(unsigned int index);
     size_t getSize() const;
@@ -125,7 +125,7 @@ private:
     void clearPoints();
     void clearTweenPoints();
     
-    void resetTweens(Component* c, AnimationEvents* sets, ViewInfo* currentViewInfo, ViewInfo* nextViewInfo, double scrollTime) const;
+    void resetTweens(Component* c, std::shared_ptr<AnimationEvents> sets, ViewInfo* currentViewInfo, ViewInfo* nextViewInfo, double scrollTime) const;
     inline size_t loopIncrement(size_t offset, size_t index, size_t size) const;
     inline size_t loopDecrement(size_t offset, size_t index, size_t size) const;
 
@@ -137,7 +137,7 @@ private:
 
     std::vector<Component*>* spriteList_{ nullptr };
     std::vector<ViewInfo*>* scrollPoints_{ nullptr };
-    std::vector<AnimationEvents*>* tweenPoints_{ nullptr };
+    std::shared_ptr<std::vector<std::shared_ptr<AnimationEvents>>> tweenPoints_;
 
     size_t itemIndex_{ 0 };
     size_t selectedOffsetIndex_{ 0 };

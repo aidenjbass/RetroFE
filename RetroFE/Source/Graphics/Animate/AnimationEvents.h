@@ -32,6 +32,9 @@ public:
     void setAnimation(const std::string& tween, int index, std::shared_ptr<Animation> animation);
     void clear();
 
+    // Getter for animationMap_
+    const std::map<std::string, std::map<int, std::shared_ptr<Animation>>>& getAnimationMap() const;
+
 private:
     std::map<std::string, std::map<int, std::shared_ptr<Animation>>> animationMap_;
 };
