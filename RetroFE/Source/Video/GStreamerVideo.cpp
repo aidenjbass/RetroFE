@@ -329,7 +329,6 @@ GstPadProbeReturn GStreamerVideo::padProbeCallback(GstPad *pad, GstPadProbeInfo 
                 gst_pad_remove_probe(pad, video->padProbeId_);
                 video->padProbeId_ = 0;
             }
-            gst_caps_unref(caps);
         }
     }
     return GST_PAD_PROBE_OK;
