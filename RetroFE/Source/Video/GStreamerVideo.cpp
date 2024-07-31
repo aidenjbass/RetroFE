@@ -246,9 +246,9 @@ bool GStreamerVideo::play(const std::string &file)
     return true;
 }
 
-bool GStreamerVideo::initializeGstElements(const std::string &file)
+bool GStreamerVideo::initializeGstElements(const std::string& file)
 {
-    gchar *uriFile = gst_filename_to_uri(file.c_str(), nullptr);
+    gchar* uriFile = gst_filename_to_uri(file.c_str(), nullptr);
 
     if (!uriFile)
         return false;
@@ -264,31 +264,39 @@ bool GStreamerVideo::initializeGstElements(const std::string &file)
         return false;
     }
 
-    GstCaps *videoConvertCaps;
+    GstCaps* videoConvertCaps;
     if (Configuration::HardwareVideoAccel)
     {
-        videoConvertCaps = gst_caps_from_string("video/x-raw,format=(string)NV12");
+        videoConvertCaps = gst_caps_new_simple(
+            "video/x-raw",
+            "format", G_TYPE_STRING, "NV12",
+            nullptr
+        );
         sdlFormat_ = SDL_PIXELFORMAT_NV12;
     }
     else
     {
-        videoConvertCaps = gst_caps_from_string("video/x-raw,format=(string)I420");
+        videoConvertCaps = gst_caps_new_simple(
+            "video/x-raw",
+            "format", G_TYPE_STRING, "I420",
+            nullptr
+        );
         sdlFormat_ = SDL_PIXELFORMAT_IYUV;
     }
 
     // Configure the appsink
     gst_app_sink_set_emit_signals(GST_APP_SINK(videoSink_), FALSE);
     g_object_set(GST_APP_SINK(videoSink_), "sync", TRUE, "enable-last-sample", TRUE, "wait-on-eos", FALSE,
-                 "max-buffers", 5, "caps", videoConvertCaps, nullptr);
+        "max-buffers", 5, "caps", videoConvertCaps, nullptr);
     gst_app_sink_set_drop(GST_APP_SINK(videoSink_), true);
-    gst_clear_caps(&videoConvertCaps);
+    gst_caps_unref(videoConvertCaps);
 
     // Set properties of playbin
     const guint PLAYBIN_FLAGS = 0x00000001 | 0x00000002;
     g_object_set(G_OBJECT(playbin_), "uri", uriFile, "video-sink", videoSink_, "flags", PLAYBIN_FLAGS, nullptr);
     g_free(uriFile);
 
-    if (GstPad *pad = gst_element_get_static_pad(videoSink_, "sink"))
+    if (GstPad* pad = gst_element_get_static_pad(videoSink_, "sink"))
     {
         padProbeId_ = gst_pad_add_probe(pad, GST_PAD_PROBE_TYPE_EVENT_DOWNSTREAM, padProbeCallback, this, nullptr);
         gst_object_unref(pad);
@@ -311,8 +319,7 @@ GstPadProbeReturn GStreamerVideo::padProbeCallback(GstPad *pad, GstPadProbeInfo 
 {
     auto *video = static_cast<GStreamerVideo *>(user_data);
 
-    auto *event = GST_PAD_PROBE_INFO_EVENT(info);
-    if (GST_EVENT_TYPE(event) == GST_EVENT_CAPS)
+    if (auto *event = GST_PAD_PROBE_INFO_EVENT(info); GST_EVENT_TYPE(event) == GST_EVENT_CAPS)
     {
         GstCaps *caps = nullptr;
         gst_event_parse_caps(event, &caps);
