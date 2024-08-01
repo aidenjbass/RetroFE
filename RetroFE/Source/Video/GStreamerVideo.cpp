@@ -88,8 +88,9 @@ void GStreamerVideo::initializePlugins()
         {
             disablePlugin("vah264dec");
             disablePlugin("vah265dec");
-            enablePlugin("avdec_h264");
-            enablePlugin("avdec_h265");
+            enablePlugin("openh264dec")
+            disablePlugin("avdec_h264");
+            disablePlugin("avdec_h265");
         }
 #endif
     }
@@ -170,6 +171,11 @@ bool GStreamerVideo::stop()
         {
             g_signal_handler_disconnect(playbin_, elementSetupHandlerId_);
             elementSetupHandlerId_ = 0;
+        }
+        if (aboutToFinishHandlerId_ != 0)
+        {
+            g_signal_handler_disconnect(playbin_, aboutToFinishHandlerId_);
+            aboutToFinishHandlerId_ = 0;
         }
 
         gst_video_info_free(videoInfo_);
@@ -256,6 +262,8 @@ bool GStreamerVideo::initializeGstElements(const std::string& file)
     playbin_ = gst_element_factory_make("playbin", "playbin");
     videoSink_ = gst_element_factory_make("appsink", "appsink");
 
+    gst_pipeline_set_latency(GST_PIPELINE(playbin_), GST_CLOCK_TIME_NONE);
+
     if (!playbin_ || !videoSink_)
     {
         LOG_DEBUG("Video", "Could not create elements");
@@ -303,7 +311,7 @@ bool GStreamerVideo::initializeGstElements(const std::string& file)
     }
 
     elementSetupHandlerId_ = g_signal_connect(playbin_, "element-setup", G_CALLBACK(elementSetupCallback), this);
-    g_signal_connect(playbin_, "about-to-finish", G_CALLBACK(aboutToFinishCallback), this);
+    aboutToFinishHandlerId_ = g_signal_connect(playbin_, "about-to-finish", G_CALLBACK(aboutToFinishCallback), this);
 
     return true;
 }
@@ -381,12 +389,12 @@ void GStreamerVideo::setVisibility(bool isVisible)
         if (!isVisible_)
         {
             // Set max-buffers to 1 to flush the appsink when the video is not visible
-            g_object_set(GST_APP_SINK(videoSink_), "max-buffers", 1, nullptr);
+            gst_app_sink_set_max_buffers(GST_APP_SINK(videoSink_), 1);
         }
         else
         {
-            // Reset max-buffers to 15 when the video becomes visible
-            g_object_set(GST_APP_SINK(videoSink_), "max-buffers", 5, nullptr);
+            // Reset max-buffers to 5 when the video becomes visible
+            gst_app_sink_set_max_buffers(GST_APP_SINK(videoSink_), 5);
         }
     }
 }

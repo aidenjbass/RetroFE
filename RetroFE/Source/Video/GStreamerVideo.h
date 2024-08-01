@@ -83,6 +83,7 @@ class GStreamerVideo final : public IVideo
     SDL_Texture *texture_{nullptr};
     guint elementSetupHandlerId_{0};
     guint handoffHandlerId_{0};
+    guint aboutToFinishHandlerId_{ 0 };
     guint padProbeId_{0};
     gint height_{0};
     gint width_{0};
