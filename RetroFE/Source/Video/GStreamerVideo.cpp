@@ -92,7 +92,7 @@ void GStreamerVideo::initializePlugins()
         {
             disablePlugin("vah264dec");
             disablePlugin("vah265dec");
-            enablePlugin("openh264dec")
+            enablePlugin("openh264dec");
             disablePlugin("avdec_h264");
             disablePlugin("avdec_h265");
         }
