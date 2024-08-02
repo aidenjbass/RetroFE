@@ -92,8 +92,9 @@ void GStreamerVideo::initializePlugins()
         {
             disablePlugin("vah264dec");
             disablePlugin("vah265dec");
-            enablePlugin("avdec_h264");
-            enablePlugin("avdec_h265");
+            enablePlugin("openh264dec")
+            disablePlugin("avdec_h264");
+            disablePlugin("avdec_h265");
         }
 #endif
     }
@@ -184,6 +185,11 @@ bool GStreamerVideo::stop()
         {
             g_signal_handler_disconnect(playbin_, elementSetupHandlerId_);
             elementSetupHandlerId_ = 0;
+        }
+        if (aboutToFinishHandlerId_ != 0)
+        {
+            g_signal_handler_disconnect(playbin_, aboutToFinishHandlerId_);
+            aboutToFinishHandlerId_ = 0;
         }
 
         if (handoffHandlerId_)
