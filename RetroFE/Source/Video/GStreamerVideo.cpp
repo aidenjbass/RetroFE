@@ -204,24 +204,14 @@ bool GStreamerVideo::stop()
             prerollHandlerId_ = 0;
         }
 
-        // Remove elements from the custom bin and unreference them
-        if (videoBin_)
-        {
-            gst_bin_remove_many(GST_BIN(videoBin_), videoSink_, capsFilter_, nullptr);
-            gst_object_unref(videoBin_);
-        }
-
-        if (videoBus_)
-        {
-            gst_object_unref(videoBus_);
-        }
-        // Unreference the playbin
         gst_object_unref(playbin_);
+        
         playbin_ = nullptr;
         videoSink_ = nullptr;
         capsFilter_ = nullptr;
         videoBin_ = nullptr;
         videoBus_ = nullptr;
+        videoInfo_ = nullptr;
 
 
 
@@ -247,7 +237,6 @@ bool GStreamerVideo::play(const std::string &file)
     currentFile_ = file;
     if (!initializeGstElements(file))
         return false;
-    // Start playing
     // Start playing
     if (GstStateChangeReturn playState = gst_element_set_state(GST_ELEMENT(playbin_), GST_STATE_PLAYING);
         playState != GST_STATE_CHANGE_ASYNC)
@@ -309,7 +298,7 @@ bool GStreamerVideo::initializeGstElements(const std::string &file)
     flags |= GST_PLAY_FLAG_VIDEO | GST_PLAY_FLAG_AUDIO;
     g_object_set(playbin_, "flags", flags, nullptr);
 
-    GstCaps *videoConvertCaps = gst_caps_new_empty();
+    GstCaps *videoConvertCaps;
     if (Configuration::HardwareVideoAccel)
     {
         videoConvertCaps = gst_caps_from_string(
