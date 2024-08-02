@@ -13,24 +13,25 @@
  * You should have received a copy of the GNU General Public License
  * along with RetroFE.  If not, see <http://www.gnu.org/licenses/>.
  */
+
 #include "VideoFactory.h"
+
 #include "../Utility/Log.h"
 #include "GStreamerVideo.h"
 
 bool VideoFactory::enabled_ = true;
 int VideoFactory::numLoops_ = 0;
 
-std::unique_ptr<IVideo> VideoFactory::createVideo(int monitor, int numLoops)
+IVideo* VideoFactory::createVideo(int monitor, int numLoops)
 {
-    if (!enabled_)
-    {
+    if (!enabled_) {
         return nullptr; // Early return if not enabled
     }
 
-    auto instance = std::make_unique<GStreamerVideo>(monitor);
-    if (!instance->initialize())
-    {
+    auto* instance = new GStreamerVideo(monitor);
+    if (!instance->initialize()) {
         LOG_ERROR("VideoFactory", "Failed to initialize GStreamerVideo");
+        delete instance;
         return nullptr;
     }
 
@@ -38,4 +39,17 @@ std::unique_ptr<IVideo> VideoFactory::createVideo(int monitor, int numLoops)
     instance->setNumLoops(loopsToSet);
 
     return instance;
+}
+
+
+
+void VideoFactory::setEnabled(bool enabled)
+{
+    enabled_ = enabled;
+}
+
+
+void VideoFactory::setNumLoops(int numLoops)
+{
+    numLoops_ = numLoops;
 }

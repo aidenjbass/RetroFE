@@ -15,16 +15,16 @@
  */
 #pragma once
 
-#include "IVideo.h"
-#include <memory>
+class IVideo;
 
-class VideoFactory {
+class VideoFactory
+{
 public:
-  static std::unique_ptr<IVideo> createVideo(int monitor, int numLoops);
-  static void setEnabled(bool enabled) { enabled_ = enabled; }
-  static void setNumLoops(int numLoops) { numLoops_ = numLoops; }
+    static IVideo *createVideo( int monitor, int numLoops = -1 );
+    static void    setEnabled(bool enabled);
+    static void    setNumLoops(int numLoops);
 
 private:
-  static bool enabled_;
-  static int numLoops_;
+    static bool    enabled_;
+    static int     numLoops_;
 };
