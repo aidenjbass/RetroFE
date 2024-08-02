@@ -341,7 +341,6 @@ bool GStreamerVideo::initializeGstElements(const std::string &file)
     gst_object_unref(sinkPad);
 
     g_object_set(playbin_, "uri", uriFile, "video-sink", videoBin_, nullptr);
-    gst_object_unref(videoBin_);
     g_object_set(playbin_, "volume", 0.0, nullptr);
 
     g_free(uriFile);
