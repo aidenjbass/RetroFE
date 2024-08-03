@@ -60,7 +60,7 @@ void GStreamerVideo::initializePlugins()
         pluginsInitialized_ = true;
 
 #if defined(WIN32)
-        enablePlugin("directsoundsink");
+        //enablePlugin("directsoundsink");
         disablePlugin("mfdeviceprovider");
         if (!Configuration::HardwareVideoAccel)
         {
@@ -83,6 +83,8 @@ void GStreamerVideo::initializePlugins()
         //     enablePlugin("vah265dec");
         // }
 #else
+        enablePlugin("alsasink");
+        disablePlugin("pulsesink");
         if (Configuration::HardwareVideoAccel)
         {
             enablePlugin("vah264dec");
@@ -349,7 +351,7 @@ bool GStreamerVideo::initializeGstElements(const std::string &file)
     g_object_set(videoSink_, "signal-handoffs", TRUE, "sync", TRUE, "enable-last-sample", FALSE, nullptr);
 
     handoffHandlerId_ = g_signal_connect(videoSink_, "handoff", G_CALLBACK(processNewBuffer), this);
-    prerollHandlerId_ = g_signal_connect(videoSink_, "preroll-handoff", G_CALLBACK(processNewBuffer), this);
+    //prerollHandlerId_ = g_signal_connect(videoSink_, "preroll-handoff", G_CALLBACK(processNewBuffer), this);
 
     return true;
 }
@@ -471,34 +473,55 @@ void GStreamerVideo::volumeUpdate()
 {
     if (!isPlaying_)
         return;
+
     bool shouldMute = false;
     double targetVolume = 0.0;
+
+    // Check if video should be muted based on configuration.
     if (bool muteVideo = Configuration::MuteVideo; muteVideo)
     {
         shouldMute = true;
     }
     else
     {
+        // Ensure volume_ does not exceed the maximum value.
         if (volume_ > 1.0)
             volume_ = 1.0;
+
+        // Adjust currentVolume_ towards the target volume_.
         if (currentVolume_ > volume_ || currentVolume_ + 0.005 >= volume_)
             currentVolume_ = volume_;
         else
             currentVolume_ += 0.005;
+
+        // Set the target volume to the current calculated volume.
         targetVolume = currentVolume_;
+
+        // Mute if the current volume is below a threshold.
         if (currentVolume_ < 0.1)
             shouldMute = true;
     }
+
     // Only set the volume if it has changed since the last call.
     if (targetVolume != lastSetVolume_)
     {
-        gst_stream_volume_set_volume(GST_STREAM_VOLUME(playbin_), GST_STREAM_VOLUME_FORMAT_LINEAR, targetVolume);
+        g_object_set(playbin_, "volume", targetVolume, nullptr);
         lastSetVolume_ = targetVolume;
     }
+
     // Only set the mute state if it has changed since the last call.
     if (shouldMute != lastSetMuteState_)
     {
-        gst_stream_volume_set_mute(GST_STREAM_VOLUME(playbin_), shouldMute);
+        // Use g_object_set to mute or unmute by setting the volume to 0.0 or the target volume.
+        if (shouldMute)
+        {
+            g_object_set(playbin_, "volume", 0.0, nullptr);
+        }
+        else
+        {
+            g_object_set(playbin_, "volume", targetVolume, nullptr);
+        }
+
         lastSetMuteState_ = shouldMute;
     }
 }
