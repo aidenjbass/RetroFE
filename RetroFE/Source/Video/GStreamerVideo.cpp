@@ -47,7 +47,6 @@ GStreamerVideo::GStreamerVideo(int monitor)
     : monitor_(monitor)
 
 {
-    bufferQueue_ = g_async_queue_new_full((GDestroyNotify)gst_buffer_unref);
     initializePlugins();
 }
 
@@ -175,12 +174,8 @@ bool GStreamerVideo::stop()
 
         if (videoInfo_)
             gst_video_info_free(videoInfo_);
-
-
-        if (bufferQueue_)
-        {
-            g_async_queue_unref(bufferQueue_);
-        }
+        // Clear the buffer queue
+        bufferQueue_.clear();
         
         // Disconnect signal handlers
         if (elementSetupHandlerId_)
@@ -376,20 +371,6 @@ void GStreamerVideo::elementSetupCallback(GstElement* playbin, GstElement* eleme
     }
 #endif
 
-    if (g_str_has_prefix(elementName, "urisourcebin"))
-    {
-        g_object_set(element, "use-buffering", FALSE, "parse-streams", FALSE, nullptr);
-    }
-
-    if (g_str_has_prefix(elementName, "vconv"))
-    {
-        g_object_set(element, "use-converters", FALSE, "use-balance", FALSE, nullptr);
-    }
-    if (g_str_has_prefix(elementName, "multiqueue"))
-    {
-        g_object_set(element, "max-size-buffers", 0, "max-size-bytes", 0, nullptr);
-    }
-
     g_free(elementName);
 }
 
@@ -536,95 +517,69 @@ int GStreamerVideo::getWidth()
     return width_;
 }
 
-void GStreamerVideo::processNewBuffer(GstElement const * /* fakesink */, const GstBuffer *buf, GstPad *new_pad,
-                                      gpointer userdata)
-{
-    auto *video = static_cast<GStreamerVideo *>(userdata);
-    std::shared_lock lock(video->stopMutex_);
-    if (video && !video->stopping_.load(std::memory_order_acquire))
-    {
-        if (g_async_queue_length(video->bufferQueue_) >= 15)
-        {
-            auto oldBuffer = static_cast<GstBuffer *>(g_async_queue_pop(video->bufferQueue_));
-            if (oldBuffer)
-            {
-                gst_buffer_unref(oldBuffer);
-                LOG_DEBUG("Video", "Buffer queue limit reached. Oldest buffer removed.");
-            }
-        }
+void GStreamerVideo::processNewBuffer(GstElement const* /* fakesink */, const GstBuffer* buf, GstPad* new_pad, gpointer userdata) {
+    auto* video = static_cast<GStreamerVideo*>(userdata);
 
-        GstBuffer *copied_buf = gst_buffer_copy(buf);
-        g_async_queue_push(video->bufferQueue_, copied_buf);
-        int queue_size = g_async_queue_length(video->bufferQueue_);
-        LOG_DEBUG("Video",
-                  "Buffer received, copied, and added to queue. Current queue size: " + std::to_string(queue_size));
+    if (video->stopping_.load(std::memory_order_acquire)) {
+        return;
     }
+
+    GstBuffer* copied_buf = gst_buffer_copy(buf);  // Copy the buffer for independent lifecycle management
+    video->bufferQueue_.push(copied_buf);          // Push the buffer into the queue
+    size_t queueSize = video->bufferQueue_.size();
+    LOG_DEBUG("Video", "Buffer received and added to queue. Current queue size: " + std::to_string(queueSize));
+
 }
 
-void GStreamerVideo::draw()
-{
-    if (stopping_.load(std::memory_order_acquire) || !isPlaying_)
-    {
+void GStreamerVideo::draw() {
+    if (stopping_.load(std::memory_order_acquire)) {
         return;
     }
 
-    std::shared_lock lock(stopMutex_);
-
-    auto buffer = static_cast<GstBuffer*>(g_async_queue_try_pop(bufferQueue_));
-    if (!buffer)
-    {
-        return;
+    auto bufferOpt = bufferQueue_.pop();
+    if (!bufferOpt.has_value()) {
+        return;  // No buffer available
     }
 
-    SDL_LockMutex(SDL::getMutex());
+    GstBuffer* buffer = *bufferOpt;
 
 
-    if (!texture_ && width_ != 0 && height_ != 0)
-    {
-        createSdlTexture();
+    if (!texture_ && width_ != 0 && height_ != 0) {
+        createSdlTexture();  // Create the SDL texture if it doesn't exist
     }
 
-    if (texture_)
-    {
+    if (texture_) {
         GstVideoFrame vframe(GST_VIDEO_FRAME_INIT);
-        if (gst_video_frame_map(&vframe, videoInfo_, buffer,
-            (GstMapFlags)(GST_MAP_READ | GST_VIDEO_FRAME_MAP_FLAG_NO_REF)))
-        {
-            if (sdlFormat_ == SDL_PIXELFORMAT_NV12)
-            {
+        if (gst_video_frame_map(&vframe, videoInfo_, buffer, (GstMapFlags)(GST_MAP_READ | GST_VIDEO_FRAME_MAP_FLAG_NO_REF))) {
+            SDL_LockMutex(SDL::getMutex());
+            if (sdlFormat_ == SDL_PIXELFORMAT_NV12) {
                 if (SDL_UpdateNVTexture(texture_, nullptr,
                     static_cast<const Uint8*>(GST_VIDEO_FRAME_PLANE_DATA(&vframe, 0)),
                     GST_VIDEO_FRAME_PLANE_STRIDE(&vframe, 0),
                     static_cast<const Uint8*>(GST_VIDEO_FRAME_PLANE_DATA(&vframe, 1)),
-                    GST_VIDEO_FRAME_PLANE_STRIDE(&vframe, 1)) != 0)
-                {
-                    LOG_ERROR("Video", "SDL_UpdateNVTexture failed: " + std::string(SDL_GetError()));
+                    GST_VIDEO_FRAME_PLANE_STRIDE(&vframe, 1)) != 0) {
+                    std::cerr << "Video: SDL_UpdateNVTexture failed: " << SDL_GetError() << std::endl;
                 }
             }
-            else if (sdlFormat_ == SDL_PIXELFORMAT_IYUV)
-            {
+            else if (sdlFormat_ == SDL_PIXELFORMAT_IYUV) {
                 if (SDL_UpdateYUVTexture(texture_, nullptr,
                     static_cast<const Uint8*>(GST_VIDEO_FRAME_PLANE_DATA(&vframe, 0)),
                     GST_VIDEO_FRAME_PLANE_STRIDE(&vframe, 0),
                     static_cast<const Uint8*>(GST_VIDEO_FRAME_PLANE_DATA(&vframe, 1)),
                     GST_VIDEO_FRAME_PLANE_STRIDE(&vframe, 1),
                     static_cast<const Uint8*>(GST_VIDEO_FRAME_PLANE_DATA(&vframe, 2)),
-                    GST_VIDEO_FRAME_PLANE_STRIDE(&vframe, 2)) != 0)
-                {
-                    LOG_ERROR("Video", "SDL_UpdateYUVTexture failed: " + std::string(SDL_GetError()));
+                    GST_VIDEO_FRAME_PLANE_STRIDE(&vframe, 2)) != 0) {
+                    std::cerr << "Video: SDL_UpdateYUVTexture failed: " << SDL_GetError() << std::endl;
                 }
+            SDL_UnlockMutex(SDL::getMutex());
             }
-            else
-            {
-                LOG_ERROR("Video", "Unsupported format or fallback handling required.");
+            else {
+                std::cerr << "Video: Unsupported format or fallback handling required." << std::endl;
             }
-
-            gst_video_frame_unmap(&vframe);
+            gst_video_frame_unmap(&vframe);  // Unmap the video frame after processing
         }
     }
-    gst_buffer_unref(buffer);
-    SDL_UnlockMutex(SDL::getMutex());
-
+gst_buffer_unref(buffer);  // Release the buffer after use
 }
 
 bool GStreamerVideo::isPlaying()

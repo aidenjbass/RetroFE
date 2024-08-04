@@ -21,11 +21,11 @@
 #include "IVideo.h"
 #include <atomic>
 #include <mutex>
-#include <queue>
 #include <shared_mutex>
+#include <string>
+#include <optional>
 
-extern "C"
-{
+extern "C" {
 #if (__APPLE__)
 #include <GStreamer/gst/gst.h>
 #include <GStreamer/gst/video/video.h>
@@ -33,22 +33,76 @@ extern "C"
 #include <gst/gst.h>
 #include <gst/pbutils/pbutils.h>
 #include <gst/video/video.h>
-
 #endif
 }
 
-class GStreamerVideo final : public IVideo
-{
-  public:
+// Define TNQueue using a C-style array
+template<typename T, size_t N>
+class TNQueue {
+protected:
+    T storage[N];                    // C-style array for holding the buffers
+    std::atomic<size_t> writeIndx;   // Atomic index for writing new buffers
+    std::atomic<size_t> readIndx;    // Atomic index for reading buffers
+
+public:
+    TNQueue() : writeIndx(0), readIndx(0) {}
+
+    bool isFull() const {
+        return (writeIndx + 1) % N == readIndx; // Condition for full queue
+    }
+
+    bool isEmpty() const {
+        return readIndx == writeIndx; // Condition for empty queue
+    }
+
+    void push(T item) {
+        if (isFull()) {
+            // Drop the oldest buffer to make space
+            T droppedItem = nullptr;
+            pop();  // Drop the oldest item
+            gst_buffer_unref(droppedItem);  // Unref the dropped buffer
+        }
+
+        storage[writeIndx] = item;
+        writeIndx = (writeIndx + 1) % N; // Update write index
+    }
+
+    std::optional<T> pop() {
+        if (isEmpty()) return std::nullopt; // Return an empty optional if the queue is empty
+
+        T item = storage[readIndx];
+        readIndx = (readIndx + 1) % N; // Update read index
+        return item;
+    }
+
+    void clear() {
+        while (!isEmpty()) {
+            T item = nullptr;
+            pop();
+            gst_buffer_unref(item);  // Ensure all buffers are unreferenced
+        }
+        // Reset indices
+        writeIndx = 0;
+        readIndx = 0;
+    }
+
+    size_t size() const {
+        return (writeIndx - readIndx + N) % N;
+    }
+};
+
+
+class GStreamerVideo final : public IVideo {
+public:
     explicit GStreamerVideo(int monitor);
-    GStreamerVideo(const GStreamerVideo &) = delete;
-    GStreamerVideo &operator=(const GStreamerVideo &) = delete;
+    GStreamerVideo(const GStreamerVideo&) = delete;
+    GStreamerVideo& operator=(const GStreamerVideo&) = delete;
     ~GStreamerVideo() override;
     bool initialize() override;
-    bool play(const std::string &file) override;
+    bool play(const std::string& file) override;
     bool stop() override;
     bool deInitialize() override;
-    SDL_Texture *getTexture() const override;
+    SDL_Texture* getTexture() const override;
     void loopHandler() override;
     void volumeUpdate() override;
     void draw() override;
@@ -66,49 +120,50 @@ class GStreamerVideo final : public IVideo
     unsigned long long getCurrent() override;
     unsigned long long getDuration() override;
     bool isPaused() override;
-    static void enablePlugin(const std::string &pluginName);
-    static void disablePlugin(const std::string &pluginName);
+    static void enablePlugin(const std::string& pluginName);
+    static void disablePlugin(const std::string& pluginName);
 
-  private:
-    static void processNewBuffer(GstElement const * /* fakesink */, const GstBuffer *buf, GstPad *new_pad,
-                                 gpointer userdata);
+private:
+    static void processNewBuffer(GstElement const* /* fakesink */, const GstBuffer* buf, GstPad* new_pad,
+        gpointer userdata);
     static void elementSetupCallback(GstElement* playbin, GstElement* element, gpointer data);
     static void sourceSetupCallback(GstElement* playbin, GstElement* element, gpointer data);
-    static GstPadProbeReturn padProbeCallback(GstPad *pad, GstPadProbeInfo *info, gpointer user_data);
+    static GstPadProbeReturn padProbeCallback(GstPad* pad, GstPadProbeInfo* info, gpointer user_data);
     static void initializePlugins();
-    bool initializeGstElements(const std::string &file);
+    bool initializeGstElements(const std::string& file);
     void createSdlTexture();
-    GstElement *playbin_{nullptr};
-    GstElement *videoSink_{nullptr};
+    GstElement* playbin_{ nullptr };
+    GstElement* videoSink_{ nullptr };
     GstElement* videoBin_{ nullptr };
     GstElement* capsFilter_{ nullptr };
-    GstBus *videoBus_{nullptr};
+    GstBus* videoBus_{ nullptr };
     GstVideoInfo* videoInfo_{ gst_video_info_new() };
-    SDL_Texture *texture_{nullptr};
-    SDL_PixelFormatEnum sdlFormat_{SDL_PIXELFORMAT_UNKNOWN};
-    guint elementSetupHandlerId_{0};
+    SDL_Texture* texture_{ nullptr };
+    SDL_PixelFormatEnum sdlFormat_{ SDL_PIXELFORMAT_UNKNOWN };
+    guint elementSetupHandlerId_{ 0 };
     guint sourceSetupHandlerId_{ 0 };
-    guint handoffHandlerId_{0};
+    guint handoffHandlerId_{ 0 };
     guint aboutToFinishHandlerId_{ 0 };
-    guint padProbeId_{0};
-    guint prerollHandlerId_{0};
-    gint height_{0};
-    gint width_{0};
-    GAsyncQueue *bufferQueue_;
-    bool isPlaying_{false};
+    guint padProbeId_{ 0 };
+    guint prerollHandlerId_{ 0 };
+    gint height_{ 0 };
+    gint width_{ 0 };
+    TNQueue<GstBuffer*, 16> bufferQueue_; // Using TNQueue to hold a maximum of 15 buffers
+    bool isPlaying_{ false };
     static bool initialized_;
-    int playCount_{0};
+    int playCount_{ 0 };
     std::string currentFile_{};
-    int numLoops_{0};
-    float volume_{0.0f};
-    double currentVolume_{0.0};
+    int numLoops_{ 0 };
+    float volume_{ 0.0f };
+    double currentVolume_{ 0.0 };
     int monitor_;
-    bool paused_{false};
-    double lastSetVolume_{0.0};
-    bool lastSetMuteState_{false};
-    std::atomic<bool> stopping_{false};
+    bool paused_{ false };
+    double lastSetVolume_{ 0.0 };
+    bool lastSetMuteState_{ false };
+    std::atomic<bool> stopping_{ false };
     std::shared_mutex stopMutex_;
     static bool pluginsInitialized_;
 
-    std::string generateDotFileName(const std::string &prefix, const std::string &videoFilePath) const;
+    std::string generateDotFileName(const std::string& prefix, const std::string& videoFilePath) const;
 };
+
