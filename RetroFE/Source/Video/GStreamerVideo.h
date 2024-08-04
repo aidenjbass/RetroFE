@@ -58,14 +58,17 @@ public:
         count.store(0, std::memory_order_relaxed);
     }
 
+    // Check if the queue is full
     bool isFull() const {
         return count.load(std::memory_order_acquire) == N;  // Full if count equals capacity
     }
 
+    // Check if the queue is empty
     bool isEmpty() const {
         return count.load(std::memory_order_acquire) == 0;  // Empty if count is zero
     }
 
+    // Push a new item into the queue
     void push(T item) {
         size_t currentTail = tail.load(std::memory_order_acquire);
 
@@ -81,6 +84,7 @@ public:
         count.fetch_add(1, std::memory_order_release);  // Increment count
     }
 
+    // Pop an item from the queue
     std::optional<T> pop() {
         size_t currentHead = head.load(std::memory_order_acquire);
 
@@ -94,6 +98,7 @@ public:
         return item;
     }
 
+    // Clear the queue
     void clear() {
         while (!isEmpty()) {
             auto itemOpt = pop();
@@ -107,11 +112,11 @@ public:
         count.store(0, std::memory_order_relaxed);
     }
 
+    // Get the current size of the queue
     size_t size() const {
         return count.load(std::memory_order_acquire);  // Directly return the count
     }
 };
-
 
 class GStreamerVideo final : public IVideo {
 public:
