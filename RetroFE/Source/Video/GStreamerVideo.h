@@ -36,58 +36,79 @@ extern "C" {
 #endif
 }
 
-// Define TNQueue using a C-style array
+
+// Define cache line size (common value for x86/x64 architectures)
+constexpr size_t CACHE_LINE_SIZE = 64;
+
+// Define TNQueue using a C-style array with padding
 template<typename T, size_t N>
 class TNQueue {
+    // Ensure N is a power of two for efficient bitwise index wrapping
+    // NOTE: User should ensure N is a power of two.
 protected:
-    T storage[N];                    // C-style array for holding the buffers
-    std::atomic<size_t> writeIndx;   // Atomic index for writing new buffers
-    std::atomic<size_t> readIndx;    // Atomic index for reading buffers
+    alignas(CACHE_LINE_SIZE) T storage[N];  // C-style array for holding the buffers
+    alignas(CACHE_LINE_SIZE) std::atomic<size_t> head;  // Atomic index for reading buffers
+    alignas(CACHE_LINE_SIZE) std::atomic<size_t> tail;  // Atomic index for writing new buffers
+    alignas(CACHE_LINE_SIZE) std::atomic<size_t> count; // Atomic count of items in the queue
 
 public:
-    TNQueue() : writeIndx(0), readIndx(0) {}
+    TNQueue() {
+        head.store(0, std::memory_order_relaxed);
+        tail.store(0, std::memory_order_relaxed);
+        count.store(0, std::memory_order_relaxed);
+    }
 
     bool isFull() const {
-        return (writeIndx + 1) % N == readIndx; // Condition for full queue
+        return count.load(std::memory_order_acquire) == N;  // Full if count equals capacity
     }
 
     bool isEmpty() const {
-        return readIndx == writeIndx; // Condition for empty queue
+        return count.load(std::memory_order_acquire) == 0;  // Empty if count is zero
     }
 
     void push(T item) {
+        size_t currentTail = tail.load(std::memory_order_acquire);
+
         if (isFull()) {
-            // Drop the oldest buffer to make space
-            T droppedItem = nullptr;
-            pop();  // Drop the oldest item
-            gst_buffer_unref(droppedItem);  // Unref the dropped buffer
+            auto droppedItemOpt = pop();  // Remove the oldest item
+            if (droppedItemOpt.has_value()) {
+                gst_buffer_unref(*droppedItemOpt);  // Unref the dropped buffer
+            }
         }
 
-        storage[writeIndx] = item;
-        writeIndx = (writeIndx + 1) % N; // Update write index
+        storage[currentTail] = item;
+        tail.store((currentTail + 1) & (N - 1), std::memory_order_release);  // Update tail with release semantics
+        count.fetch_add(1, std::memory_order_release);  // Increment count
     }
 
     std::optional<T> pop() {
-        if (isEmpty()) return std::nullopt; // Return an empty optional if the queue is empty
+        size_t currentHead = head.load(std::memory_order_acquire);
 
-        T item = storage[readIndx];
-        readIndx = (readIndx + 1) % N; // Update read index
+        if (isEmpty()) {
+            return std::nullopt;  // Queue is empty
+        }
+
+        T item = storage[currentHead];
+        head.store((currentHead + 1) & (N - 1), std::memory_order_release);  // Update head with release semantics
+        count.fetch_sub(1, std::memory_order_release);  // Decrement count
         return item;
     }
 
     void clear() {
         while (!isEmpty()) {
-            T item = nullptr;
-            pop();
-            gst_buffer_unref(item);  // Ensure all buffers are unreferenced
+            auto itemOpt = pop();
+            if (itemOpt.has_value()) {
+                gst_buffer_unref(*itemOpt);  // Ensure all buffers are unreferenced
+            }
         }
         // Reset indices
-        writeIndx = 0;
-        readIndx = 0;
+        head.store(0, std::memory_order_relaxed);
+        tail.store(0, std::memory_order_relaxed);
+        count.store(0, std::memory_order_relaxed);
     }
 
     size_t size() const {
-        return (writeIndx - readIndx + N) % N;
+        return count.load(std::memory_order_acquire);  // Directly return the count
     }
 };
 
@@ -148,7 +169,7 @@ private:
     guint prerollHandlerId_{ 0 };
     gint height_{ 0 };
     gint width_{ 0 };
-    TNQueue<GstBuffer*, 16> bufferQueue_; // Using TNQueue to hold a maximum of 15 buffers
+    TNQueue<GstBuffer*, 8> bufferQueue_; // Using TNQueue to hold a maximum of 15 buffers
     bool isPlaying_{ false };
     static bool initialized_;
     int playCount_{ 0 };

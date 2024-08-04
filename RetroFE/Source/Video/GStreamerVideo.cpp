@@ -579,7 +579,7 @@ void GStreamerVideo::draw() {
             gst_video_frame_unmap(&vframe);  // Unmap the video frame after processing
         }
     }
-gst_buffer_unref(buffer);  // Release the buffer after use
+    gst_buffer_unref(buffer);  // Release the buffer after use
 }
 
 bool GStreamerVideo::isPlaying()
