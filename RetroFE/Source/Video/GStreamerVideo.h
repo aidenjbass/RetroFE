@@ -47,50 +47,63 @@ protected:
 public:
     TNQueue() : writeIndx(0), readIndx(0) {}
 
+    // Check if the queue is full
     bool isFull() const {
-        return (writeIndx + 1) % N == readIndx; // Condition for full queue
+        return (writeIndx + 1) % N == readIndx; // Correct condition for full queue
     }
 
+    // Check if the queue is empty
     bool isEmpty() const {
         return readIndx == writeIndx; // Condition for empty queue
     }
 
+    // Push a new item into the queue
     void push(T item) {
         if (isFull()) {
+
             // Drop the oldest buffer to make space
-            T droppedItem = nullptr;
-            pop();  // Drop the oldest item
-            gst_buffer_unref(droppedItem);  // Unref the dropped buffer
+            auto droppedItemOpt = pop();  // Pop returns an optional item
+            if (droppedItemOpt.has_value()) {
+                gst_buffer_unref(*droppedItemOpt);  // Unref the dropped buffer
+            }
         }
 
+        // Insert the new item
         storage[writeIndx] = item;
-        writeIndx = (writeIndx + 1) % N; // Update write index
+        // Update write index
+        writeIndx = (writeIndx + 1) % N;
     }
 
+    // Pop an item from the queue
     std::optional<T> pop() {
         if (isEmpty()) return std::nullopt; // Return an empty optional if the queue is empty
 
+        // Retrieve the item
         T item = storage[readIndx];
-        readIndx = (readIndx + 1) % N; // Update read index
+        // Update read index
+        readIndx = (readIndx + 1) % N;
+        // Return the item
         return item;
     }
 
+    // Clear the queue
     void clear() {
         while (!isEmpty()) {
-            T item = nullptr;
-            pop();
-            gst_buffer_unref(item);  // Ensure all buffers are unreferenced
+            auto itemOpt = pop();
+            if (itemOpt.has_value()) {
+                gst_buffer_unref(*itemOpt);  // Ensure all buffers are unreferenced
+            }
         }
         // Reset indices
         writeIndx = 0;
         readIndx = 0;
     }
 
+    // Get the current size of the queue
     size_t size() const {
-        return (writeIndx - readIndx + N) % N;
+        return (writeIndx - readIndx + N) % N; // Calculate size considering wrap-around
     }
 };
-
 
 class GStreamerVideo final : public IVideo {
 public:
