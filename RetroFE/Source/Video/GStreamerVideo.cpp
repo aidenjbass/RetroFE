@@ -279,7 +279,7 @@ bool GStreamerVideo::initializeGstElements(const std::string &file)
         return false;
     }
 
-    playbin_ = gst_element_factory_make("playbin", "player");
+    playbin_ = gst_element_factory_make("playbin3", "player");
     capsFilter_ = gst_element_factory_make("capsfilter", "caps_filter");
     videoBin_ = gst_bin_new("SinkBin");
     videoSink_ = gst_element_factory_make("fakesink", "video_sink");
@@ -344,6 +344,7 @@ bool GStreamerVideo::initializeGstElements(const std::string &file)
     gst_object_unref(videoBus_);
 
     g_object_set(videoSink_, "signal-handoffs", TRUE, "sync", TRUE, "enable-last-sample", FALSE, nullptr);
+    bufferDisconnected_ = false;
 
     handoffHandlerId_ = g_signal_connect(videoSink_, "handoff", G_CALLBACK(processNewBuffer), this);
     //prerollHandlerId_ = g_signal_connect(videoSink_, "preroll-handoff", G_CALLBACK(processNewBuffer), this);
@@ -448,6 +449,24 @@ void GStreamerVideo::loopHandler()
             gst_message_unref(msg);
         }
     }
+}
+
+void GStreamerVideo::bufferDisconnect(bool disconnect)
+{
+    if (disconnect) {
+        g_object_set(videoSink_, "signal-handoffs", FALSE, nullptr);
+        bufferDisconnected_ = true;
+    }
+    else
+    {
+        g_object_set(videoSink_, "signal-handoffs", TRUE, nullptr);
+        bufferDisconnected_ = false;
+    }
+}
+
+bool GStreamerVideo::isBufferDisconnected()
+{
+    return bufferDisconnected_;
 }
 
 void GStreamerVideo::volumeUpdate()

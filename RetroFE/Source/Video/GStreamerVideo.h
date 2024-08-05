@@ -18,6 +18,7 @@
 #include "../Database/Configuration.h"
 #include "../SDL.h"
 #include "../Utility/Utils.h"
+#include "../Utility/Log.h"
 #include "IVideo.h"
 #include <atomic>
 #include <mutex>
@@ -44,7 +45,8 @@ constexpr size_t CACHE_LINE_SIZE = 64;
 template<typename T, size_t N>
 class TNQueue {
     // Ensure N is a power of two for efficient bitwise index wrapping
-    // NOTE: User should ensure N is a power of two.
+    static_assert((N& (N - 1)) == 0, "N must be a power of 2");
+
 protected:
     alignas(CACHE_LINE_SIZE) T storage[N];  // C-style array for holding the buffers
     alignas(CACHE_LINE_SIZE) std::atomic<size_t> head;  // Atomic index for reading buffers
@@ -52,11 +54,7 @@ protected:
     alignas(CACHE_LINE_SIZE) std::atomic<size_t> count; // Atomic count of items in the queue
 
 public:
-    TNQueue() {
-        head.store(0, std::memory_order_relaxed);
-        tail.store(0, std::memory_order_relaxed);
-        count.store(0, std::memory_order_relaxed);
-    }
+    TNQueue() : head(0), tail(0), count(0) {}
 
     // Check if the queue is full
     bool isFull() const {
@@ -70,23 +68,25 @@ public:
 
     // Push a new item into the queue
     void push(T item) {
-        size_t currentTail = tail.load(std::memory_order_acquire);
+        size_t currentTail = tail.load(std::memory_order_relaxed);
 
         if (isFull()) {
+            LOG_DEBUG("TNQueue", "Queue is full. Dropping the oldest item.");
             auto droppedItemOpt = pop();  // Remove the oldest item
             if (droppedItemOpt.has_value()) {
                 gst_buffer_unref(*droppedItemOpt);  // Unref the dropped buffer
             }
         }
-
-        storage[currentTail] = item;
-        tail.store((currentTail + 1) & (N - 1), std::memory_order_release);  // Update tail with release semantics
-        count.fetch_add(1, std::memory_order_release);  // Increment count
+        else {
+            storage[currentTail] = item;
+            tail.store((currentTail + 1) & (N - 1), std::memory_order_release);  // Update tail with release semantics
+            count.fetch_add(1, std::memory_order_release);  // Increment count
+        }
     }
 
     // Pop an item from the queue
     std::optional<T> pop() {
-        size_t currentHead = head.load(std::memory_order_acquire);
+        size_t currentHead = head.load(std::memory_order_relaxed);
 
         if (isEmpty()) {
             return std::nullopt;  // Queue is empty
@@ -146,6 +146,8 @@ public:
     unsigned long long getCurrent() override;
     unsigned long long getDuration() override;
     bool isPaused() override;
+    void bufferDisconnect(bool disconnect) override;
+    bool isBufferDisconnected() override;
     static void enablePlugin(const std::string& pluginName);
     static void disablePlugin(const std::string& pluginName);
 
@@ -189,6 +191,7 @@ private:
     std::atomic<bool> stopping_{ false };
     std::shared_mutex stopMutex_;
     static bool pluginsInitialized_;
+    bool bufferDisconnected_{ true };
 
     std::string generateDotFileName(const std::string& prefix, const std::string& videoFilePath) const;
 };

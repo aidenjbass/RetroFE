@@ -66,9 +66,19 @@ bool VideoComponent::update(float dt)
         bool isCurrentlyVisible = baseViewInfo.Alpha > 0.0f;
 
         if (isCurrentlyVisible)
-        {
+        {       
             hasBeenOnScreen_ = true;
+            if (videoInst_->isBufferDisconnected())
+                videoInst_->bufferDisconnect(false);
         }
+        else
+        {
+            if (!videoInst_->isBufferDisconnected())
+                videoInst_->bufferDisconnect(true);
+        }
+
+//        if (currentPage_->isMenuFastScrolling() && videoInst_->isBufferDisconnected())
+//            videoInst_->bufferDisconnect(false);
 
         if (baseViewInfo.PauseOnScroll)
         {
