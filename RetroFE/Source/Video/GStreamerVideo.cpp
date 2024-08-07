@@ -331,6 +331,10 @@ bool GStreamerVideo::initializeGstElements(const std::string &file)
 
     g_free(uriFile);
 
+    // Set the system clock explicitly for the pipeline
+    gst_pipeline_use_clock(GST_PIPELINE(playbin_), gst_system_clock_obtain());
+
+
     if (GstPad *pad = gst_element_get_static_pad(videoSink_, "sink"))
     {
         padProbeId_ = gst_pad_add_probe(pad, GST_PAD_PROBE_TYPE_EVENT_DOWNSTREAM, padProbeCallback, this, nullptr);
