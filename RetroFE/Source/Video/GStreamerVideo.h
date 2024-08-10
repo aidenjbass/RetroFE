@@ -148,6 +148,12 @@ public:
     bool isPaused() override;
     void bufferDisconnect(bool disconnect) override;
     bool isBufferDisconnected() override;
+    GstClockTime getLastPTS() const override;
+    GstClockTime getExpectedTime() const override;
+    bool isNewFrameAvailable() const override;
+    void resetNewFrameFlag() override;
+    GstElement* getPipeline() const override;
+    GstElement* getVideoSink() const override;
     static void enablePlugin(const std::string& pluginName);
     static void disablePlugin(const std::string& pluginName);
 
@@ -165,6 +171,7 @@ private:
     GstElement* videoBin_{ nullptr };
     GstElement* capsFilter_{ nullptr };
     GstBus* videoBus_{ nullptr };
+    GstClockTime baseTime_;
     GstVideoInfo* videoInfo_{ gst_video_info_new() };
     SDL_Texture* texture_{ nullptr };
     SDL_PixelFormatEnum sdlFormat_{ SDL_PIXELFORMAT_UNKNOWN };
@@ -192,6 +199,9 @@ private:
     std::shared_mutex stopMutex_;
     static bool pluginsInitialized_;
     bool bufferDisconnected_{ true };
+    GstClockTime lastPTS_;
+    GstClockTime expectedTime_;
+    bool newFrameAvailable_ = false;
 
     std::string generateDotFileName(const std::string& prefix, const std::string& videoFilePath) const;
 };

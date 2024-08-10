@@ -63,7 +63,7 @@ void GStreamerVideo::initializePlugins()
         disablePlugin("mfdeviceprovider");
         if (!Configuration::HardwareVideoAccel)
         {
-            // enablePlugin("openh264dec");
+            //enablePlugin("openh264dec");
             disablePlugin("d3d11h264dec");
             disablePlugin("d3d11h265dec");
             disablePlugin("GstNvH264Dec");
@@ -243,6 +243,7 @@ bool GStreamerVideo::play(const std::string &file)
         stop();
         return false;
     }
+    baseTime_ = gst_element_get_base_time(GST_ELEMENT(playbin_));
     paused_ = false;
     isPlaying_ = true;
     // Set the volume to zero and mute the video
@@ -279,7 +280,7 @@ bool GStreamerVideo::initializeGstElements(const std::string &file)
         return false;
     }
 
-    playbin_ = gst_element_factory_make("playbin3", "player");
+    playbin_ = gst_element_factory_make("playbin", "player");
     capsFilter_ = gst_element_factory_make("capsfilter", "caps_filter");
     videoBin_ = gst_bin_new("SinkBin");
     videoSink_ = gst_element_factory_make("fakesink", "video_sink");
@@ -331,9 +332,12 @@ bool GStreamerVideo::initializeGstElements(const std::string &file)
 
     g_free(uriFile);
 
-    // Set the system clock explicitly for the pipeline
-    gst_pipeline_use_clock(GST_PIPELINE(playbin_), gst_system_clock_obtain());
-
+    GstClock* clock = gst_system_clock_obtain();
+    g_object_set(clock,
+        "clock-type", GST_CLOCK_TYPE_MONOTONIC,
+        nullptr);
+    gst_pipeline_use_clock(GST_PIPELINE(playbin_), clock);
+    gst_object_unref(clock);
 
     if (GstPad *pad = gst_element_get_static_pad(videoSink_, "sink"))
     {
@@ -540,6 +544,30 @@ int GStreamerVideo::getWidth()
     return width_;
 }
 
+GstClockTime GStreamerVideo::getLastPTS() const {
+    return lastPTS_;
+}
+
+GstClockTime GStreamerVideo::getExpectedTime() const {
+    return expectedTime_;
+}
+
+bool GStreamerVideo::isNewFrameAvailable() const {
+    return newFrameAvailable_;
+}
+
+void GStreamerVideo::resetNewFrameFlag() {
+    newFrameAvailable_ = false;
+}
+
+GstElement* GStreamerVideo::getPipeline() const {
+    return playbin_;
+}
+
+GstElement* GStreamerVideo::getVideoSink() const {
+    return videoSink_;
+}
+
 void GStreamerVideo::processNewBuffer(GstElement const* /* fakesink */, const GstBuffer* buf, GstPad* new_pad, gpointer userdata) {
     auto* video = static_cast<GStreamerVideo*>(userdata);
 
@@ -551,7 +579,6 @@ void GStreamerVideo::processNewBuffer(GstElement const* /* fakesink */, const Gs
     video->bufferQueue_.push(copied_buf);          // Push the buffer into the queue
     size_t queueSize = video->bufferQueue_.size();
     LOG_DEBUG("Video", "Buffer received and added to queue. Current queue size: " + std::to_string(queueSize));
-
 }
 
 void GStreamerVideo::draw() {
@@ -565,7 +592,6 @@ void GStreamerVideo::draw() {
     }
 
     GstBuffer* buffer = *bufferOpt;
-
 
     if (!texture_ && width_ != 0 && height_ != 0) {
         createSdlTexture();  // Create the SDL texture if it doesn't exist
@@ -594,12 +620,26 @@ void GStreamerVideo::draw() {
                     GST_VIDEO_FRAME_PLANE_STRIDE(&vframe, 2)) != 0) {
                     std::cerr << "Video: SDL_UpdateYUVTexture failed: " << SDL_GetError() << std::endl;
                 }
-            SDL_UnlockMutex(SDL::getMutex());
             }
             else {
                 std::cerr << "Video: Unsupported format or fallback handling required." << std::endl;
             }
+            SDL_UnlockMutex(SDL::getMutex());
             gst_video_frame_unmap(&vframe);  // Unmap the video frame after processing
+
+            // Inform GStreamer about buffer processing
+            GstClockTime pts = GST_BUFFER_PTS(buffer);
+            if (!GST_CLOCK_TIME_IS_VALID(pts)) {
+                LOG_DEBUG("GStreamerVideo", "Invalid PTS: Skipping QOS event for this buffer.");
+                gst_buffer_unref(buffer);
+                return;
+            }
+
+            // Store the PTS for later use
+            lastPTS_ = pts;
+
+            // Mark the new frame as available
+            newFrameAvailable_ = true;
         }
     }
     gst_buffer_unref(buffer);  // Release the buffer after use
