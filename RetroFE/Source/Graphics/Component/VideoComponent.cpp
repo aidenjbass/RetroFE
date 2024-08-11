@@ -171,8 +171,8 @@ void VideoComponent::draw() {
                 GstClockTime pts = videoInst_->getLastPTS();
                 GstClockTime expectedTime = baseTime + pts;
 
-                // Calculate jitter
-                gint64 jitter = static_cast<gint64>(currentTime) - static_cast<gint64>(expectedTime);
+                // Calculate jitter as a GstClockTimeDiff
+                GstClockTimeDiff jitter = currentTime - expectedTime;
                 gdouble jitterSeconds = static_cast<gdouble>(jitter) / GST_SECOND;
 
                 // Use ostringstream for precise conversion and formatting
@@ -192,9 +192,10 @@ void VideoComponent::draw() {
                     proportionSampleCount_++;
 
                     // Calculate the average proportion
-                    averageProportion = cumulativeProportion_ / proportionSampleCount_;
+                    averageProportion = cumulativeProportion_ / static_cast<gdouble>(proportionSampleCount_);
                 }
 
+                LOG_DEBUG("VideoComponent", "Buffer drawn for: " + videoFile_);
                 LOG_DEBUG("VideoComponent", "Buffer PTS: " + std::to_string(GST_TIME_AS_MSECONDS(pts)) + " ms");
                 LOG_DEBUG("VideoComponent", "Current Time: " + std::to_string(GST_TIME_AS_MSECONDS(currentTime)) + " ms");
                 LOG_DEBUG("VideoComponent", "Expected Time: " + std::to_string(GST_TIME_AS_MSECONDS(expectedTime)) + " ms");
@@ -208,7 +209,7 @@ void VideoComponent::draw() {
                 GstEvent* qosEvent = gst_event_new_qos(
                     qosType,                // The type of QOS (UNDERFLOW or OVERFLOW)
                     averageProportion,      // Proportion of real-time performance based on average or default 1.0
-                    jitter,                 // The time difference of the last clock sync
+                    jitter,                 // The time difference of the last clock sync (GstClockTimeDiff)
                     pts                     // The timestamp of the buffer
                 );
 
@@ -218,6 +219,7 @@ void VideoComponent::draw() {
                         gst_pad_push_event(sinkPad, qosEvent);
                         gst_object_unref(sinkPad);
                     }
+                    gst_event_unref(qosEvent);
                 }
                 else {
                     LOG_DEBUG("VideoComponent", "Failed to create QOS event.");

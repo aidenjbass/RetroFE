@@ -53,6 +53,9 @@ protected:
     alignas(CACHE_LINE_SIZE) std::atomic<size_t> tail;  // Atomic index for writing new buffers
     alignas(CACHE_LINE_SIZE) std::atomic<size_t> count; // Atomic count of items in the queue
 
+private:
+    std::mutex queueMutex_;
+
 public:
     TNQueue() : head(0), tail(0), count(0) {}
 
@@ -101,12 +104,15 @@ public:
     // Clear the queue
     void clear() {
         while (!isEmpty()) {
-            auto itemOpt = pop();
+            auto itemOpt = pop();  // Use the pop() method to handle the queue logic
+
             if (itemOpt.has_value()) {
-                gst_buffer_unref(*itemOpt);  // Ensure all buffers are unreferenced
+                gst_buffer_unref(*itemOpt);  // Safely unref the buffer
+                *itemOpt = nullptr;           // Set the buffer to nullptr (though this line is redundant here)
             }
         }
-        // Reset indices
+
+        // Reset indices safely (not strictly necessary since pop() manages this, but good for consistency)
         head.store(0, std::memory_order_relaxed);
         tail.store(0, std::memory_order_relaxed);
         count.store(0, std::memory_order_relaxed);

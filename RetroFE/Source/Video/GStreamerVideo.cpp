@@ -24,7 +24,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
-#include <gst/app/gstappsink.h>
 #include <gst/audio/audio.h>
 #include <gst/gstdebugutils.h>
 #include <gst/video/video.h>
@@ -73,8 +72,9 @@ void GStreamerVideo::initializePlugins()
         else
         {
             enablePlugin("d3d11h264dec");
+            //disablePlugin("d3d11h264dec");
 
-            // enablePlugin("qsvh264dec");
+            //enablePlugin("qsvh264dec");
         }
 #elif defined(__APPLE__)
         // if (Configuration::HardwareVideoAccel) {
@@ -155,9 +155,9 @@ bool GStreamerVideo::stop()
 
     g_object_set(videoSink_, "signal-handoffs", FALSE, nullptr);
 
-    isPlaying_ = false;
+    newFrameAvailable_ = false;
 
-    std::unique_lock lock(stopMutex_);
+    isPlaying_ = false;
 
     if (playbin_)
     {
@@ -174,6 +174,7 @@ bool GStreamerVideo::stop()
 
         if (videoInfo_)
             gst_video_info_free(videoInfo_);
+        
         // Clear the buffer queue
         bufferQueue_.clear();
         
@@ -300,7 +301,7 @@ bool GStreamerVideo::initializeGstElements(const std::string &file)
     if (Configuration::HardwareVideoAccel)
     {
         videoConvertCaps = gst_caps_from_string(
-            "video/x-raw,format=(string)NV12,pixel-aspect-ratio=(fraction)1/1");
+            "video/x-raw(memory:D3D11Memory),format=(string)NV12,pixel-aspect-ratio=(fraction)1/1");
         sdlFormat_ = SDL_PIXELFORMAT_NV12;
         LOG_DEBUG("GStreamerVideo", "SDL pixel format selected: SDL_PIXELFORMAT_NV12. HarwareVideoAccel:true");
     }
@@ -355,7 +356,6 @@ bool GStreamerVideo::initializeGstElements(const std::string &file)
     bufferDisconnected_ = false;
 
     handoffHandlerId_ = g_signal_connect(videoSink_, "handoff", G_CALLBACK(processNewBuffer), this);
-    //prerollHandlerId_ = g_signal_connect(videoSink_, "preroll-handoff", G_CALLBACK(processNewBuffer), this);
 
     return true;
 }
@@ -578,7 +578,7 @@ void GStreamerVideo::processNewBuffer(GstElement const* /* fakesink */, const Gs
     GstBuffer* copied_buf = gst_buffer_copy(buf);  // Copy the buffer for independent lifecycle management
     video->bufferQueue_.push(copied_buf);          // Push the buffer into the queue
     size_t queueSize = video->bufferQueue_.size();
-    LOG_DEBUG("Video", "Buffer received and added to queue. Current queue size: " + std::to_string(queueSize));
+    LOG_DEBUG("GstreamerVideo", "Buffer received and added to queue. Current queue size: " + std::to_string(queueSize));
 }
 
 void GStreamerVideo::draw() {
