@@ -219,7 +219,6 @@ void VideoComponent::draw() {
                         gst_pad_push_event(sinkPad, qosEvent);
                         gst_object_unref(sinkPad);
                     }
-                    gst_event_unref(qosEvent);
                 }
                 else {
                     LOG_DEBUG("VideoComponent", "Failed to create QOS event.");
