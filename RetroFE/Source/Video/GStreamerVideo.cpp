@@ -568,14 +568,14 @@ GstElement* GStreamerVideo::getVideoSink() const {
     return videoSink_;
 }
 
-void GStreamerVideo::processNewBuffer(GstElement const* /* fakesink */, const GstBuffer* buf, GstPad* new_pad, gpointer userdata) {
+void GStreamerVideo::processNewBuffer(GstElement const* /* fakesink */, GstBuffer* buf, GstPad* new_pad, gpointer userdata) {
     auto* video = static_cast<GStreamerVideo*>(userdata);
 
     if (video->stopping_.load(std::memory_order_acquire)) {
         return;
     }
 
-    GstBuffer* copied_buf = gst_buffer_copy(buf);  // Copy the buffer for independent lifecycle management
+    GstBuffer* copied_buf = gst_buffer_ref(buf);  // Copy the buffer for independent lifecycle management
     video->bufferQueue_.push(copied_buf);          // Push the buffer into the queue
     size_t queueSize = video->bufferQueue_.size();
     LOG_DEBUG("GstreamerVideo", "Buffer received and added to queue. Current queue size: " + std::to_string(queueSize));
@@ -631,7 +631,7 @@ void GStreamerVideo::draw() {
             GstClockTime pts = GST_BUFFER_PTS(buffer);
             if (!GST_CLOCK_TIME_IS_VALID(pts)) {
                 LOG_DEBUG("GStreamerVideo", "Invalid PTS: Skipping QOS event for this buffer.");
-                gst_buffer_unref(buffer);
+                gst_clear_buffer(&buffer);
                 return;
             }
 
@@ -642,7 +642,7 @@ void GStreamerVideo::draw() {
             newFrameAvailable_ = true;
         }
     }
-    gst_buffer_unref(buffer);  // Release the buffer after use
+    gst_clear_buffer(&buffer);  // Release the buffer after use
 }
 
 bool GStreamerVideo::isPlaying()

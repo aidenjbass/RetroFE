@@ -45,7 +45,7 @@ constexpr size_t CACHE_LINE_SIZE = 64;
 template<typename T, size_t N>
 class TNQueue {
     // Ensure N is a power of two for efficient bitwise index wrapping
-    static_assert((N& (N - 1)) == 0, "N must be a power of 2");
+    static_assert((N & (N - 1)) == 0, "N must be a power of 2");
 
 protected:
     alignas(CACHE_LINE_SIZE) T storage[N];  // C-style array for holding the buffers
@@ -77,14 +77,13 @@ public:
             LOG_DEBUG("TNQueue", "Queue is full. Dropping the oldest item.");
             auto droppedItemOpt = pop();  // Remove the oldest item
             if (droppedItemOpt.has_value()) {
-                gst_buffer_unref(*droppedItemOpt);  // Unref the dropped buffer
+                gst_clear_buffer(&(*droppedItemOpt));  // Use gst_clear_buffer to unref and clear the buffer
             }
         }
-        else {
-            storage[currentTail] = item;
-            tail.store((currentTail + 1) & (N - 1), std::memory_order_release);  // Update tail with release semantics
-            count.fetch_add(1, std::memory_order_release);  // Increment count
-        }
+
+        storage[currentTail] = item;
+        tail.store((currentTail + 1) & (N - 1), std::memory_order_release);  // Update tail with release semantics
+        count.fetch_add(1, std::memory_order_release);  // Increment count
     }
 
     // Pop an item from the queue
@@ -107,8 +106,7 @@ public:
             auto itemOpt = pop();  // Use the pop() method to handle the queue logic
 
             if (itemOpt.has_value()) {
-                gst_buffer_unref(*itemOpt);  // Safely unref the buffer
-                *itemOpt = nullptr;           // Set the buffer to nullptr (though this line is redundant here)
+                gst_clear_buffer(&(*itemOpt));  // Safely clear and unref the buffer
             }
         }
 
@@ -164,7 +162,7 @@ public:
     static void disablePlugin(const std::string& pluginName);
 
 private:
-    static void processNewBuffer(GstElement const* /* fakesink */, const GstBuffer* buf, GstPad* new_pad,
+    static void processNewBuffer(GstElement const* /* fakesink */, GstBuffer* buf, GstPad* new_pad,
         gpointer userdata);
     static void elementSetupCallback(GstElement* playbin, GstElement* element, gpointer data);
     static void sourceSetupCallback(GstElement* playbin, GstElement* element, gpointer data);

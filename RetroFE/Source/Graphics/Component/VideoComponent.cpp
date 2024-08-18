@@ -119,10 +119,8 @@ void VideoComponent::allocateGraphicsMemory()
     Component::allocateGraphicsMemory();
 
     if (!isPlaying_) {
-        if (!videoInst_) {
+        if (!videoInst_ && videoFile_ != "") {
             videoInst_ = VideoFactory::createVideo(monitor_, numLoops_);
-        }
-        if (videoFile_ != "") {
             isPlaying_ = videoInst_->play(videoFile_);
         }
     }
