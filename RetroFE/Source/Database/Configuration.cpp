@@ -311,6 +311,19 @@ void Configuration::setProperty(const std::string& key, const std::string& value
     properties_[key] = value;
 }
 
+void Configuration::setProperty(const std::string& key, const int& value)
+{
+    properties_[key] = std::to_string(value);
+}
+
+void Configuration::setProperty(const std::string& key, const bool& value)
+{
+    if (value)
+        properties_[key] = "true";
+    else
+        properties_[key] = "false";
+}
+
 bool Configuration::propertiesEmpty() const
 {
     return properties_.empty();

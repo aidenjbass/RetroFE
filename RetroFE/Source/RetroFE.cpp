@@ -56,6 +56,8 @@
 #include <SDL2/SDL_syswm.h>
 #include <SDL2/SDL_thread.h>
 #include <Windows.h>
+#include "PacDrive.h"
+#include "StdAfx.h"
 #endif
 
 RetroFE::RetroFE(Configuration &c)
@@ -292,6 +294,13 @@ bool RetroFE::deInitialize()
         gst_deinit();
     }
 
+#ifdef WIN32
+    bool isServoStikEnabled = false;
+    config_.getProperty("servoStikEnabled", isServoStikEnabled);
+    if (isServoStikEnabled)
+        PacShutdown();
+#endif
+
     return retVal;
 }
 
@@ -330,6 +339,15 @@ bool RetroFE::run()
     SDL_RaiseWindow(SDL::getWindow(0));
     SDL_SetWindowGrab(SDL::getWindow(0), SDL_TRUE);
 #ifdef WIN32
+    if (!PacInitialize()) {  //attempt to enable ServoStik
+        config_.setProperty(OPTION_SERVOSTIKENABLED, false);
+        LOG_INFO("RetroFE", "ServoStik not detected");
+    }
+    else {
+        config_.setProperty(OPTION_SERVOSTIKENABLED, true);
+        LOG_INFO("RetroFE", "ServoStik Enabled");
+    }
+    
     bool highPriority = false;
     config_.getProperty(OPTION_HIGHPRIORITY, highPriority);
     if (highPriority)

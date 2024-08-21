@@ -33,6 +33,8 @@
 #ifdef WIN32
 #include <Windows.h>
 #include <cstring>
+#include "PacDrive.h"
+#include "StdAfx.h"
 #endif
 
 namespace fs = std::filesystem;
@@ -353,8 +355,19 @@ bool Launcher::execute(std::string executable, std::string args, std::string cur
         if (!CreateProcessW(pszApplication, pszCommandLine, nullptr, nullptr, FALSE, CREATE_NO_WINDOW, nullptr, currDirW.c_str(), &startupInfo, &processInfo)) {
             LOG_WARNING("Launcher", "Failed to run: " + executable + " with error code: " + std::to_string(GetLastError()));
         } else {
+            bool is4waySet = false;
+            bool isServoStikEnabled = false;
+            config_.getProperty(OPTION_SERVOSTIKENABLED, isServoStikEnabled);
+            if (currentPage->getSelectedItem()->ctrlType.find("4") != std::string::npos && isServoStikEnabled) {
+                if (!PacSetServoStik4Way()) {
+                    LOG_ERROR("RetroFE", "Failed to set ServoStik to 4-way");
+                }
+                else {
+                    LOG_INFO("RetroFE", "Setting ServoStik to 4-way");
+                    is4waySet = true;
+                }
+            }
             HANDLE hLaunchedProcess = processInfo.hProcess;
-
             if (wait) {
                 while (WAIT_OBJECT_0 != MsgWaitForMultipleObjects(1, &hLaunchedProcess, FALSE, INFINITE, QS_ALLINPUT)) {
                     MSG msg;
@@ -363,12 +376,17 @@ bool Launcher::execute(std::string executable, std::string args, std::string cur
                     }
                 }
             }
-
+            if (is4waySet)
+                if (!PacSetServoStik8Way()) { // return to 8-way if 4-way switch occurred
+                    LOG_ERROR("RetroFE", "Failed to return ServoStik to 8-way");
+                }
+                else {
+                    LOG_INFO("RetroFE", "Returned ServoStik to 8-way");
+                }
             CloseHandle(hLaunchedProcess);
             CloseHandle(processInfo.hThread);
             retVal = true;
         }
-
     } else {
         // Use ShellExecuteEx for other types like .lnk or .url
         SHELLEXECUTEINFOW shExInfo = {0};

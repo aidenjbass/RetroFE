@@ -36,6 +36,8 @@ public:
     bool getProperty(const std::string& key, bool &value);
     void childKeyCrumbs(const std::string& parent, std::vector<std::string> &children);
     void setProperty(const std::string& key, const std::string& value);
+    void setProperty(const std::string& key, const int& value);
+    void setProperty(const std::string& key, const bool& value);
     bool propertiesEmpty() const;
     bool propertyExists(const std::string& key);
     bool propertyPrefixExists(const std::string& key);

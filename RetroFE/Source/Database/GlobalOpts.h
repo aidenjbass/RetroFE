@@ -113,6 +113,7 @@
 #define OPTION_CONTROLLERCOMBOEXIT     "controllerComboExit"
 #define OPTION_CONTROLLERCOMBOSETTINGS "controllerComboSettings"
 #define OPTION_SETTINGSCOLLECTIONPLAYLIST "settingsCollectionPlaylist"
+#define OPTION_SERVOSTIKENABLED "servoStikEnabled"
 
 // METADATA OPTIONS
 #define OPTION_METALOCK               "metaLock"
@@ -236,6 +237,7 @@ public:
     bool controllercomboexit() { return bool_value(OPTION_CONTROLLERCOMBOEXIT); }
     bool controllercombosettings() { return bool_value(OPTION_CONTROLLERCOMBOSETTINGS); }
     const char *settingscollectionplaylist() { return value(OPTION_SETTINGSCOLLECTIONPLAYLIST); }
+    bool servostickenabled() { return bool_value(OPTION_SERVOSTIKENABLED); }
     
     bool metalock() { return bool_value(OPTION_METALOCK); }
     bool overwritexml() { return bool_value(OPTION_OVERWRITEXML); }
