@@ -376,13 +376,14 @@ bool Launcher::execute(std::string executable, std::string args, std::string cur
                     }
                 }
             }
-            if (is4waySet)
+            if (is4waySet) {
                 if (!PacSetServoStik8Way()) { // return to 8-way if 4-way switch occurred
                     LOG_ERROR("RetroFE", "Failed to return ServoStik to 8-way");
                 }
                 else {
                     LOG_INFO("RetroFE", "Returned ServoStik to 8-way");
                 }
+            }
             CloseHandle(hLaunchedProcess);
             CloseHandle(processInfo.hThread);
             retVal = true;
