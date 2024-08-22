@@ -347,8 +347,6 @@ bool GStreamerVideo::initializeGstElements(const std::string &file)
         gst_object_unref(pad);
     }
 
-    //sourceSetupHandlerId_ = g_signal_connect(playbin_, "source-setup", G_CALLBACK(sourceSetupCallback), nullptr);
-
     videoBus_ = gst_pipeline_get_bus(GST_PIPELINE(playbin_));
     gst_object_unref(videoBus_);
 
@@ -403,10 +401,6 @@ GstPadProbeReturn GStreamerVideo::padProbeCallback(GstPad *pad, GstPadProbeInfo 
 }
 void GStreamerVideo::createSdlTexture()
 {
-    LOG_DEBUG("GStreamerVideo", "Creating SDL texture with width: " + std::to_string(width_) +
-                                    ", height: " + std::to_string(height_) + ", format: " + std::to_string(sdlFormat_));
-
-
     texture_ = SDL_CreateTexture(SDL::getRenderer(monitor_), sdlFormat_, SDL_TEXTUREACCESS_STREAMING, width_, height_);
 
     if (!texture_)
@@ -422,9 +416,6 @@ void GStreamerVideo::createSdlTexture()
         texture_ = nullptr;
         return;
     }
-
-    LOG_DEBUG("GStreamerVideo", "SDL texture created and blend mode set successfully. Texture pointer: " +
-                                    std::to_string(reinterpret_cast<std::uintptr_t>(texture_)));
 }
 
 void GStreamerVideo::loopHandler()
