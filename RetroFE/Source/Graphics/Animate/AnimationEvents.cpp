@@ -33,14 +33,20 @@ std::shared_ptr<Animation> AnimationEvents::getAnimation(const std::string& twee
 
 std::shared_ptr<Animation> AnimationEvents::getAnimation(const std::string& tween, int index)
 {
-    if (animationMap_.find(tween) == animationMap_.end())
-        animationMap_[tween][-1] = std::make_shared<Animation>();
+    // Find the tween map, or insert a new map with the default -1 entry if not found
+    auto& indexMap = animationMap_[tween];
+    if (indexMap.find(-1) == indexMap.end()) {
+        indexMap[-1] = std::make_shared<Animation>();
+    }
 
-    if (animationMap_[tween].find(index) == animationMap_[tween].end())
+    // Find the specific index, or fallback to -1 if the index is not found
+    if (indexMap.find(index) == indexMap.end()) {
         index = -1;
+    }
 
-    return animationMap_[tween][index];
+    return indexMap[index];
 }
+
 
 void AnimationEvents::setAnimation(const std::string& tween, int index, std::shared_ptr<Animation> animation)
 {
