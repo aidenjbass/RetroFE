@@ -308,6 +308,7 @@ bool GStreamerVideo::initializeGstElements(const std::string &file)
     else
     {
         videoConvertCaps = gst_caps_from_string("video/x-raw,format=(string)I420,pixel-aspect-ratio=(fraction)1/1");
+        elementSetupHandlerId_ = g_signal_connect(playbin_, "element-setup", G_CALLBACK(elementSetupCallback), this);
         sdlFormat_ = SDL_PIXELFORMAT_IYUV;
         LOG_DEBUG("GStreamerVideo", "SDL pixel format selected: SDL_PIXELFORMAT_IYUV. HarwareVideoAccel:false");
     }
@@ -346,7 +347,6 @@ bool GStreamerVideo::initializeGstElements(const std::string &file)
         gst_object_unref(pad);
     }
 
-    elementSetupHandlerId_ = g_signal_connect(playbin_, "element-setup", G_CALLBACK(elementSetupCallback), this);
     //sourceSetupHandlerId_ = g_signal_connect(playbin_, "source-setup", G_CALLBACK(sourceSetupCallback), nullptr);
 
     videoBus_ = gst_pipeline_get_bus(GST_PIPELINE(playbin_));
@@ -362,25 +362,17 @@ bool GStreamerVideo::initializeGstElements(const std::string &file)
 
 void GStreamerVideo::elementSetupCallback(GstElement* playbin, GstElement* element, gpointer data)
 {
-    gchar* elementName = gst_element_get_name(element);
-
-    if (!Configuration::HardwareVideoAccel)
+    // Check if the element is a video decoder
+    if (GST_IS_VIDEO_DECODER(element))
     {
-        if (g_str_has_prefix(elementName, "avdec_h26"))
+        if (!Configuration::HardwareVideoAccel)
         {
-            // Modify the properties of the avdec_h26x element here
-            g_object_set(element, "thread-type", Configuration::AvdecThreadType, "max-threads",
-                Configuration::AvdecMaxThreads, "direct-rendering", FALSE, nullptr);
+            // Configure the video decoder
+            g_object_set(element, "thread-type", Configuration::AvdecThreadType,
+                "max-threads", Configuration::AvdecMaxThreads,
+                "direct-rendering", FALSE, nullptr);
         }
     }
-#ifdef WIN32
-    if (g_str_has_prefix(elementName, "wasapi"))
-    {
-        g_object_set(element, "low-latency", TRUE, nullptr);
-    }
-#endif
-
-    g_free(elementName);
 }
 
 GstPadProbeReturn GStreamerVideo::padProbeCallback(GstPad *pad, GstPadProbeInfo *info, gpointer user_data)
