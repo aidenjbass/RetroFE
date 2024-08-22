@@ -462,12 +462,11 @@ bool RetroFE::run()
 
     float lastTime = 0;
     float deltaTime = 0;
+    float inputUpdateInterval = 0.0333f; // Update every ~33.33ms (~30Hz)
+    static float lastInputUpdateTime = 0.0f;
 
     while (running)
     {
-
-        lastTime = 0;
-        deltaTime = 0;
 
         // Exit splash mode when an active key is pressed
         if (SDL_Event e; splashMode && (SDL_PollEvent(&e)))
@@ -2000,7 +1999,12 @@ bool RetroFE::run()
                 }
                 currentPage_->update(deltaTime);
                 SDL_PumpEvents();
-                input_.updateKeystate();
+                // Update keystate at 30Hz
+                if (currentTime_ - lastInputUpdateTime >= inputUpdateInterval)
+                {
+                    input_.updateKeystate();
+                    lastInputUpdateTime = currentTime_;
+                }
                 if (!splashMode && !paused_)
                 {
                     if (currentPage_->isAttractIdle())
