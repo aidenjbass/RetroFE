@@ -37,80 +37,43 @@ float ViewInfo::YRelativeToOrigin() const
 
 float ViewInfo::ScaledHeight() const
 {
+    // Cache the absolute dimensions
     float height = AbsoluteHeight();
     float width = AbsoluteWidth();
 
-    if (height < MinHeight || width < MinWidth)
-    {
-        float scaleH = MinHeight / height;
-        float scaleW = MinWidth / width;
-
-        if(width >= MinWidth && height < MinHeight)
-        {
-            height = MinHeight;
-        }
-        else if(width < MinWidth && height >= MinHeight)
-        {
-            height = scaleW * height;
-        }
-        else
-        {
-            height = (scaleH > scaleW) ? MinHeight : (height * scaleW);
-        }
-    }
-    if (width > MaxWidth || height > MaxHeight) {
-        float scaleH = MaxHeight / height;
-        float scaleW = MaxWidth / width;
-
-        if(width <= MaxWidth && height > MaxHeight) {
-            height = MaxHeight;
-        }
-        else if(width > MaxWidth && height <= MaxHeight) {
-            height = scaleW * height;
-        }
-        else {
-            height = (scaleH < scaleW) ? MaxHeight : (height * scaleW);
-        }
-    }
-
-    return height;
+    // Handle the scaling logic using the helper function
+    return ScaleDimension(height, MinHeight, MaxHeight, width, false);
 }
 
 float ViewInfo::ScaledWidth() const
 {
+    // Cache the absolute dimensions
     float height = AbsoluteHeight();
     float width = AbsoluteWidth();
 
-    if (height < MinHeight || width < MinWidth) {
-        float scaleH = MinHeight / height;
-        float scaleW = MinWidth / width;
+    // Handle the scaling logic using the helper function
+    return ScaleDimension(width, MinWidth, MaxWidth, height, true);
+}
 
-        if(height >= MinHeight && width < MinWidth) {
-            width = MinWidth;
+float ViewInfo::ScaleDimension(float size, float minSize, float maxSize, float otherSize, bool isWidth) const
+{
+    if (size < minSize) {
+        float scaleOther = minSize / otherSize;
+        if (otherSize >= minSize) {
+            return minSize;
         }
-        else if(height < MinHeight && width >= MinWidth) {
-            width = scaleH * width;
-        }
-        else {
-            width = (scaleH > scaleW) ? MinWidth : (width * scaleH);
-        }
-    }
-    if (width > MaxWidth || height > MaxHeight) {
-        float scaleH = MaxHeight / height;
-        float scaleW = MaxWidth / width;
-
-        if(height <= MaxHeight && width > MaxWidth) {
-            width = MaxWidth;
-        }
-        else if(height > MaxHeight && width <= MaxWidth) {
-            width = scaleH * width;
-        }
-        else {
-            width = (scaleH > scaleW) ? MaxWidth : (width * scaleH);
-        }
+        return isWidth ? minSize : size * scaleOther;
     }
 
-    return width;
+    if (size > maxSize) {
+        float scaleOther = maxSize / otherSize;
+        if (otherSize <= maxSize) {
+            return maxSize;
+        }
+        return isWidth ? size * scaleOther : maxSize;
+    }
+
+    return size;
 }
 
 float ViewInfo::AbsoluteHeight() const
