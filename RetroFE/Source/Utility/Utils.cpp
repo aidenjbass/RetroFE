@@ -152,49 +152,43 @@ bool Utils::isFileCachePopulated(const std::filesystem::path& baseDir) {
 }
 
 bool Utils::findMatchingFile(const std::string& prefix, const std::vector<std::string>& extensions, std::string& file) {
+    namespace fs = std::filesystem;
 
-        namespace fs = std::filesystem;
+    fs::path absolutePath = Utils::combinePath(Configuration::absolutePath, prefix);
+    fs::path baseDir = absolutePath.parent_path();
 
-        fs::path absolutePath = Utils::combinePath(Configuration::absolutePath, prefix);
-        fs::path baseDir = absolutePath.parent_path();
+    // Check if the directory is known to not exist
+    if (nonExistingDirectories.find(baseDir) != nonExistingDirectories.end()) {
+        LOG_FILECACHE("Skip", "Skipping non-existing directory: " + removeAbsolutePath(baseDir.string()));
+        return false; // Directory was previously found not to exist
+    }
 
-        // Check if the directory is known to not exist
-        if (nonExistingDirectories.find(baseDir) != nonExistingDirectories.end()) {
-            LOG_FILECACHE("Skip", "Skipping non-existing directory: " + removeAbsolutePath(baseDir.string()));
-            return false; // Directory was previously found not to exist
+    // Early exit if the directory doesn't exist
+    if (!fs::is_directory(baseDir)) {
+        nonExistingDirectories.insert(baseDir); // Add to non-existing directories cache
+        return false;
+    }
+
+    std::string baseFileName = absolutePath.filename().string();
+
+    // Ensure the cache is populated
+    if (!isFileCachePopulated(baseDir)) {
+        populateCache(baseDir);
+    }
+
+    // Check for the file with each extension in the cache
+    for (const auto& ext : extensions) {
+        std::string tempFileName = baseFileName + "." + ext;
+        if (isFileInCache(baseDir, tempFileName)) {
+            file = (baseDir / tempFileName).string();
+            return true; // File found
         }
+    }
 
-        if (!fs::is_directory(baseDir)) {
-            // Handle the case where baseDir is not a directory
-            nonExistingDirectories.insert(baseDir); // Add to non-existing directories cache
-            return false;
-        }
-
-        std::string baseFileName = absolutePath.filename().string();
-
-        if (!isFileCachePopulated(baseDir)) {
-            populateCache(baseDir);
-        }
-
-        bool foundInCache = false;
-        for (const auto& ext : extensions) {
-            std::string tempFileName = baseFileName + "." + ext;
-            if (isFileInCache(baseDir, tempFileName)) {
-                file = (baseDir / tempFileName).string();
-                foundInCache = true;
-                break;
-            }
-        }
-
-        if (!foundInCache) {
-            // Log cache miss only once per directory after checking all extensions
-            LOG_FILECACHE("Miss", removeAbsolutePath(baseDir.string()) + " does not contain file '" + baseFileName + "'");
-        }
-
-        return foundInCache;
-
+    // Log cache miss after checking all extensions
+    LOG_FILECACHE("Miss", removeAbsolutePath(baseDir.string()) + " does not contain file '" + baseFileName + "'");
+    return false; // No matching file found
 }
-
 
 
 std::string Utils::replace(
