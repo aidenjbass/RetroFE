@@ -590,7 +590,6 @@ void GStreamerVideo::draw() {
                     GST_VIDEO_FRAME_PLANE_STRIDE(&vframe, 0),
                     static_cast<const Uint8*>(GST_VIDEO_FRAME_PLANE_DATA(&vframe, 1)),
                     GST_VIDEO_FRAME_PLANE_STRIDE(&vframe, 1)) != 0) {
-                    std::cerr << "Video: SDL_UpdateNVTexture failed: " << SDL_GetError() << std::endl;
                 }
             }
             else if (sdlFormat_ == SDL_PIXELFORMAT_IYUV) {
@@ -601,11 +600,7 @@ void GStreamerVideo::draw() {
                     GST_VIDEO_FRAME_PLANE_STRIDE(&vframe, 1),
                     static_cast<const Uint8*>(GST_VIDEO_FRAME_PLANE_DATA(&vframe, 2)),
                     GST_VIDEO_FRAME_PLANE_STRIDE(&vframe, 2)) != 0) {
-                    std::cerr << "Video: SDL_UpdateYUVTexture failed: " << SDL_GetError() << std::endl;
                 }
-            }
-            else {
-                std::cerr << "Video: Unsupported format or fallback handling required." << std::endl;
             }
             SDL_UnlockMutex(SDL::getMutex());
             gst_video_frame_unmap(&vframe);  // Unmap the video frame after processing
