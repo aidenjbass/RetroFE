@@ -250,28 +250,30 @@ bool Configuration::getRawProperty(const std::string& key, std::string& value)
 
 bool Configuration::getProperty(const std::string& key, std::string& value)
 {
+    static std::string baseMediaPath = Utils::combinePath(absolutePath, "collections");
+    static std::string baseItemPath = Utils::combinePath(absolutePath, "collections");
+
+    // Optional: If properties might override base paths, check this once
+    static bool basePathsInitialized = false;
+    if (!basePathsInitialized) {
+        getRawProperty("baseMediaPath", baseMediaPath);
+        getRawProperty("baseItemPath", baseItemPath);
+        basePathsInitialized = true;
+    }
+
     bool retVal = getRawProperty(key, value);
-
-    std::string baseMediaPath = absolutePath;
-    std::string baseItemPath = absolutePath;
-
-    baseMediaPath = Utils::combinePath(absolutePath, "collections");
-    baseItemPath = Utils::combinePath(absolutePath, "collections");
-
-    getRawProperty("baseMediaPath", baseMediaPath);
-    getRawProperty("baseItemPath", baseItemPath);
-
     std::string_view valueView(value);
 
+    // Only perform replacement if necessary
     if (valueView.find("%BASE_MEDIA_PATH%") != std::string_view::npos) {
         value = Utils::replace(value, "%BASE_MEDIA_PATH%", baseMediaPath);
     }
     if (valueView.find("%BASE_ITEM_PATH%") != std::string_view::npos) {
         value = Utils::replace(value, "%BASE_ITEM_PATH%", baseItemPath);
     }
+
     return retVal;
 }
-
 
 bool Configuration::getProperty(const std::string& key, int& value)
 {
