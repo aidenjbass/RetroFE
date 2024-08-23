@@ -339,10 +339,11 @@ bool Configuration::propertyExists(const std::string& key)
 bool Configuration::propertyPrefixExists(const std::string& key)
 {
     std::string search = key + ".";
-    auto it = properties_.lower_bound(search);
 
-    if (it != properties_.end() && it->first.compare(0, search.length(), search) == 0) {
-        return true;
+    for (const auto& [propertyKey, propertyValue] : properties_) {
+        if (propertyKey.compare(0, search.length(), search) == 0) {
+            return true;
+        }
     }
 
     return false;
@@ -352,19 +353,19 @@ bool Configuration::propertyPrefixExists(const std::string& key)
 void Configuration::childKeyCrumbs(const std::string& parent, std::vector<std::string>& children)
 {
     std::string search = parent + ".";
-    auto it = properties_.lower_bound(search);
     std::set<std::string> uniqueChildren;
 
-    while (it != properties_.end() && it->first.compare(0, search.length(), search) == 0) {
-        std::string crumb = it->first.substr(search.length());
-        std::size_t end = crumb.find_first_of(".");
+    for (const auto& [propertyKey, propertyValue] : properties_) {
+        if (propertyKey.compare(0, search.length(), search) == 0) {
+            std::string crumb = propertyKey.substr(search.length());
+            std::size_t end = crumb.find_first_of(".");
 
-        if (end != std::string::npos) {
-            crumb = crumb.substr(0, end);
+            if (end != std::string::npos) {
+                crumb = crumb.substr(0, end);
+            }
+
+            uniqueChildren.insert(crumb);
         }
-
-        uniqueChildren.insert(crumb);
-        ++it;
     }
 
     children.assign(uniqueChildren.begin(), uniqueChildren.end());

@@ -18,6 +18,7 @@
 #include <string>
 #include <map>
 #include <vector>
+#include <unordered_map>
 
 class Configuration
 {
@@ -58,7 +59,7 @@ public:
 private:
     bool getRawProperty(const std::string& key, std::string &value);
     bool parseLine(const std::string& collection, std::string keyPrefix, std::string line, int lineCount);
-    using PropertiesType = std::map<std::string, std::string, std::less<>>;
+    using PropertiesType = std::unordered_map<std::string, std::string>;
     typedef std::pair<std::string, std::string> PropertiesPair;
 
     PropertiesType properties_;
