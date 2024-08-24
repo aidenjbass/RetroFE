@@ -28,7 +28,6 @@
 
 std::vector<SDL_Window *>   SDL::window_;
 std::vector<SDL_Renderer *> SDL::renderer_;
-SDL_Texture* SDL::renderTarget_ = nullptr;  // Define the static variable
 SDL_mutex                  *SDL::mutex_ = nullptr;
 std::vector<int>            SDL::displayWidth_;
 std::vector<int>            SDL::displayHeight_;
@@ -303,8 +302,6 @@ bool SDL::initialize(Configuration &config)
                 {
                     renderer_[screenNum] = SDL_CreateRenderer(window_[screenNum], -1, SDL_RENDERER_ACCELERATED);
                 }
-                renderTarget_ = SDL_CreateTexture(renderer_[screenNum], SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, windowWidth_[screenNum], windowHeight_[screenNum]);
-
             }
             if (renderer_[screenNum] == NULL)
             {
@@ -363,13 +360,7 @@ bool SDL::initialize(Configuration &config)
     return true;
 }
 
-SDL_Texture* SDL::getTexture()
-{
-    SDL_LockMutex(SDL::getMutex());
-    SDL_Texture* texture = renderTarget_;
-    SDL_UnlockMutex(SDL::getMutex());
-    return texture;
-}
+
 
 // Deinitialize SDL
 bool SDL::deInitialize( )

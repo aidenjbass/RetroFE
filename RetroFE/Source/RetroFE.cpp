@@ -79,31 +79,24 @@ RetroFE::~RetroFE()
     deInitialize();
 }
 
+// Render the current page to the screen
 void RetroFE::render()
 {
+
     SDL_LockMutex(SDL::getMutex());
-
-    // Set the render target to the off-screen texture
-    SDL_SetRenderTarget(SDL::getRenderer(0), SDL::getTexture());
-
-    // Clear the texture (optional, depending on what you're drawing)
-    SDL_SetRenderDrawColor(SDL::getRenderer(0), 0x0, 0x0, 0x00, 0xFF);
-    SDL_RenderClear(SDL::getRenderer(0));
-
-    // Draw the current page (which draws everything to the render target)
-    if (currentPage_) {
+    for (int i = 0; i < SDL::getScreenCount(); ++i)
+    {
+        SDL_SetRenderDrawColor(SDL::getRenderer(i), 0x0, 0x0, 0x00, 0xFF);
+        SDL_RenderClear(SDL::getRenderer(i));
+    }
+    if (currentPage_)
+    {
         currentPage_->draw();
     }
-
-    // Set the render target back to the screen
-    SDL_SetRenderTarget(SDL::getRenderer(0), nullptr);
-
-    // Now render the final composited texture to the screen for each monitor
-    for (int i = 0; i < SDL::getScreenCount(); ++i) {
-        SDL_RenderCopy(SDL::getRenderer(0), SDL::getTexture(), nullptr, nullptr);
+    for (int i = 0; i < SDL::getScreenCount(); ++i)
+    {
         SDL_RenderPresent(SDL::getRenderer(i));
     }
-
     SDL_UnlockMutex(SDL::getMutex());
 }
 
