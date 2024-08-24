@@ -40,16 +40,24 @@ void Image::freeGraphicsMemory() {
     Component::freeGraphicsMemory();
 
     SDL_LockMutex(SDL::getMutex());
+
     if (texture_ != nullptr) {
         SDL_DestroyTexture(texture_);
         texture_ = nullptr;
     }
+
     if (!frameTextures_.empty()) {
         for (SDL_Texture* frameTexture : frameTextures_) {
             SDL_DestroyTexture(frameTexture);
         }
         frameTextures_.clear();
     }
+
+    if (animation_ != nullptr) {
+        IMG_FreeAnimation(animation_);
+        animation_ = nullptr;
+    }
+
     SDL_UnlockMutex(SDL::getMutex());
 }
 
@@ -80,7 +88,6 @@ void Image::allocateGraphicsMemory() {
                     if (frameTexture) {
                         frameTextures_.push_back(frameTexture);
                     }
-                    SDL_FreeSurface(animation_->frames[i]); // Free the surface after creating the texture
                 }
                 baseViewInfo.ImageWidth = static_cast<float>(animation_->w);
                 baseViewInfo.ImageHeight = static_cast<float>(animation_->h);
