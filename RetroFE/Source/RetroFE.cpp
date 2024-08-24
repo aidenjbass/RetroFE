@@ -82,21 +82,36 @@ RetroFE::~RetroFE()
 // Render the current page to the screen
 void RetroFE::render()
 {
-
     SDL_LockMutex(SDL::getMutex());
+
     for (int i = 0; i < SDL::getScreenCount(); ++i)
     {
-        SDL_SetRenderDrawColor(SDL::getRenderer(i), 0x0, 0x0, 0x00, 0xFF);
-        SDL_RenderClear(SDL::getRenderer(i));
+        // Set the render target to the texture
+        SDL_SetRenderTarget(SDL::getRenderer(i), SDL::getRenderTarget(i));
+
+        // Clear the texture (render target) with a black color
+        //SDL_SetRenderDrawColor(SDL::getRenderer(i), 0x0, 0x0, 0x00, 0xFF);
+        //SDL_RenderClear(SDL::getRenderer(i));
     }
+
     if (currentPage_)
     {
+        // Draw the current page onto the render target
         currentPage_->draw();
     }
+
     for (int i = 0; i < SDL::getScreenCount(); ++i)
     {
+        // Reset the render target to default (the screen)
+        SDL_SetRenderTarget(SDL::getRenderer(i), nullptr);
+
+        // Render the texture onto the screen
+        SDL_RenderCopy(SDL::getRenderer(i), SDL::getRenderTarget(i), nullptr, nullptr);
+
+        // Present the final image
         SDL_RenderPresent(SDL::getRenderer(i));
     }
+
     SDL_UnlockMutex(SDL::getMutex());
 }
 

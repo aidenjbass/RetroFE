@@ -28,6 +28,7 @@
 
 std::vector<SDL_Window *>   SDL::window_;
 std::vector<SDL_Renderer *> SDL::renderer_;
+std::vector<SDL_Texture*>   SDL::renderTargets_;
 SDL_mutex                  *SDL::mutex_ = nullptr;
 std::vector<int>            SDL::displayWidth_;
 std::vector<int>            SDL::displayHeight_;
@@ -311,6 +312,24 @@ bool SDL::initialize(Configuration &config)
             }
             else
             {
+                // Create a render target texture for this screen
+                SDL_Texture* renderTarget = SDL_CreateTexture(renderer_[screenNum],
+                    SDL_PIXELFORMAT_RGBA8888,
+                    SDL_TEXTUREACCESS_TARGET,
+                    windowWidth_[screenNum],
+                    windowHeight_[screenNum]);
+
+
+                if (renderTarget == NULL)
+                {
+                    std::string error = SDL_GetError();
+                    LOG_ERROR("SDL", "Create render target texture failed: " + error);
+                    return false;
+                }
+
+                // Store the render target texture
+                renderTargets_.push_back(renderTarget);
+                
                 SDL_RendererInfo info;
                 if (SDL_GetRendererInfo(renderer_[screenNum], &info) == 0)
                 {
@@ -363,59 +382,78 @@ bool SDL::initialize(Configuration &config)
 
 
 // Deinitialize SDL
-bool SDL::deInitialize( )
+bool SDL::deInitialize()
 {
-    std::string error = SDL_GetError( );
-    LOG_INFO("SDL", "DeInitializing" );
+    std::string error = SDL_GetError();
+    LOG_INFO("SDL", "DeInitializing");
 
-    if (window_[0] != NULL) {
+    if (window_[0] != NULL)
+    {
         // If on MacOS disable relative mouse mode
-        #ifdef __APPLE__
-            SDL_SetRelativeMouseMode(SDL_FALSE);
-        #endif
+#ifdef __APPLE__
+        SDL_SetRelativeMouseMode(SDL_FALSE);
+#endif
         // Center mouse in primary window
         SDL_WarpMouseInWindow(window_[0], windowWidth_[0] / 2, windowHeight_[0] / 2);
     }
-    else {
+    else
+    {
         LOG_WARNING("SDL", "Window 0 is NULL, cannot center mouse within it");
     }
 
-    Mix_CloseAudio( );
-    Mix_Quit( );
+    Mix_CloseAudio();
+    Mix_Quit();
 
-    if ( mutex_ ) {
+    if (mutex_)
+    {
         SDL_DestroyMutex(mutex_);
         mutex_ = nullptr;
     }
 
-    
-    for ( int i = 0; i < screenCount_; ++i ) {
-        if ( !renderer_.empty() ) {
-            if ( renderer_[0] ) {
-                SDL_DestroyRenderer( renderer_[0] );
-            }
-            renderer_.erase( renderer_.begin( ) );
-        }
-
-        if ( !window_.empty() ) {
-            if ( window_[0] ) {
-                SDL_DestroyWindow( window_[0] );
-            }
-            window_.erase( window_.begin( ) );
+    // Destroy render target textures
+    for (auto texture : renderTargets_)
+    {
+        if (texture)
+        {
+            SDL_DestroyTexture(texture);
         }
     }
-    displayWidth_.clear( );
-    displayHeight_.clear( );
-    windowWidth_.clear( );
-    windowHeight_.clear( );
-    fullscreen_.clear( );
+    renderTargets_.clear();
 
-    SDL_ShowCursor( SDL_TRUE );
+    for (int i = 0; i < screenCount_; ++i)
+    {
+        if (!renderer_.empty())
+        {
+            if (renderer_[0])
+            {
+                SDL_DestroyRenderer(renderer_[0]);
+            }
+            renderer_.erase(renderer_.begin());
+        }
 
-    SDL_Quit( );
+        if (!window_.empty())
+        {
+            if (window_[0])
+            {
+                SDL_DestroyWindow(window_[0]);
+            }
+            window_.erase(window_.begin());
+        }
+    }
+
+    displayWidth_.clear();
+    displayHeight_.clear();
+    windowWidth_.clear();
+    windowHeight_.clear();
+    fullscreen_.clear();
+
+    SDL_ShowCursor(SDL_TRUE);
+
+    SDL_Quit();
 
     return true;
 }
+
 
 
 // Get the renderer
@@ -451,6 +489,14 @@ SDL_Window* SDL::getWindow( int index )
     return (index < screenCount_ ? window_[index] : window_[0]);
 }
 
+SDL_Texture* SDL::getRenderTarget(int index)
+{
+    if (index < renderTargets_.size())
+    {
+        return renderTargets_[index];
+    }
+    return nullptr;
+}
 
 // Render a copy of a texture
 bool SDL::renderCopy( SDL_Texture *texture, float alpha, SDL_Rect const *src, SDL_Rect const *dest, ViewInfo &viewInfo, int layoutWidth, int layoutHeight )
