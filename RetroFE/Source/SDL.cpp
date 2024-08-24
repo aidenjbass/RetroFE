@@ -314,7 +314,7 @@ bool SDL::initialize(Configuration &config)
             {
                 // Create a render target texture for this screen
                 SDL_Texture* renderTarget = SDL_CreateTexture(renderer_[screenNum],
-                    SDL_PIXELFORMAT_RGBA8888,
+                    SDL_PIXELFORMAT_ARGB8888,
                     SDL_TEXTUREACCESS_TARGET,
                     windowWidth_[screenNum],
                     windowHeight_[screenNum]);
