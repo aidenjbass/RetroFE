@@ -83,7 +83,6 @@ void Image::allocateGraphicsMemory() {
             if (animation_) {
                 // Preload all frames as textures
                 for (int i = 0; i < animation_->count; ++i) {
-                    SDL_SetSurfaceRLE(animation_->frames[i], 1); // Enable RLE acceleration on the surface
                     SDL_Texture* frameTexture = SDL_CreateTextureFromSurface(SDL::getRenderer(baseViewInfo.Monitor), animation_->frames[i]);
                     if (frameTexture) {
                         frameTextures_.push_back(frameTexture);
@@ -92,33 +91,29 @@ void Image::allocateGraphicsMemory() {
                 baseViewInfo.ImageWidth = static_cast<float>(animation_->w);
                 baseViewInfo.ImageHeight = static_cast<float>(animation_->h);
                 lastFrameTime_ = SDL_GetTicks();
-            } else {
+            }
+            else {
                 LOG_ERROR("Image", "Failed to load GIF animation: " + std::string(IMG_GetError()));
             }
         }
 
         // If not a GIF, or GIF loading failed, treat as a static image
         if (!animation_) {
-            SDL_Surface* surface = IMG_Load(file_.c_str());
-            if (!surface && !altFile_.empty()) {
-                surface = IMG_Load(altFile_.c_str());
+            texture_ = IMG_LoadTexture(SDL::getRenderer(baseViewInfo.Monitor), file_.c_str());
+            if (!texture_ && !altFile_.empty()) {
+                texture_ = IMG_LoadTexture(SDL::getRenderer(baseViewInfo.Monitor), altFile_.c_str());
             }
 
-            if (surface) {
-                SDL_SetSurfaceRLE(surface, 1);
-                texture_ = SDL_CreateTextureFromSurface(SDL::getRenderer(baseViewInfo.Monitor), surface);
-                SDL_FreeSurface(surface);  // Free the surface
+            if (texture_) {
+                int width, height;
+                SDL_QueryTexture(texture_, nullptr, nullptr, &width, &height);
+                baseViewInfo.ImageWidth = static_cast<float>(width);
+                baseViewInfo.ImageHeight = static_cast<float>(height);
 
-                if (texture_) {
-                    int width, height;
-                    SDL_QueryTexture(texture_, nullptr, nullptr, &width, &height);
-                    baseViewInfo.ImageWidth = static_cast<float>(width);
-                    baseViewInfo.ImageHeight = static_cast<float>(height);
-
-                    // Set the blend mode
-                    SDL_SetTextureBlendMode(texture_, baseViewInfo.Additive ? SDL_BLENDMODE_ADD : SDL_BLENDMODE_BLEND);
-                }
-            } else {
+                // Set the blend mode
+                SDL_SetTextureBlendMode(texture_, baseViewInfo.Additive ? SDL_BLENDMODE_ADD : SDL_BLENDMODE_BLEND);
+            }
+            else {
                 LOG_ERROR("Image", "Failed to load image: " + std::string(IMG_GetError()));
             }
         }
