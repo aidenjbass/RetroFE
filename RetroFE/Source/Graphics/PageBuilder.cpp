@@ -234,12 +234,28 @@ Page *PageBuilder::buildPage( const std::string& collectionName, bool defaultToC
                 }
 
                 if (layoutWidthXml && layoutHeightXml) {
-                    layoutWidth_ = Utils::convertInt(layoutWidthXml->value());
-                    layoutHeight_ = Utils::convertInt(layoutHeightXml->value());
+                    std::string layoutWidthStr = layoutWidthXml->value();
+                    std::string layoutHeightStr = layoutHeightXml->value();
+
+                    // Determine the monitor from the layout tag or use a default
+                    int monitor = layoutMonitorXml ? Utils::convertInt(layoutMonitorXml->value()) : monitor_;
+
+                    // Get the width and height based on whether "stretch" is specified
+                    if (layoutWidthStr == "stretch") {
+                        layoutWidth_ = SDL::getWindowWidth(monitor);
+                    } else {
+                        layoutWidth_ = Utils::convertInt(layoutWidthStr);
+                    }
+
+                    if (layoutHeightStr == "stretch") {
+                        layoutHeight_ = SDL::getWindowHeight(monitor);
+                    } else {
+                        layoutHeight_ = Utils::convertInt(layoutHeightStr);
+                    }
 
                     if (layoutWidth_ != 0 && layoutHeight_ != 0) {
                         std::stringstream ss;
-                        ss << layoutWidth_ << "x" << layoutHeight_ << " (scale " << (float)screenWidth_ / (float)layoutWidth_ << "x" << (float)screenHeight_ / (float)layoutHeight_ << ")";
+                        ss << layoutWidth_ << "x" << layoutHeight_ << " (scale " << (float)SDL::getWindowWidth(monitor) / (float)layoutWidth_ << "x" << (float)SDL::getWindowHeight(monitor) / (float)layoutHeight_ << ")";
                         LOG_INFO("Layout", "Layout resolution " + ss.str());
 
                         if (!page)
@@ -248,7 +264,6 @@ Page *PageBuilder::buildPage( const std::string& collectionName, bool defaultToC
                             page->setLayoutWidth(layout, layoutWidth_);
                             page->setLayoutHeight(layout, layoutHeight_);
 
-                            monitor = layoutMonitorXml ? Utils::convertInt(layoutMonitorXml->value()) : monitor_;
                             if (monitor) {
                                 page->setLayoutWidthByMonitor(monitor, layoutWidth_);
                                 page->setLayoutHeightByMonitor(monitor, layoutHeight_);
@@ -468,7 +483,7 @@ bool PageBuilder::buildComponents(xml_node<>* layout, Page* page, const std::str
             id = Utils::convertInt(idXml->value());
         }
 
-         int imageMonitor = monitorXml ? Utils::convertInt(monitorXml->value()) : layoutMonitor; // Use layout's monitor if not specified at the menu level
+        int imageMonitor = monitorXml ? Utils::convertInt(monitorXml->value()) : layoutMonitor; // Use layout's monitor if not specified
 
         // Check if the specified monitor exists (for this "image")
         if (imageMonitor + 1 > SDL::getScreenCount()) {
@@ -478,16 +493,14 @@ bool PageBuilder::buildComponents(xml_node<>* layout, Page* page, const std::str
 
         if (!src) {
             LOG_ERROR("Layout", "Image component in layout does not specify a source image file");
-        }
-        else {
+        } else {
             std::string imagePath;
-            
+
             std::string layoutFromAnotherCollection;
             config_.getProperty("collections." + collectionName + ".layoutFromAnotherCollection", layoutFromAnotherCollection);
-            if (layoutFromAnotherCollection != "") {
+            if (!layoutFromAnotherCollection.empty()) {
                 namespace fs = std::filesystem;
-                // If layoutFromAnotherCollection, search in layouts/<layout>/collections/<collectionName>/layout/
-                // Instead of layouts/<layout>/collections/<layoutFromAnotherCollection>/layout/
+                // Handle layout from another collection
                 std::string layoutPathDefault = Utils::combinePath(Configuration::absolutePath, "layouts", layoutKey);
                 layoutPath = Utils::combinePath(layoutPathDefault, "collections", collectionName, "layout");
                 if (!fs::exists(layoutPath)) {
@@ -497,18 +510,16 @@ bool PageBuilder::buildComponents(xml_node<>* layout, Page* page, const std::str
                     layoutPath = layout_artworkCollectionPath;
                 }
             }
-            
+
             imagePath = Utils::combinePath(Configuration::convertToAbsolutePath(layoutPath, imagePath), std::string(src->value()));
-            
-            // check if collection's assets are in a different theme
+
+            // Check if collection's assets are in a different theme
             std::string layoutName;
             config_.getProperty("collections." + collectionName + ".layout", layoutName);
-            if (layoutName == "") {
+            if (layoutName.empty()) {
                 config_.getProperty(OPTION_LAYOUT, layoutName);
             }
-            std::string altImagePath;
-            altImagePath = Utils::combinePath(Configuration::absolutePath, "layouts", layoutName, std::string(src->value()));
-
+            std::string altImagePath = Utils::combinePath(Configuration::absolutePath, "layouts", layoutName, std::string(src->value()));
 
             bool additive = additiveXml ? bool(additiveXml->value()) : false;
             auto* c = new Image(imagePath, altImagePath, *page, imageMonitor, additive);
@@ -516,18 +527,20 @@ bool PageBuilder::buildComponents(xml_node<>* layout, Page* page, const std::str
             c->setId(id);
 
             if (auto const* menuScrollReload = componentXml->first_attribute("menuScrollReload");
-                menuScrollReload &&
-                (Utils::toLower(menuScrollReload->value()) == "true" || Utils::toLower(menuScrollReload->value()) == "yes"))
-            {
+                menuScrollReload && (Utils::toLower(menuScrollReload->value()) == "true" || Utils::toLower(menuScrollReload->value()) == "yes")) {
                 c->setMenuScrollReload(true);
             }
 
+            // Explicitly set the monitor and layout
+            c->baseViewInfo.Monitor = monitorXml ? Utils::convertInt(monitorXml->value()) : layoutMonitor;
+            c->baseViewInfo.Layout = page->getCurrentLayout();
 
             buildViewInfo(componentXml, c->baseViewInfo);
             loadTweens(c, componentXml);
             page->addComponent(c);
         }
     }
+
 
 
     for(xml_node<> *componentXml = layout->first_node("video"); componentXml; componentXml = componentXml->next_sibling("video"))
@@ -598,6 +611,8 @@ bool PageBuilder::buildComponents(xml_node<>* layout, Page* page, const std::str
                         (Utils::toLower(animationDoneRemove->value()) == "true" || Utils::toLower(animationDoneRemove->value()) == "yes")) {
                         c->setAnimationDoneRemove(true);
                     }
+                    c->baseViewInfo.Monitor = monitorXml ? Utils::convertInt(monitorXml->value()) : layoutMonitor;
+                    c->baseViewInfo.Layout = page->getCurrentLayout();
 
                     buildViewInfo(componentXml, c->baseViewInfo);
                     loadTweens(c, componentXml);
@@ -1497,29 +1512,29 @@ void PageBuilder::getAnimationEvents(const xml_node<> *node, TweenSet &tweens)
     std::string actionSetting;
     config_.getProperty(OPTION_ACTION, actionSetting);
 
-    if(!durationXml) {
+    if (!durationXml) {
         LOG_ERROR("Layout", "Animation set tag missing \"duration\" attribute");
-    }
+    } 
     else {
-        for(xml_node<> const *animate = node->first_node("animate"); animate; animate = animate->next_sibling("animate")) {
+        for (xml_node<> const *animate = node->first_node("animate"); animate; animate = animate->next_sibling("animate")) {
             xml_attribute<> const *type = animate->first_attribute("type");
             xml_attribute<> const *from = animate->first_attribute("from");
             xml_attribute<> const *to = animate->first_attribute("to");
             xml_attribute<> const *algorithmXml = animate->first_attribute("algorithm");
-            xml_attribute<> const* setting = animate->first_attribute("setting");
-            xml_attribute<> const* playlist = animate->first_attribute("playlist");
+            xml_attribute<> const *setting = animate->first_attribute("setting");
+            xml_attribute<> const *playlist = animate->first_attribute("playlist");
 
             std::string animateType;
             if (type) {
                 animateType = type->value();
             }
 
-            if(!type) {
+            if (!type) {
                 LOG_ERROR("Layout", "Animate tag missing \"type\" attribute");
-            }
-            else if(!to && (animateType != "nop" && animateType != "restart")) {
+            } 
+            else if (!to && (animateType != "nop" && animateType != "restart")) {
                 LOG_ERROR("Layout", "Animate tag missing \"to\" attribute");
-            }
+            } 
             else {
                 // if in settings action="<something>" and the action has setting="<something>" then perform animation
                 if (setting && setting->value() != actionSetting) {
@@ -1527,38 +1542,69 @@ void PageBuilder::getAnimationEvents(const xml_node<> *node, TweenSet &tweens)
                 }
 
                 float fromValue = 0.0f;
-                bool  fromDefined = true;
+                bool fromDefined = true;
                 if (from) {
                     std::string fromStr = from->value();
-                    if(fromStr == "left") {
+                    if (fromStr == "left" || fromStr == "top") {
                         fromValue = 0.0f;
                     } 
-                    else if(fromStr == "center") {
-                        fromValue = static_cast<float>(layoutWidth_) / 2;
+                    else if (fromStr == "center") {
+                        fromValue = (animateType == "width") 
+                            ? static_cast<float>(layoutWidth_) / 2
+                            : static_cast<float>(layoutHeight_) / 2;
                     } 
-                    else if(fromStr == "right" || fromStr == "stretch") {
+                    else if (fromStr == "right" || fromStr == "stretch") {
                         fromValue = static_cast<float>(layoutWidth_);
+                    } 
+                    else if (fromStr == "bottom") {
+                        fromValue = static_cast<float>(layoutHeight_);
+                    } 
+                    else if (fromStr.back() == '%') {
+                        float percent = Utils::convertFloat(fromStr.substr(0, fromStr.size() - 1));
+                        if (animateType == "width") {
+                            fromValue = layoutWidth_ * (percent / 100.0f);
+                        } else if (animateType == "height") {
+                            fromValue = layoutHeight_ * (percent / 100.0f);
+                        } else {
+                            LOG_ERROR("Layout", "Invalid animateType for percentage calculation: " + animateType);
+                            fromValue = 0.0f; // or another default/fallback value
+                        }
                     } 
                     else {
                         fromValue = Utils::convertFloat(fromStr);
                     }
-                }
-                else
-                {
+                } 
+                else {
                     fromDefined = false;
                 }
 
                 float toValue = 0.0f;
                 if (to) {
                     std::string toStr = to->value();
-                    if(toStr == "left") {
+                    if (toStr == "left" || toStr == "top") {
                         toValue = 0.0f;
                     } 
-                    else if(toStr == "center") {
-                        toValue = static_cast<float>(layoutWidth_) / 2;
+                    else if (toStr == "center") {
+                        toValue = (animateType == "width") 
+                            ? static_cast<float>(layoutWidth_) / 2
+                            : static_cast<float>(layoutHeight_) / 2;
                     } 
-                    else if(toStr == "right" || toStr == "stretch") {
+                    else if (toStr == "right" || toStr == "stretch") {
                         toValue = static_cast<float>(layoutWidth_);
+                    } 
+                    else if (toStr == "bottom") {
+                        toValue = static_cast<float>(layoutHeight_);
+                    } 
+                    else if (toStr.back() == '%') {
+                        float percent = Utils::convertFloat(toStr.substr(0, toStr.size() - 1));
+                        if (animateType == "width") {
+                            toValue = static_cast<float>(layoutWidth_) * (percent / 100.0f);
+                        } else if (animateType == "height") {
+                            toValue = static_cast<float>(layoutHeight_) * (percent / 100.0f);
+                        } else {
+                            LOG_ERROR("Layout", "Invalid animateType for percentage calculation: " + animateType);
+                            toValue = 0.0f; // or another default/fallback value
+                        }
                     } 
                     else {
                         toValue = Utils::convertFloat(toStr);
@@ -1570,12 +1616,12 @@ void PageBuilder::getAnimationEvents(const xml_node<> *node, TweenSet &tweens)
                 TweenAlgorithm algorithm = LINEAR;
                 TweenProperty property;
 
-                if(algorithmXml) {
+                if (algorithmXml) {
                     algorithm = Tween::getTweenType(algorithmXml->value());
                 }
 
-                if(Tween::getTweenProperty(animateType, property)) {
-                    switch(property) {
+                if (Tween::getTweenProperty(animateType, property)) {
+                    switch (property) {
                     case TWEEN_PROPERTY_WIDTH:
                     case TWEEN_PROPERTY_X:
                     case TWEEN_PROPERTY_X_OFFSET:
@@ -1610,7 +1656,7 @@ void PageBuilder::getAnimationEvents(const xml_node<> *node, TweenSet &tweens)
                     case TWEEN_PROPERTY_MAX_WIDTH:
                     case TWEEN_PROPERTY_MAX_HEIGHT:
                         fromValue = getVerticalAlignment(from, FLT_MAX);
-                        toValue   = getVerticalAlignment(to,   FLT_MAX);
+                        toValue   = getVerticalAlignment(to, FLT_MAX);
                         break;
                     default:
                         break;
@@ -1618,10 +1664,11 @@ void PageBuilder::getAnimationEvents(const xml_node<> *node, TweenSet &tweens)
 
                     // if in layout action has playlist="<current playlist name>" then perform action
                     std::string playlistFilter = playlist && playlist->value() ? playlist->value() : "";
-                    auto t = std::make_unique<Tween>(property, algorithm, fromValue, toValue, durationValue, playlistFilter);                    if (!fromDefined)
-                      t->startDefined = false;
+                    auto t = std::make_unique<Tween>(property, algorithm, fromValue, toValue, durationValue, playlistFilter);
+                    if (!fromDefined)
+                        t->startDefined = false;
                     tweens.push(std::move(t));
-                }
+                } 
                 else {
                     std::stringstream ss;
                     ss << "Unsupported tween type attribute \"" << type->value() << "\"";
