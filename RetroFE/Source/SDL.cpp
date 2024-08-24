@@ -504,11 +504,7 @@ SDL_Window* SDL::getWindow( int index )
 
 SDL_Texture* SDL::getRenderTarget(int index)
 {
-    if (index < renderTargets_.size())
-    {
-        return renderTargets_[index];
-    }
-    return nullptr;
+    return (index < screenCount_ ? renderTargets_[index] : renderTargets_[0]);
 }
 
 // Render a copy of a texture
