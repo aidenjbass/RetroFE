@@ -17,6 +17,7 @@
 #include "../ViewInfo.h"
 #include "../../SDL.h"
 #include "../../Utility/Log.h"
+#include <filesystem>
 #if (__APPLE__)
     #include <SDL2_image/SDL_image.h>
 #else
@@ -55,32 +56,39 @@ void Image::freeGraphicsMemory() {
 void Image::allocateGraphicsMemory() {
     if (!texture_ && frameTextures_.empty()) {
 
-        // Try to load the image as an animation first
-        animation_ = IMG_LoadAnimation(file_.c_str());
-        if (!animation_ && !altFile_.empty()) {
-            animation_ = IMG_LoadAnimation(altFile_.c_str());
+        // Get the file extension using std::filesystem
+        std::filesystem::path filePath(file_);
+        std::string fileExtension = filePath.extension().string();
+        std::transform(fileExtension.begin(), fileExtension.end(), fileExtension.begin(), ::tolower); // Convert to lowercase
+
+        // Check if the file is a GIF
+        if (fileExtension == ".gif") {
+            // Try to load the GIF as an animation
+            animation_ = IMG_LoadAnimation(file_.c_str());
+            if (!animation_ && !altFile_.empty()) {
+                animation_ = IMG_LoadAnimation(altFile_.c_str());
+            }
+
+            if (animation_) {
+                // Preload all frames as textures
+                for (int i = 0; i < animation_->count; ++i) {
+                    SDL_SetSurfaceRLE(animation_->frames[i], 1); // Enable RLE acceleration on the surface
+                    SDL_Texture* frameTexture = SDL_CreateTextureFromSurface(SDL::getRenderer(baseViewInfo.Monitor), animation_->frames[i]);
+                    if (frameTexture) {
+                        frameTextures_.push_back(frameTexture);
+                    }
+                    SDL_FreeSurface(animation_->frames[i]); // Free the surface after creating the texture
+                }
+                baseViewInfo.ImageWidth = static_cast<float>(animation_->w);
+                baseViewInfo.ImageHeight = static_cast<float>(animation_->h);
+                lastFrameTime_ = SDL_GetTicks();
+            } else {
+                LOG_ERROR("Image", "Failed to load GIF animation: " + std::string(IMG_GetError()));
+            }
         }
 
-        if (animation_) {
-            // Preload all frames as textures
-            for (int i = 0; i < animation_->count; ++i) {
-                // Enable RLE acceleration on the surface
-                SDL_SetSurfaceRLE(animation_->frames[i], 1);
-
-                // Create a texture from the surface
-                SDL_Texture* frameTexture = SDL_CreateTextureFromSurface(SDL::getRenderer(baseViewInfo.Monitor), animation_->frames[i]);
-                if (frameTexture) {
-                    frameTextures_.push_back(frameTexture);
-                }
-
-                // Free the surface after creating the texture
-                SDL_FreeSurface(animation_->frames[i]);
-            }
-            baseViewInfo.ImageWidth = static_cast<float>(animation_->w);
-            baseViewInfo.ImageHeight = static_cast<float>(animation_->h);
-            lastFrameTime_ = SDL_GetTicks();
-        } else {
-            // If not an animation, load it as a static image
+        // If not a GIF, or GIF loading failed, treat as a static image
+        if (!animation_) {
             SDL_Surface* surface = IMG_Load(file_.c_str());
             if (!surface && !altFile_.empty()) {
                 surface = IMG_Load(altFile_.c_str());
@@ -101,7 +109,6 @@ void Image::allocateGraphicsMemory() {
                     SDL_SetTextureBlendMode(texture_, baseViewInfo.Additive ? SDL_BLENDMODE_ADD : SDL_BLENDMODE_BLEND);
                 }
             } else {
-                // Handle error if surface loading fails
                 LOG_ERROR("Image", "Failed to load image: " + std::string(IMG_GetError()));
             }
         }
