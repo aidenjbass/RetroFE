@@ -24,17 +24,18 @@
 #endif
 
 Image::Image(const std::string& file, const std::string& altFile, Page &p, int monitor, bool additive)
-    : Component(p)
-    , file_(file)
-    , altFile_(altFile)
+    : Component(p), file_(file), altFile_(altFile)
 {
     baseViewInfo.Monitor = monitor;
     baseViewInfo.Additive = additive;
     baseViewInfo.Layout = page.getCurrentLayout();
 }
 
-Image::~Image()
-{
+Image::~Image() {
+    Image::freeGraphicsMemory();
+}
+
+void Image::freeGraphicsMemory() {
     Component::freeGraphicsMemory();
 
     SDL_LockMutex(SDL::getMutex());
@@ -42,72 +43,95 @@ Image::~Image()
         SDL_DestroyTexture(texture_);
         texture_ = nullptr;
     }
-    SDL_UnlockMutex(SDL::getMutex());
-}
-
-void Image::freeGraphicsMemory()
-{
-    Component::freeGraphicsMemory();
-
-    SDL_LockMutex(SDL::getMutex());
-    if (texture_ != nullptr) {
-        SDL_DestroyTexture(texture_);
-        texture_ = nullptr;
+    if (!frameTextures_.empty()) {
+        for (SDL_Texture* frameTexture : frameTextures_) {
+            SDL_DestroyTexture(frameTexture);
+        }
+        frameTextures_.clear();
     }
     SDL_UnlockMutex(SDL::getMutex());
 }
 
-void Image::allocateGraphicsMemory()
-{
-    if (!texture_) {
+void Image::allocateGraphicsMemory() {
+    if (!texture_ && frameTextures_.empty()) {
 
-        // Load the image as a surface
-        SDL_Surface* surface = IMG_Load(file_.c_str());
-        if (!surface && !altFile_.empty()) {
-            surface = IMG_Load(altFile_.c_str());
+        // Try to load the image as an animation first
+        animation_ = IMG_LoadAnimation(file_.c_str());
+        if (!animation_ && !altFile_.empty()) {
+            animation_ = IMG_LoadAnimation(altFile_.c_str());
         }
 
-        if (surface) {
-            SDL_SetSurfaceRLE(surface, 1);
-            texture_ = SDL_CreateTextureFromSurface(SDL::getRenderer(baseViewInfo.Monitor), surface);
-            SDL_FreeSurface(surface);  // Free the optimized surface
-
-            if (texture_) {
-                int width, height;
-                SDL_QueryTexture(texture_, nullptr, nullptr, &width, &height);
-                baseViewInfo.ImageWidth = static_cast<float>(width);
-                baseViewInfo.ImageHeight = static_cast<float>(height);
-
-                // Set the blend mode
-                SDL_SetTextureBlendMode(texture_, baseViewInfo.Additive ? SDL_BLENDMODE_ADD : SDL_BLENDMODE_BLEND);
+        if (animation_) {
+            // Preload all frames as textures
+            for (int i = 0; i < animation_->count; ++i) {
+                SDL_Texture* frameTexture = SDL_CreateTextureFromSurface(SDL::getRenderer(baseViewInfo.Monitor), animation_->frames[i]);
+                if (frameTexture) {
+                    frameTextures_.push_back(frameTexture);
+                }
+                SDL_FreeSurface(animation_->frames[i]);  // Free the surface after creating the texture
             }
+            baseViewInfo.ImageWidth = static_cast<float>(animation_->w);
+            baseViewInfo.ImageHeight = static_cast<float>(animation_->h);
+            lastFrameTime_ = SDL_GetTicks();
         } else {
-            // Handle error if surface loading fails
-            LOG_ERROR("Image", "Failed to load image: " + std::string(IMG_GetError()));
-        }
+            // If not an animation, load it as a static image
+            SDL_Surface* surface = IMG_Load(file_.c_str());
+            if (!surface && !altFile_.empty()) {
+                surface = IMG_Load(altFile_.c_str());
+            }
 
+            if (surface) {
+                SDL_SetSurfaceRLE(surface, 1);
+                texture_ = SDL_CreateTextureFromSurface(SDL::getRenderer(baseViewInfo.Monitor), surface);
+                SDL_FreeSurface(surface);  // Free the surface
+
+                if (texture_) {
+                    int width, height;
+                    SDL_QueryTexture(texture_, nullptr, nullptr, &width, &height);
+                    baseViewInfo.ImageWidth = static_cast<float>(width);
+                    baseViewInfo.ImageHeight = static_cast<float>(height);
+
+                    // Set the blend mode
+                    SDL_SetTextureBlendMode(texture_, baseViewInfo.Additive ? SDL_BLENDMODE_ADD : SDL_BLENDMODE_BLEND);
+                }
+            } else {
+                // Handle error if surface loading fails
+                LOG_ERROR("Image", "Failed to load image: " + std::string(IMG_GetError()));
+            }
+        }
     }
 
     // Call the base class implementation
     Component::allocateGraphicsMemory();
 }
 
-std::string_view Image::filePath()
-{
-    return file_;
-}
-
-void Image::draw()
-{
+void Image::draw() {
     Component::draw();
-    if(texture_ && baseViewInfo.Alpha > 0.0f) {
-        SDL_Rect rect = { 0, 0, 0, 0 };
 
+    if (baseViewInfo.Alpha > 0.0f) {
+        SDL_Rect rect = { 0, 0, 0, 0 };
         rect.x = static_cast<int>(baseViewInfo.XRelativeToOrigin());
         rect.y = static_cast<int>(baseViewInfo.YRelativeToOrigin());
         rect.h = static_cast<int>(baseViewInfo.ScaledHeight());
         rect.w = static_cast<int>(baseViewInfo.ScaledWidth());
 
-        SDL::renderCopy(texture_, baseViewInfo.Alpha, nullptr, &rect, baseViewInfo, page.getLayoutWidthByMonitor(baseViewInfo.Monitor), page.getLayoutHeightByMonitor(baseViewInfo.Monitor));
+        if (!frameTextures_.empty()) {
+            // Handle animation rendering
+            Uint32 currentTime = SDL_GetTicks();
+            if (currentTime - lastFrameTime_ > static_cast<Uint32>(animation_->delays[currentFrame_])) {
+                currentFrame_ = (currentFrame_ + 1) % animation_->count;
+                lastFrameTime_ = currentTime;
+            }
+
+            SDL_Texture* frameTexture = frameTextures_[currentFrame_];
+            SDL::renderCopy(frameTexture, baseViewInfo.Alpha, nullptr, &rect, baseViewInfo, page.getLayoutWidthByMonitor(baseViewInfo.Monitor), page.getLayoutHeightByMonitor(baseViewInfo.Monitor));
+        } else if (texture_) {
+            // Handle static image rendering
+            SDL::renderCopy(texture_, baseViewInfo.Alpha, nullptr, &rect, baseViewInfo, page.getLayoutWidthByMonitor(baseViewInfo.Monitor), page.getLayoutHeightByMonitor(baseViewInfo.Monitor));
+        }
     }
+}
+
+std::string_view Image::filePath() {
+    return file_;
 }

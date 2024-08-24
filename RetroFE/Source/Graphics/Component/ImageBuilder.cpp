@@ -22,7 +22,7 @@ Image * ImageBuilder::CreateImage(const std::string& path, Page &p, const std::s
     Image *image = nullptr;
     static std::vector<std::string> extensions = {
 #ifdef WIN32
-        "png", "jpg", "jpeg"
+        "png", "jpg", "jpeg", "gif"
 #else
         "png", "PNG", "jpg", "JPG", "jpeg", "JPEG"
 #endif
