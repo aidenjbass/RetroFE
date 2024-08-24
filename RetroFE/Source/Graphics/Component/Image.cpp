@@ -17,12 +17,12 @@
 #include "../ViewInfo.h"
 #include "../../SDL.h"
 #include "../../Utility/Log.h"
-#include <filesystem>
 #if (__APPLE__)
     #include <SDL2_image/SDL_image.h>
 #else
     #include <SDL2/SDL_image.h>
 #endif
+#include <string_view>
 
 Image::Image(const std::string& file, const std::string& altFile, Page &p, int monitor, bool additive)
     : Component(p), file_(file), altFile_(altFile)
@@ -56,13 +56,16 @@ void Image::freeGraphicsMemory() {
 void Image::allocateGraphicsMemory() {
     if (!texture_ && frameTextures_.empty()) {
 
-        // Get the file extension using std::filesystem
-        std::filesystem::path filePath(file_);
-        std::string fileExtension = filePath.extension().string();
-        std::transform(fileExtension.begin(), fileExtension.end(), fileExtension.begin(), ::tolower); // Convert to lowercase
+        auto endsWith = [](std::string_view str, std::string_view suffix) {
+            return str.size() >= suffix.size() &&
+                str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0;
+            };
 
-        // Check if the file is a GIF
-        if (fileExtension == ".gif") {
+        std::string_view fileView = file_;
+        std::string_view altFileView = altFile_;
+        bool isGif = endsWith(fileView, ".gif") || (!altFile_.empty() && endsWith(altFileView, ".gif"));
+
+        if (isGif) {
             // Try to load the GIF as an animation
             animation_ = IMG_LoadAnimation(file_.c_str());
             if (!animation_ && !altFile_.empty()) {
@@ -117,6 +120,7 @@ void Image::allocateGraphicsMemory() {
     // Call the base class implementation
     Component::allocateGraphicsMemory();
 }
+
 void Image::draw() {
     Component::draw();
 
