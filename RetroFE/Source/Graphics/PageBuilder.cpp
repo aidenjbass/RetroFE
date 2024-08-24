@@ -205,6 +205,15 @@ Page *PageBuilder::buildPage( const std::string& collectionName, bool defaultToC
                     fontName_ = config_.convertToAbsolutePath(
                         Utils::combinePath(config_.absolutePath, "layouts", layoutKey, ""),
                         fontXml->value());
+
+                    // Check if the font file exists
+                    if (!std::filesystem::exists(fontName_)) {
+                        // Fallback to a standard font if the file doesn't exist
+                        LOG_ERROR("RetroFE", "Specified font at \n    " + fontName_ + "\n does not exist. Falling back to standard font.");
+                        fontName_ = config_.convertToAbsolutePath(
+                            Utils::combinePath(config_.absolutePath, "layouts", layoutKey, ""),
+                            "fonts/standard.ttf");
+                    }
                 }
 
                 if (fontColorXml) {
