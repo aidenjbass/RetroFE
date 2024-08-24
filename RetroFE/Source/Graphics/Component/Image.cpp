@@ -59,32 +59,37 @@ void Image::freeGraphicsMemory()
 
 void Image::allocateGraphicsMemory()
 {
-    int width;
-    int height;
+    if (!texture_) {
 
-    if(!texture_) {
-        SDL_LockMutex(SDL::getMutex());
-        texture_ = IMG_LoadTexture(SDL::getRenderer(baseViewInfo.Monitor), file_.c_str());
-        if (!texture_ && altFile_ != "") {
-            texture_ = IMG_LoadTexture(SDL::getRenderer(baseViewInfo.Monitor), altFile_.c_str());
+        // Load the image as a surface
+        SDL_Surface* surface = IMG_Load(file_.c_str());
+        if (!surface && !altFile_.empty()) {
+            surface = IMG_Load(altFile_.c_str());
         }
 
-        if (texture_ != nullptr) {
-            if (baseViewInfo.Additive) {
-                SDL_SetTextureBlendMode(texture_, SDL_BLENDMODE_ADD);
+        if (surface) {
+            SDL_SetSurfaceRLE(surface, 1);
+            texture_ = SDL_CreateTextureFromSurface(SDL::getRenderer(baseViewInfo.Monitor), surface);
+            SDL_FreeSurface(surface);  // Free the optimized surface
+
+            if (texture_) {
+                int width, height;
+                SDL_QueryTexture(texture_, nullptr, nullptr, &width, &height);
+                baseViewInfo.ImageWidth = static_cast<float>(width);
+                baseViewInfo.ImageHeight = static_cast<float>(height);
+
+                // Set the blend mode
+                SDL_SetTextureBlendMode(texture_, baseViewInfo.Additive ? SDL_BLENDMODE_ADD : SDL_BLENDMODE_BLEND);
             }
-            else {
-                SDL_SetTextureBlendMode(texture_, SDL_BLENDMODE_BLEND);
-            }
-            SDL_QueryTexture(texture_, nullptr, nullptr, &width, &height);
-            baseViewInfo.ImageWidth  = (float)width;
-            baseViewInfo.ImageHeight = (float)height;
+        } else {
+            // Handle error if surface loading fails
+            LOG_ERROR("Image", "Failed to load image: " + std::string(IMG_GetError()));
         }
-        SDL_UnlockMutex(SDL::getMutex());
+
     }
 
+    // Call the base class implementation
     Component::allocateGraphicsMemory();
-
 }
 
 std::string_view Image::filePath()
@@ -95,7 +100,6 @@ std::string_view Image::filePath()
 void Image::draw()
 {
     Component::draw();
-
     if(texture_ && baseViewInfo.Alpha > 0.0f) {
         SDL_Rect rect = { 0, 0, 0, 0 };
 

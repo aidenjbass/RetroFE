@@ -76,9 +76,7 @@ void Component::allocateGraphicsMemory()
         SDL_Surface* surface = SDL_CreateRGBSurface(0, 4, 4, 32, 0, 0, 0, 0);
         SDL_FillRect(surface, nullptr, SDL_MapRGB(surface->format, 255, 255, 255));
 
-        SDL_LockMutex(SDL::getMutex());
         backgroundTexture_ = SDL_CreateTextureFromSurface(SDL::getRenderer(baseViewInfo.Monitor), surface);
-        SDL_UnlockMutex(SDL::getMutex());
 
         SDL_FreeSurface(surface);
         SDL_SetTextureBlendMode(backgroundTexture_, SDL_BLENDMODE_BLEND);
