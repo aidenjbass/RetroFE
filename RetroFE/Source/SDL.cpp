@@ -255,7 +255,7 @@ bool SDL::initialize(Configuration &config)
             LOG_ERROR("SDL", "Error setting renderer to" + SDLRenderDriver + ". Available direct3d, direct3d11, direct3d12, opengl, opengles2, opengles, metal, and software");
         }
 #endif
-
+        SDL_SetHint(SDL_HINT_RENDER_BATCHING, "0");
         std::string ScaleQuality = "1";
         config.getProperty(OPTION_SCALEQUALITY, ScaleQuality);
         if (SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, ScaleQuality.c_str()) != SDL_TRUE)
@@ -314,7 +314,7 @@ bool SDL::initialize(Configuration &config)
             {
                 // Create a render target texture for this screen
                 SDL_Texture* renderTarget = SDL_CreateTexture(renderer_[screenNum],
-                    SDL_PIXELFORMAT_ARGB8888,
+                    SDL_PIXELFORMAT_RGB888,
                     SDL_TEXTUREACCESS_TARGET,
                     windowWidth_[screenNum],
                     windowHeight_[screenNum]);
@@ -337,6 +337,16 @@ bool SDL::initialize(Configuration &config)
                     std::string logMessage = "Current rendering backend for renderer " + screenIndexStr + ": ";
                     logMessage += info.name;
                     LOG_INFO("SDL", logMessage);
+
+                    // Log the supported pixel formats
+                    logMessage = "Supported pixel formats for renderer " + screenIndexStr + ":";
+                    for (Uint32 i = 0; i < info.num_texture_formats; ++i)
+                    {
+                        const char* formatName = SDL_GetPixelFormatName(info.texture_formats[i]);
+                        logMessage += "\n  - " + std::string(formatName);
+                    }
+                    LOG_INFO("SDL", logMessage);
+
                     if (strcmp(info.name, "opengl") == 0)
                     {
                         int GlSwapInterval = 1;
@@ -347,6 +357,7 @@ bool SDL::initialize(Configuration &config)
                         }
                     }
                 }
+
                 else
                 {
                     LOG_ERROR("SDL", "Could not retrieve renderer info for renderer " + screenIndex + " Error: " + SDL_GetError());
