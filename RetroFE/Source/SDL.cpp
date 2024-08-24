@@ -329,8 +329,6 @@ bool SDL::initialize(Configuration &config)
 
                 // Store the render target texture
                 renderTargets_.push_back(renderTarget);
-
-                SDL_SetRenderTarget(renderer_[screenNum], renderTargets_[screenNum]);
                 
                 SDL_RendererInfo info;
                 if (SDL_GetRendererInfo(renderer_[screenNum], &info) == 0)

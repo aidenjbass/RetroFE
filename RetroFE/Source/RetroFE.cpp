@@ -84,19 +84,27 @@ void RetroFE::render()
 {
     SDL_LockMutex(SDL::getMutex());
 
-    // Step 1: Draw to the render targets (textures)
+    // Step 1: Set the render target to the texture and clear each screen's texture
     for (int i = 0; i < SDL::getScreenCount(); ++i)
     {
+        // Set the render target to the corresponding texture
+        SDL_SetRenderTarget(SDL::getRenderer(i), SDL::getRenderTarget(i));
+
+        // Clear the texture (render target)
         SDL_SetRenderDrawColor(SDL::getRenderer(i), 0x0, 0x0, 0x0, 0xFF);
         SDL_RenderClear(SDL::getRenderer(i));
+    }
 
-        // Draw the current page onto the render target
-        if (currentPage_)
-        {
-            currentPage_->draw();
-        }
+    // Step 2: Draw the current page onto the render target (textures)
+    if (currentPage_)
+    {
+        currentPage_->draw();  // Draws onto the currently set render targets (textures)
+    }
 
-        // Now switch back to the screen's framebuffer
+    // Step 3: Present the rendered content on each screen
+    for (int i = 0; i < SDL::getScreenCount(); ++i)
+    {
+        // Switch back to the screen's framebuffer
         SDL_SetRenderTarget(SDL::getRenderer(i), nullptr);
 
         // Render the texture onto the screen
@@ -104,13 +112,11 @@ void RetroFE::render()
 
         // Present the final result to the screen
         SDL_RenderPresent(SDL::getRenderer(i));
-
-        // Ensure the render target is set back to the texture for the next iteration
-        SDL_SetRenderTarget(SDL::getRenderer(i), SDL::getRenderTarget(i));
     }
 
     SDL_UnlockMutex(SDL::getMutex());
 }
+
 
 // Initialize the configuration and database
 int RetroFE::initialize(void *context)
