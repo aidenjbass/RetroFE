@@ -106,12 +106,13 @@ void Image::allocateGraphicsMemory() {
 
             if (texture_) {
                 int width, height;
-                SDL_QueryTexture(texture_, nullptr, nullptr, &width, &height);
-                baseViewInfo.ImageWidth = static_cast<float>(width);
-                baseViewInfo.ImageHeight = static_cast<float>(height);
 
                 // Set the blend mode
                 SDL_SetTextureBlendMode(texture_, baseViewInfo.Additive ? SDL_BLENDMODE_ADD : SDL_BLENDMODE_BLEND);
+
+                SDL_QueryTexture(texture_, nullptr, nullptr, &width, &height);
+                baseViewInfo.ImageWidth = static_cast<float>(width);
+                baseViewInfo.ImageHeight = static_cast<float>(height);
             }
             else {
                 LOG_ERROR("Image", "Failed to load image: " + std::string(IMG_GetError()));
