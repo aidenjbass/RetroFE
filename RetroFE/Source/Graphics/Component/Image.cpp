@@ -64,11 +64,17 @@ void Image::allocateGraphicsMemory() {
         if (animation_) {
             // Preload all frames as textures
             for (int i = 0; i < animation_->count; ++i) {
+                // Enable RLE acceleration on the surface
+                SDL_SetSurfaceRLE(animation_->frames[i], 1);
+
+                // Create a texture from the surface
                 SDL_Texture* frameTexture = SDL_CreateTextureFromSurface(SDL::getRenderer(baseViewInfo.Monitor), animation_->frames[i]);
                 if (frameTexture) {
                     frameTextures_.push_back(frameTexture);
                 }
-                SDL_FreeSurface(animation_->frames[i]);  // Free the surface after creating the texture
+
+                // Free the surface after creating the texture
+                SDL_FreeSurface(animation_->frames[i]);
             }
             baseViewInfo.ImageWidth = static_cast<float>(animation_->w);
             baseViewInfo.ImageHeight = static_cast<float>(animation_->h);
@@ -104,7 +110,6 @@ void Image::allocateGraphicsMemory() {
     // Call the base class implementation
     Component::allocateGraphicsMemory();
 }
-
 void Image::draw() {
     Component::draw();
 
@@ -115,7 +120,10 @@ void Image::draw() {
         rect.h = static_cast<int>(baseViewInfo.ScaledHeight());
         rect.w = static_cast<int>(baseViewInfo.ScaledWidth());
 
-        if (!frameTextures_.empty()) {
+        // Prioritize static image rendering
+        if (texture_) {
+            SDL::renderCopy(texture_, baseViewInfo.Alpha, nullptr, &rect, baseViewInfo, page.getLayoutWidthByMonitor(baseViewInfo.Monitor), page.getLayoutHeightByMonitor(baseViewInfo.Monitor));
+        } else if (!frameTextures_.empty()) {
             // Handle animation rendering
             Uint32 currentTime = SDL_GetTicks();
             if (currentTime - lastFrameTime_ > static_cast<Uint32>(animation_->delays[currentFrame_])) {
@@ -125,12 +133,10 @@ void Image::draw() {
 
             SDL_Texture* frameTexture = frameTextures_[currentFrame_];
             SDL::renderCopy(frameTexture, baseViewInfo.Alpha, nullptr, &rect, baseViewInfo, page.getLayoutWidthByMonitor(baseViewInfo.Monitor), page.getLayoutHeightByMonitor(baseViewInfo.Monitor));
-        } else if (texture_) {
-            // Handle static image rendering
-            SDL::renderCopy(texture_, baseViewInfo.Alpha, nullptr, &rect, baseViewInfo, page.getLayoutWidthByMonitor(baseViewInfo.Monitor), page.getLayoutHeightByMonitor(baseViewInfo.Monitor));
         }
     }
 }
+
 
 std::string_view Image::filePath() {
     return file_;
