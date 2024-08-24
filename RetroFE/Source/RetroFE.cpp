@@ -87,9 +87,8 @@ void RetroFE::render()
     // Step 1: Draw to the render targets (textures)
     for (int i = 0; i < SDL::getScreenCount(); ++i)
     {
-        // Shouldn't be necessary to clear here.
-        //SDL_SetRenderDrawColor(SDL::getRenderer(i), 0x0, 0x0, 0x0, 0xFF);
-        //SDL_RenderClear(SDL::getRenderer(i));
+        SDL_SetRenderDrawColor(SDL::getRenderer(i), 0x0, 0x0, 0x0, 0xFF);
+        SDL_RenderClear(SDL::getRenderer(i));
 
         // Draw the current page onto the render target
         if (currentPage_)
