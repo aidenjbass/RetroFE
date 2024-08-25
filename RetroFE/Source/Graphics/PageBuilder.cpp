@@ -818,7 +818,11 @@ void PageBuilder::loadReloadableImages(const xml_node<> *layout, const std::stri
                     if (pluralPostfixXml) {
                         pluralPostfix = pluralPostfixXml->value();
                     }
-                    c = new ReloadableText(typeValue, *page, config_, systemMode, font, layoutKey, "", textFormat, singlePrefix, singlePostfix, pluralPrefix, pluralPostfix);
+                    std::string timeFormat = "";
+                    if (timeFormatXml) {
+                        timeFormat = timeFormatXml->value();
+                    }
+                    c = new ReloadableText(typeValue, *page, config_, systemMode, font, layoutKey, timeFormat, textFormat, singlePrefix, singlePostfix, pluralPrefix, pluralPostfix);
                     c->baseViewInfo.Monitor = cMonitor;
                     c->baseViewInfo.Layout = page->getCurrentLayout();
                 }

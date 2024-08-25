@@ -58,7 +58,19 @@ bool ReloadableText::update(float dt)
         ReloadTexture();
         newItemSelected = false;
     }
+    else if (type_ == "file")
+    {
+        static std::chrono::time_point<std::chrono::steady_clock> lastFileReloadTime_;
+        static std::chrono::milliseconds fileDebounceDuration_ = std::chrono::milliseconds(1000); // 1 second debounce for files
 
+        auto now = std::chrono::steady_clock::now();
+        // Apply debounce logic specifically for file type
+        if (now - lastFileReloadTime_ >= fileDebounceDuration_)
+        {
+            ReloadTexture();
+            lastFileReloadTime_ = now;
+        }
+    }
     // needs to be ran at the end to prevent the NewItemSelected flag from being detected
     return Component::update(dt);
 }
@@ -128,14 +140,20 @@ void ReloadableText::ReloadTexture()
     // Update text based on the type
     if (type_ == "file")
     {
-
-        // Get the last write time of the file
         std::filesystem::path file(filePath_);
         std::filesystem::file_time_type currentWriteTime;
+
+        // Lambda to round the file time to the nearest second
+        auto roundToNearestSecond = [](std::filesystem::file_time_type ftt) {
+            return std::chrono::time_point_cast<std::chrono::seconds>(ftt);
+            };
 
         try
         {
             currentWriteTime = std::filesystem::last_write_time(file);
+
+            // Use the lambda to round the current write time to the nearest second
+            currentWriteTime = roundToNearestSecond(currentWriteTime);
         }
         catch (const std::filesystem::filesystem_error& e)
         {
@@ -150,15 +168,15 @@ void ReloadableText::ReloadTexture()
             return;
         }
 
-        // Update last write time
-        lastWriteTime_ = currentWriteTime;
-
         // Read the text from the specified file
         std::ifstream fileStream(filePath_);
         if (fileStream)
         {
             text.assign((std::istreambuf_iterator<char>(fileStream)), std::istreambuf_iterator<char>());
             fileStream.close();
+
+            // Update lastWriteTime_ with the rounded time
+            lastWriteTime_ = currentWriteTime;
         }
         else
         {
@@ -168,12 +186,42 @@ void ReloadableText::ReloadTexture()
     }
     else if (type_ == "time")
     {
-        time_t now = time(0);
+        // Get the current time point
+        auto now = std::chrono::system_clock::now();
+
+        // Convert to time_t for formatting
+        std::time_t now_c = std::chrono::system_clock::to_time_t(now);
+
         struct tm tstruct;
-        char buf[80];
-        tstruct = *localtime(&now);
-        strftime(buf, sizeof(buf), timeFormat_.c_str(), &tstruct);
-        ss << buf;
+
+#if defined(_WIN32)
+        // Use localtime_s on Windows
+        localtime_s(&tstruct, &now_c);
+#elif defined(__unix__) || defined(__APPLE__)
+        // Use localtime_r on Unix-like systems (Linux, macOS, etc.)
+        localtime_r(&now_c, &tstruct);
+#else
+        // Fallback to localtime (not thread-safe)
+        tstruct = *localtime(&now_c);
+#endif
+
+        // Prepare a std::string buffer large enough for the output
+        std::string buffer(80, '\0');  // 80 is just an example size
+
+        // Format the time using strftime
+        size_t result = strftime(buffer.data(), buffer.size(), timeFormat_.c_str(), &tstruct);
+
+        if (result == 0) {
+            LOG_ERROR("ReloadableText", "strftime failed or buffer was too small.");
+            ss << "Invalid Time"; // Fallback if formatting fails
+        }
+        else {
+            buffer.resize(result); // Trim the string to the actual size
+            ss << buffer;
+        }
+
+        // Debug output to ensure tstruct is populated correctly and buffer is valid
+        LOG_DEBUG("ReloadableText", "Formatted time: " + buffer);
     }
     else if (type_ == "numberButtons")
     {
