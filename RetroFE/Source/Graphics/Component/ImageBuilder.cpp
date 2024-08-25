@@ -17,9 +17,7 @@
 #include "../../Utility/Utils.h"
 #include "../../Utility/Log.h"
 
-Image * ImageBuilder::CreateImage(const std::string& path, Page &p, const std::string& name, int monitor, bool additive)
-{
-    Image *image = nullptr;
+Image* ImageBuilder::CreateImage(const std::string& path, const std::string& altPath, Page& p, const std::string& name, int monitor, bool additive) {
     static std::vector<std::string> extensions = {
 #ifdef WIN32
         "png", "jpg", "jpeg", "gif"
@@ -30,9 +28,18 @@ Image * ImageBuilder::CreateImage(const std::string& path, Page &p, const std::s
 
     std::string prefix = Utils::combinePath(path, name);
 
-    if(std::string file; Utils::findMatchingFile(prefix, extensions, file)) {
-        image = new Image(file, "", p, monitor, additive);
+    // First, try to find an image in the primary path
+    if (std::string file; Utils::findMatchingFile(prefix, extensions, file)) {
+        return new Image(file, "", p, monitor, additive);
     }
 
-    return image;
-}
+    // If not found, try the alternative path
+    if (!altPath.empty()) {
+        if (Utils::findMatchingFile(altPath)) {
+            return new Image("", altPath, p, monitor, additive);
+        }
+    }
+
+    // Return nullptr if no image was found
+    return nullptr;
+    }
