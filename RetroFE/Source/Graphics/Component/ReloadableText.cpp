@@ -186,42 +186,62 @@ void ReloadableText::ReloadTexture()
     }
     else if (type_ == "time")
     {
-        // Get the current time point
-        auto now = std::chrono::system_clock::now();
+        // If timeFormat_ undefined, assign reasonable default
+        if (timeFormat_.empty()) {
+            timeFormat_ = "%I:%M:%S %p";
+            isTimeFormatChecked_ = true;
+            isTimeFormatValid_ = true;
+        }
+        // Lambda to validate the time format string
+        auto isValidTimeFormat = [](const std::string& format) {
+            const std::string validSpecifiers = "aAbBcCdDeFgGhHIjklmMnprRStTUwWxXyYzZ%";
+            size_t pos = 0;
+            while ((pos = format.find('%', pos)) != std::string::npos) {
+                if (pos + 1 >= format.size() || validSpecifiers.find(format[pos + 1]) == std::string::npos) {
+                    return false; // Invalid specifier
+                }
+                pos += 2; // Skip over the specifier
+            }
+            return true;
+            };
 
-        // Convert to time_t for formatting
-        std::time_t now_c = std::chrono::system_clock::to_time_t(now);
+        // Validate the time format only once
+        if (!isTimeFormatChecked_) {
+            isTimeFormatValid_ = isValidTimeFormat(timeFormat_);
+            isTimeFormatChecked_ = true;
+        }
 
-        struct tm tstruct;
+        // Check if the format is valid
+        if (isTimeFormatValid_) {
+            // Proceed with time formatting if the format is valid
+            auto now = std::chrono::system_clock::now();
+            std::time_t now_c = std::chrono::system_clock::to_time_t(now);
+            struct tm tstruct;
 
 #if defined(_WIN32)
-        // Use localtime_s on Windows
-        localtime_s(&tstruct, &now_c);
+            localtime_s(&tstruct, &now_c);
 #elif defined(__unix__) || defined(__APPLE__)
-        // Use localtime_r on Unix-like systems (Linux, macOS, etc.)
-        localtime_r(&now_c, &tstruct);
+            localtime_r(&now_c, &tstruct);
 #else
-        // Fallback to localtime (not thread-safe)
-        tstruct = *localtime(&now_c);
+            tstruct = *localtime(&now_c);
 #endif
 
-        // Prepare a std::string buffer large enough for the output
-        std::string buffer(80, '\0');  // 80 is just an example size
+            std::string buffer(80, '\0');
+            size_t result = strftime(buffer.data(), buffer.size(), timeFormat_.c_str(), &tstruct);
 
-        // Format the time using strftime
-        size_t result = strftime(buffer.data(), buffer.size(), timeFormat_.c_str(), &tstruct);
-
-        if (result == 0) {
-            LOG_ERROR("ReloadableText", "strftime failed or buffer was too small.");
-            ss << "Invalid Time"; // Fallback if formatting fails
+            if (result == 0) {
+                LOG_ERROR("ReloadableText", "strftime failed or buffer was too small.");
+                ss << "Invalid Time"; // Fallback if formatting fails
+            }
+            else {
+                buffer.resize(result); // Trim the string to the actual size
+                ss << buffer;
+            }
         }
         else {
-            buffer.resize(result); // Trim the string to the actual size
-            ss << buffer;
+            // If the format is invalid, set ss to "Invalid Time"
+            ss << "Invalid Time";
         }
-
-        // Debug output to ensure tstruct is populated correctly and buffer is valid
-        LOG_DEBUG("ReloadableText", "Formatted time: " + buffer);
     }
     else if (type_ == "numberButtons")
     {
