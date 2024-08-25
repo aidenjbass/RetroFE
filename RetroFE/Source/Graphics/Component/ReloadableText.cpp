@@ -17,6 +17,7 @@
 #include "ReloadableText.h"
 #include "../../Database/Configuration.h"
 #include "../../Database/GlobalOpts.h"
+#include "../../Database/Configuration.h"
 #include "../../SDL.h"
 #include "../../Utility/Log.h"
 #include "../../Utility/Utils.h"
@@ -32,11 +33,15 @@
 ReloadableText::ReloadableText(std::string type, Page &page, Configuration &config, bool systemMode, Font *font,
                                std::string layoutKey, std::string timeFormat, std::string textFormat,
                                std::string singlePrefix, std::string singlePostfix, std::string pluralPrefix,
-                               std::string pluralPostfix)
+                               std::string pluralPostfix, std::string location)
     : Component(page), config_(config), systemMode_(systemMode), imageInst_(NULL), type_(type), layoutKey_(layoutKey),
       fontInst_(font), timeFormat_(timeFormat), textFormat_(textFormat), singlePrefix_(singlePrefix),
-      singlePostfix_(singlePostfix), pluralPrefix_(pluralPrefix), pluralPostfix_(pluralPostfix)
+      singlePostfix_(singlePostfix), pluralPrefix_(pluralPrefix), pluralPostfix_(pluralPostfix), location_(location)
 {
+    if (type_ == "file")
+    {
+        filePath_ = Utils::combinePath(Configuration::absolutePath, location_);
+    }
     allocateGraphicsMemory();
 }
 
@@ -48,7 +53,7 @@ ReloadableText::~ReloadableText()
 bool ReloadableText::update(float dt)
 {
     if (newItemSelected || (newScrollItemSelected && getMenuScrollReload()) || type_ == "time" || type_ == "current" ||
-        type_ == "duration" || type_ == "isPaused")
+        type_ == "duration" || type_ == "isPaused" || type_ == "file")
     {
         ReloadTexture();
         newItemSelected = false;
@@ -121,7 +126,47 @@ void ReloadableText::ReloadTexture()
     std::string text = "";
 
     // Update text based on the type
-    if (type_ == "time")
+    if (type_ == "file")
+    {
+
+        // Get the last write time of the file
+        std::filesystem::path file(filePath_);
+        std::filesystem::file_time_type currentWriteTime;
+
+        try
+        {
+            currentWriteTime = std::filesystem::last_write_time(file);
+        }
+        catch (const std::filesystem::filesystem_error& e)
+        {
+            LOG_ERROR("ReloadableText", "Failed to retrieve file modification time: " + std::string(e.what()));
+            return;
+        }
+
+        // Check if the file has changed since the last read
+        if (currentWriteTime == lastWriteTime_)
+        {
+            // No change in file, skip update
+            return;
+        }
+
+        // Update last write time
+        lastWriteTime_ = currentWriteTime;
+
+        // Read the text from the specified file
+        std::ifstream fileStream(filePath_);
+        if (fileStream)
+        {
+            text.assign((std::istreambuf_iterator<char>(fileStream)), std::istreambuf_iterator<char>());
+            fileStream.close();
+        }
+        else
+        {
+            LOG_ERROR("ReloadableText", "Failed to open file: " + filePath_);
+            return;
+        }
+    }
+    else if (type_ == "time")
     {
         time_t now = time(0);
         struct tm tstruct;

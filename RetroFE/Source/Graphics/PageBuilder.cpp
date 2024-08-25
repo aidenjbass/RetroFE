@@ -715,6 +715,7 @@ void PageBuilder::loadReloadableImages(const xml_node<> *layout, const std::stri
         xml_attribute<> const *idXml             = componentXml->first_attribute("id");
         xml_attribute<> const *randomSelectXml = componentXml->first_attribute("randomSelect");
         xml_attribute<> const *monitorXml = componentXml->first_attribute("monitor");
+        xml_attribute<> const* locationXml = componentXml->first_attribute("location");
 
         bool systemMode = false;
         bool layoutMode = false;
@@ -772,42 +773,62 @@ void PageBuilder::loadReloadableImages(const xml_node<> *layout, const std::stri
 
         Component *c = nullptr;
 
-        if(tagName == "reloadableText") {
-            if(type) {
-                Font *font = addFont(componentXml, NULL, cMonitor);
-                std::string timeFormat = "%H:%M";
-                if (timeFormatXml) {
-                    timeFormat = timeFormatXml->value();
-                }
-                std::string textFormat = "";
-                if (textFormatXml) {
-                    textFormat = textFormatXml->value();
-                }
-                std::string singlePrefix = "";
-                if (singlePrefixXml) {
-                    singlePrefix = singlePrefixXml->value();
-                }
-                std::string singlePostfix = "";
-                if (singlePostfixXml) {
-                    singlePostfix = singlePostfixXml->value();
-                }
-                std::string pluralPrefix = "";
-                if (pluralPrefixXml) {
-                    pluralPrefix = pluralPrefixXml->value();
-                }
-                std::string pluralPostfix = "";
-                if (pluralPostfixXml) {
-                    pluralPostfix = pluralPostfixXml->value();
-                }
-                c = new ReloadableText(type->value(), *page, config_, systemMode, font, layoutKey, timeFormat, textFormat, singlePrefix, singlePostfix, pluralPrefix, pluralPostfix);
-                c->baseViewInfo.Monitor = cMonitor;
-                c->baseViewInfo.Layout = page->getCurrentLayout();
+        if (tagName == "reloadableText") {
+            if (type) {
+                Font* font = addFont(componentXml, NULL, cMonitor);
 
-                c->setId( id );
-                xml_attribute<> const *menuScrollReload = componentXml->first_attribute("menuScrollReload");
+                std::string typeValue = type->value();
+                std::string textFormat = "";
+
+                // Handle the "file" type by passing the location to ReloadableText
+                if (typeValue == "file") {
+                    // Ensure the location attribute is present
+                    if (!locationXml) {
+                        LOG_ERROR("Layout", "reloadableText type='file' requires a 'location' attribute.");
+                        continue; // Skip this component if location is not provided
+                    }
+
+                    // Get the location value
+                    std::string location = locationXml->value();
+
+                    // Create the ReloadableText component with the location path
+                    c = new ReloadableText(typeValue, *page, config_, systemMode, font, layoutKey, "", "", "", "", "", "", location);
+                    c->baseViewInfo.Monitor = cMonitor;
+                    c->baseViewInfo.Layout = page->getCurrentLayout();
+                }
+                else {
+                    // Existing handling for other types
+
+                    if (textFormatXml) {
+                        textFormat = textFormatXml->value();
+                    }
+                    std::string singlePrefix = "";
+                    if (singlePrefixXml) {
+                        singlePrefix = singlePrefixXml->value();
+                    }
+                    std::string singlePostfix = "";
+                    if (singlePostfixXml) {
+                        singlePostfix = singlePostfixXml->value();
+                    }
+                    std::string pluralPrefix = "";
+                    if (pluralPrefixXml) {
+                        pluralPrefix = pluralPrefixXml->value();
+                    }
+                    std::string pluralPostfix = "";
+                    if (pluralPostfixXml) {
+                        pluralPostfix = pluralPostfixXml->value();
+                    }
+                    c = new ReloadableText(typeValue, *page, config_, systemMode, font, layoutKey, "", textFormat, singlePrefix, singlePostfix, pluralPrefix, pluralPostfix);
+                    c->baseViewInfo.Monitor = cMonitor;
+                    c->baseViewInfo.Layout = page->getCurrentLayout();
+                }
+
+                c->setId(id);
+
+                xml_attribute<> const* menuScrollReload = componentXml->first_attribute("menuScrollReload");
                 if (menuScrollReload &&
                     (Utils::toLower(menuScrollReload->value()) == "true" ||
-                     Utils::toLower(menuScrollReload->value()) == "yes")) {
+                        Utils::toLower(menuScrollReload->value()) == "yes")) {
                     c->setMenuScrollReload(true);
                 }
             }
