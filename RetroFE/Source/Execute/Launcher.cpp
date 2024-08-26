@@ -215,7 +215,11 @@ void Launcher::LEDBlinky( int command, std::string collection, Item *collectionI
         return;
     }
     std::string exe  = Utils::combinePath(LEDBlinkyDirectory, "LEDBlinky.exe");
-	std::string args = std::to_string( command );
+    // Check if the LEDBlinky.exe file exists
+    if (!std::filesystem::exists(exe)) {
+        return; // Exit early if the file does not exist
+    }
+    std::string args = std::to_string( command );
 	bool wait = false;
 	if ( command == 2 )
 		wait = true;
