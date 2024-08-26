@@ -58,7 +58,7 @@ void GStreamerVideo::initializePlugins()
         pluginsInitialized_ = true;
 
 #if defined(WIN32)
-        //enablePlugin("directsoundsink");
+        enablePlugin("directsoundsink");
         disablePlugin("mfdeviceprovider");
         if (!Configuration::HardwareVideoAccel)
         {
