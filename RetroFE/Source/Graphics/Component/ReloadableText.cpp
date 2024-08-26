@@ -53,7 +53,7 @@ ReloadableText::~ReloadableText()
 bool ReloadableText::update(float dt)
 {
     if (newItemSelected || (newScrollItemSelected && getMenuScrollReload()) || type_ == "time" || type_ == "current" ||
-        type_ == "duration" || type_ == "isPaused" || type_ == "file")
+        type_ == "duration" || type_ == "isPaused")
     {
         ReloadTexture();
         newItemSelected = false;
@@ -151,9 +151,7 @@ void ReloadableText::ReloadTexture()
         try
         {
             currentWriteTime = std::filesystem::last_write_time(file);
-
-            // Use the lambda to round the current write time to the nearest second
-            currentWriteTime = roundToNearestSecond(currentWriteTime);
+            currentWriteTime = roundToNearestSecond(currentWriteTime); // Round to nearest second
         }
         catch (const std::filesystem::filesystem_error& e)
         {
@@ -162,7 +160,7 @@ void ReloadableText::ReloadTexture()
         }
 
         // Check if the file has changed since the last read
-        if (currentWriteTime == lastWriteTime_)
+        if (currentWriteTime == lastWriteTime_ && imageInst_ != nullptr)
         {
             // No change in file, skip update
             return;
@@ -192,6 +190,7 @@ void ReloadableText::ReloadTexture()
             isTimeFormatChecked_ = true;
             isTimeFormatValid_ = true;
         }
+
         // Lambda to validate the time format string
         auto isValidTimeFormat = [](const std::string& format) {
             const std::string validSpecifiers = "aAbBcCdDeFgGhHIjklmMnprRStTUwWxXyYzZ%";
@@ -460,13 +459,16 @@ void ReloadableText::ReloadTexture()
     }
 
     // Update the tracked attributes
-    if (currentType_ == type_ && currentValue_ == ss.str())
+    bool typeChanged = (currentType_ != type_);
+    bool valueChanged = (currentValue_ != ss.str());
+
+    if (!typeChanged && !valueChanged && imageInst_ != nullptr)
     {
-        // No changes, no need to reload, reuse the current component
+        // No changes and the image instance already exists, so no need to recreate it
         return;
     }
 
-    // Delete the old component if a new one is required
+    // Delete the old component if a new one is required or if it's missing
     if (imageInst_ != nullptr)
     {
         delete imageInst_;
@@ -476,6 +478,7 @@ void ReloadableText::ReloadTexture()
     currentType_ = type_;
     currentValue_ = ss.str();
 
+    // Create a new image instance
     if (!ss.str().empty())
     {
         imageInst_ = new Text(ss.str(), page, fontInst_, baseViewInfo.Monitor);
