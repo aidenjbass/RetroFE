@@ -17,6 +17,7 @@
 #include "ReloadableText.h"
 #include "../../Database/Configuration.h"
 #include "../../Database/GlobalOpts.h"
+#include "../../Database/Configuration.h"
 #include "../../SDL.h"
 #include "../../Utility/Log.h"
 #include "../../Utility/Utils.h"
@@ -32,11 +33,15 @@
 ReloadableText::ReloadableText(std::string type, Page &page, Configuration &config, bool systemMode, Font *font,
                                std::string layoutKey, std::string timeFormat, std::string textFormat,
                                std::string singlePrefix, std::string singlePostfix, std::string pluralPrefix,
-                               std::string pluralPostfix)
+                               std::string pluralPostfix, std::string location)
     : Component(page), config_(config), systemMode_(systemMode), imageInst_(NULL), type_(type), layoutKey_(layoutKey),
       fontInst_(font), timeFormat_(timeFormat), textFormat_(textFormat), singlePrefix_(singlePrefix),
-      singlePostfix_(singlePostfix), pluralPrefix_(pluralPrefix), pluralPostfix_(pluralPostfix)
+      singlePostfix_(singlePostfix), pluralPrefix_(pluralPrefix), pluralPostfix_(pluralPostfix), location_(location)
 {
+    if (type_ == "file")
+    {
+        filePath_ = Utils::combinePath(Configuration::absolutePath, location_);
+    }
     allocateGraphicsMemory();
 }
 
@@ -48,12 +53,24 @@ ReloadableText::~ReloadableText()
 bool ReloadableText::update(float dt)
 {
     if (newItemSelected || (newScrollItemSelected && getMenuScrollReload()) || type_ == "time" || type_ == "current" ||
-        type_ == "duration" || type_ == "isPaused")
+        type_ == "duration" || type_ == "isPaused" || type_ == "file")
     {
         ReloadTexture();
         newItemSelected = false;
     }
+    else if (type_ == "file")
+    {
+        static std::chrono::time_point<std::chrono::steady_clock> lastFileReloadTime_;
+        static std::chrono::milliseconds fileDebounceDuration_ = std::chrono::milliseconds(1000); // 1 second debounce for files
 
+        auto now = std::chrono::steady_clock::now();
+        // Apply debounce logic specifically for file type
+        if (now - lastFileReloadTime_ >= fileDebounceDuration_)
+        {
+            ReloadTexture();
+            lastFileReloadTime_ = now;
+        }
+    }
     // needs to be ran at the end to prevent the NewItemSelected flag from being detected
     return Component::update(dt);
 }
@@ -121,14 +138,110 @@ void ReloadableText::ReloadTexture()
     std::string text = "";
 
     // Update text based on the type
-    if (type_ == "time")
+    if (type_ == "file")
     {
-        time_t now = time(0);
-        struct tm tstruct;
-        char buf[80];
-        tstruct = *localtime(&now);
-        strftime(buf, sizeof(buf), timeFormat_.c_str(), &tstruct);
-        ss << buf;
+        std::filesystem::path file(filePath_);
+        std::filesystem::file_time_type currentWriteTime;
+
+        // Lambda to round the file time to the nearest second
+        auto roundToNearestSecond = [](std::filesystem::file_time_type ftt) {
+            return std::chrono::time_point_cast<std::chrono::seconds>(ftt);
+            };
+
+        try
+        {
+            currentWriteTime = std::filesystem::last_write_time(file);
+
+            // Use the lambda to round the current write time to the nearest second
+            currentWriteTime = roundToNearestSecond(currentWriteTime);
+        }
+        catch (const std::filesystem::filesystem_error& e)
+        {
+            LOG_ERROR("ReloadableText", "Failed to retrieve file modification time: " + std::string(e.what()));
+            return;
+        }
+
+        // Check if the file has changed since the last read
+        if (currentWriteTime == lastWriteTime_)
+        {
+            // No change in file, skip update
+            return;
+        }
+
+        // Read the text from the specified file
+        std::ifstream fileStream(filePath_);
+        if (fileStream)
+        {
+            text.assign((std::istreambuf_iterator<char>(fileStream)), std::istreambuf_iterator<char>());
+            fileStream.close();
+
+            // Update lastWriteTime_ with the rounded time
+            lastWriteTime_ = currentWriteTime;
+        }
+        else
+        {
+            LOG_ERROR("ReloadableText", "Failed to open file: " + filePath_);
+            return;
+        }
+    }
+    else if (type_ == "time")
+    {
+        // If timeFormat_ undefined, assign reasonable default
+        if (timeFormat_.empty()) {
+            timeFormat_ = "%I:%M:%S %p";
+            isTimeFormatChecked_ = true;
+            isTimeFormatValid_ = true;
+        }
+        // Lambda to validate the time format string
+        auto isValidTimeFormat = [](const std::string& format) {
+            const std::string validSpecifiers = "aAbBcCdDeFgGhHIjklmMnprRStTUwWxXyYzZ%";
+            size_t pos = 0;
+            while ((pos = format.find('%', pos)) != std::string::npos) {
+                if (pos + 1 >= format.size() || validSpecifiers.find(format[pos + 1]) == std::string::npos) {
+                    return false; // Invalid specifier
+                }
+                pos += 2; // Skip over the specifier
+            }
+            return true;
+            };
+
+        // Validate the time format only once
+        if (!isTimeFormatChecked_) {
+            isTimeFormatValid_ = isValidTimeFormat(timeFormat_);
+            isTimeFormatChecked_ = true;
+        }
+
+        // Check if the format is valid
+        if (isTimeFormatValid_) {
+            // Proceed with time formatting if the format is valid
+            auto now = std::chrono::system_clock::now();
+            std::time_t now_c = std::chrono::system_clock::to_time_t(now);
+            struct tm tstruct;
+
+#if defined(_WIN32)
+            localtime_s(&tstruct, &now_c);
+#elif defined(__unix__) || defined(__APPLE__)
+            localtime_r(&now_c, &tstruct);
+#else
+            tstruct = *localtime(&now_c);
+#endif
+
+            std::string buffer(80, '\0');
+            size_t result = strftime(buffer.data(), buffer.size(), timeFormat_.c_str(), &tstruct);
+
+            if (result == 0) {
+                LOG_ERROR("ReloadableText", "strftime failed or buffer was too small.");
+                ss << "Invalid Time"; // Fallback if formatting fails
+            }
+            else {
+                buffer.resize(result); // Trim the string to the actual size
+                ss << buffer;
+            }
+        }
+        else {
+            // If the format is invalid, set ss to "Invalid Time"
+            ss << "Invalid Time";
+        }
     }
     else if (type_ == "numberButtons")
     {
