@@ -65,13 +65,14 @@ void GStreamerVideo::initializePlugins()
             //enablePlugin("openh264dec");
             disablePlugin("d3d11h264dec");
             disablePlugin("d3d11h265dec");
-            disablePlugin("GstNvH264Dec");
+            disablePlugin("nvh264dec");
             enablePlugin("avdec_h264");
             enablePlugin("avdec_h265");
         }
         else
         {
             enablePlugin("d3d11h264dec");
+            disablePlugin("nvh264dec");
             //disablePlugin("d3d11h264dec");
 
             //enablePlugin("qsvh264dec");
