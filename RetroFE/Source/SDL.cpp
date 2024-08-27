@@ -255,13 +255,6 @@ bool SDL::initialize(Configuration &config)
             LOG_ERROR("SDL", "Error setting renderer to" + SDLRenderDriver + ". Available direct3d, direct3d11, direct3d12, opengl, opengles2, opengles, metal, and software");
         }
 #endif
-        SDL_SetHint(SDL_HINT_RENDER_BATCHING, "0");
-        std::string ScaleQuality = "1";
-        config.getProperty(OPTION_SCALEQUALITY, ScaleQuality);
-        if (SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, ScaleQuality.c_str()) != SDL_TRUE)
-        {
-            LOG_ERROR("SDL", "Improve scale quality. Continuing with low-quality settings 1 = linear. 0 = nearest, 2 = best (linear)");
-        }
 
         if (window_[screenNum] == NULL)
         {
@@ -312,13 +305,21 @@ bool SDL::initialize(Configuration &config)
             }
             else
             {
+                SDL_SetHint(SDL_HINT_RENDER_BATCHING, "0");
+                SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, 0);
                 // Create a render target texture for this screen
                 SDL_Texture* renderTarget = SDL_CreateTexture(renderer_[screenNum],
-                    SDL_PIXELFORMAT_RGB888,
+                    SDL_PIXELFORMAT_RGBA8888,
                     SDL_TEXTUREACCESS_TARGET,
                     windowWidth_[screenNum],
                     windowHeight_[screenNum]);
 
+                std::string ScaleQuality = "1";
+                config.getProperty(OPTION_SCALEQUALITY, ScaleQuality);
+                if (SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, ScaleQuality.c_str()) != SDL_TRUE)
+                {
+                    LOG_ERROR("SDL", "Improve scale quality. Continuing with low-quality settings 1 = linear. 0 = nearest, 2 = best (linear)");
+                }
 
                 if (renderTarget == NULL)
                 {
