@@ -89,7 +89,8 @@ void RetroFE::render()
     {
         // Set the render target to the corresponding texture
         SDL_SetRenderTarget(SDL::getRenderer(i), SDL::getRenderTarget(i));
-
+        SDL_SetRenderDrawColor(SDL::getRenderer(i), 0x0, 0x0, 0x0, 0xFF);
+        SDL_RenderClear(SDL::getRenderer(i));
 
     }
 
@@ -104,8 +105,6 @@ void RetroFE::render()
     {
         // Switch back to the screen's framebuffer
         SDL_SetRenderTarget(SDL::getRenderer(i), nullptr);
-        SDL_SetRenderDrawColor(SDL::getRenderer(i), 0x0, 0x0, 0x0, 0xFF);
-        SDL_RenderClear(SDL::getRenderer(i));
 
         // Render the texture onto the screen
         SDL_RenderCopy(SDL::getRenderer(i), SDL::getRenderTarget(i), nullptr, nullptr);
