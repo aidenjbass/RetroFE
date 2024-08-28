@@ -487,11 +487,10 @@ void ReloadableText::ReloadTexture()
 
 void ReloadableText::draw()
 {
-    if (imageInst_)
+    if(imageInst_)
     {
         imageInst_->baseViewInfo = baseViewInfo;
-        if (baseViewInfo.Alpha > 0.0f)
-            imageInst_->draw();
+        imageInst_->draw();
     }
 }
 
