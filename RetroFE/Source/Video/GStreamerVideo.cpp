@@ -302,13 +302,14 @@ bool GStreamerVideo::initializeGstElements(const std::string &file)
     if (Configuration::HardwareVideoAccel)
     {
         videoConvertCaps = gst_caps_from_string(
-            "video/x-raw(memory:D3D11Memory),format=(string)NV12,pixel-aspect-ratio=(fraction)1/1");
+            "video/x-raw,format=(string)NV12,pixel-aspect-ratio=(fraction)1/1");
         sdlFormat_ = SDL_PIXELFORMAT_NV12;
         LOG_DEBUG("GStreamerVideo", "SDL pixel format selected: SDL_PIXELFORMAT_NV12. HarwareVideoAccel:true");
     }
     else
     {
-        videoConvertCaps = gst_caps_from_string("video/x-raw,format=(string)I420,pixel-aspect-ratio=(fraction)1/1");
+        videoConvertCaps = gst_caps_from_string(
+            "video/x-raw,format=(string)I420,pixel-aspect-ratio=(fraction)1/1");
         elementSetupHandlerId_ = g_signal_connect(playbin_, "element-setup", G_CALLBACK(elementSetupCallback), this);
         sdlFormat_ = SDL_PIXELFORMAT_IYUV;
         LOG_DEBUG("GStreamerVideo", "SDL pixel format selected: SDL_PIXELFORMAT_IYUV. HarwareVideoAccel:false");
