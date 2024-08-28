@@ -1328,21 +1328,25 @@ void Page::cleanup()
 }
 
 
-void Page::draw()
-{
+void Page::draw() {
     for (unsigned int i = 0; i < NUM_LAYERS; ++i) {
-        // Drawing Components for the current layer
+        // Draw all components associated with the current layer
         for (Component* component : LayerComponents_[i]) {
             if (component) {
                 component->draw();
             }
         }
 
-        // Drawing Menus that are associated with the current layer
-        for (auto& menuList : menus_) {
-            for (ScrollingList* menu : menuList) {
+        // Draw all menus associated with the current layer
+        for (const auto& menuList : menus_) {
+            for (ScrollingList* const menu : menuList) {
                 if (menu) {
-                    menu->draw(i);
+                    // Draw only the components within the menu that belong to the current layer
+                    for (Component* c : menu->getComponents()) {
+                        if (c && c->baseViewInfo.Layer == i) {
+                            c->draw();
+                        }
+                    }
                 }
             }
         }

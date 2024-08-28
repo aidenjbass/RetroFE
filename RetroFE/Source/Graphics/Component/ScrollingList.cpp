@@ -975,16 +975,8 @@ void ScrollingList::deallocateTexture( size_t index )
     }
 }
 
-void ScrollingList::draw(unsigned int layer)
-{
-    size_t componentSize = components_.size();
-    
-    if (componentSize == 0) return;
-
-    for (unsigned int i = 0; i < componentSize; ++i) {
-        Component *c = components_[i];
-        if (c && c->baseViewInfo.Layer == layer) c->draw();
-    }
+const std::vector<Component*>& ScrollingList::getComponents() const {
+    return components_;
 }
 
 bool ScrollingList::isScrollingListIdle()

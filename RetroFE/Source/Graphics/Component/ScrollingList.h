@@ -107,7 +107,7 @@ public:
     void allocateGraphicsMemory() override;
     void freeGraphicsMemory() override;
     bool update(float dt) override;
-    void draw(unsigned int layer);
+    const std::vector<Component*>& getComponents() const;
     void setScrollAcceleration(float value);
     void setStartScrollTime(float value);
     void setMinScrollTime(float value);
