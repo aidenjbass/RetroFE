@@ -60,10 +60,10 @@ bool ReloadableText::update(float dt)
     }
     else if (type_ == "file")
     {
-        static std::chrono::time_point<std::chrono::steady_clock> lastFileReloadTime_;
-        static std::chrono::milliseconds fileDebounceDuration_ = std::chrono::milliseconds(1000); // 1 second debounce for files
+        static Uint32 lastFileReloadTime_ = 0; // Time of the last file reload in milliseconds
+        static const Uint32 fileDebounceDuration_ = 1000; // 1 second debounce for files
 
-        auto now = std::chrono::steady_clock::now();
+        Uint32 now = SDL_GetTicks();
         // Apply debounce logic specifically for file type
         if (now - lastFileReloadTime_ >= fileDebounceDuration_)
         {
