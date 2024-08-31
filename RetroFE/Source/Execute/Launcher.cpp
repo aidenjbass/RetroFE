@@ -37,6 +37,7 @@
 #include <cstring>
 #include "PacDrive.h"
 #include "StdAfx.h"
+#include <tlhelp32.h>
 #endif
 
 namespace fs = std::filesystem;
@@ -72,6 +73,43 @@ std::string replaceVariables(std::string str,
 
     return str;
 }
+
+#ifdef WIN32
+// Utility function to terminate a process and all its child processes
+void TerminateProcessAndChildren(DWORD processId) {
+    HANDLE hSnap = CreateToolhelp32Snapshot(TH32CS_SNAPPROCESS, 0);
+    if (hSnap == INVALID_HANDLE_VALUE) {
+        LOG_WARNING("Launcher", "Failed to create snapshot for process termination.");
+        return;
+    }
+
+    PROCESSENTRY32 pe32;
+    pe32.dwSize = sizeof(PROCESSENTRY32);
+
+    // Get the first process
+    if (Process32First(hSnap, &pe32)) {
+        do {
+            // Check if the process is a child of the given processId
+            if (pe32.th32ParentProcessID == processId) {
+                // Recursively terminate child processes
+                TerminateProcessAndChildren(pe32.th32ProcessID);
+            }
+        } while (Process32Next(hSnap, &pe32));
+    }
+
+    CloseHandle(hSnap);
+
+    // Open the main process and terminate it
+    HANDLE hProcess = OpenProcess(PROCESS_TERMINATE, FALSE, processId);
+    if (hProcess != nullptr) {
+        LOG_INFO("Launcher", "Terminating process ID: " + std::to_string(processId));
+        TerminateProcess(hProcess, 0);
+        CloseHandle(hProcess);
+    } else {
+        LOG_WARNING("Launcher", "Failed to open process ID: " + std::to_string(processId));
+    }
+}
+#endif
 
 bool Launcher::run(std::string collection, Item* collectionItem, Page* currentPage, bool isAttractMode)
 {
@@ -374,7 +412,7 @@ bool Launcher::execute(std::string executable, std::string args, std::string cur
         shExInfo.lpFile = pszApplication;
         shExInfo.lpParameters = pszCommandLine;
         shExInfo.lpDirectory = currDirW.c_str();
-        shExInfo.nShow = SW_SHOWDEFAULT;
+        shExInfo.nShow = SW_HIDE;
         shExInfo.hInstApp = nullptr;
 
         if (ShellExecuteExW(&shExInfo)) {
@@ -431,16 +469,23 @@ bool Launcher::execute(std::string executable, std::string args, std::string cur
             auto start = std::chrono::high_resolution_clock::now();
             bool userInputDetected = false;
 
-            auto isKeyPressed = [](int virtualKey) -> bool {
-                return (GetAsyncKeyState(virtualKey) & 0x8000) != 0;
+            auto isAnyKeyPressed = []() -> bool {
+                for (int virtualKey = 0x01; virtualKey <= 0xFE; ++virtualKey) {
+                    if (GetAsyncKeyState(virtualKey) & 0x8000) {
+                        return true;
+                    }
+                }
+                return false;
                 };
 
-            // Define the lambda function to check for controller button presses
-            auto isControllerButtonPressed = [](WORD button) -> bool {
+            // Define the lambda function to check if any controller button is pressed
+            auto isAnyControllerButtonPressed = []() -> bool {
                 XINPUT_STATE state;
                 ZeroMemory(&state, sizeof(XINPUT_STATE));
                 if (XInputGetState(0, &state) == ERROR_SUCCESS) { // Check the first controller
-                    return (state.Gamepad.wButtons & button) != 0;
+                    if (state.Gamepad.wButtons != 0) { // Any button is pressed
+                        return true;
+                    }
                 }
                 return false;
                 };
@@ -449,13 +494,7 @@ bool Launcher::execute(std::string executable, std::string args, std::string cur
             while (true) {
 
                 // Check for keyboard input
-                if (isKeyPressed(VK_UP) || isKeyPressed(VK_DOWN) ||
-                    isKeyPressed(VK_LEFT) || isKeyPressed(VK_RIGHT) ||
-                    isKeyPressed(VK_RETURN) || isKeyPressed(VK_ESCAPE) ||
-                    isControllerButtonPressed(XINPUT_GAMEPAD_A) || // A button
-                    isControllerButtonPressed(XINPUT_GAMEPAD_B) || // B button
-                    isControllerButtonPressed(XINPUT_GAMEPAD_X) || // X button
-                    isControllerButtonPressed(XINPUT_GAMEPAD_Y)) {
+                if (isAnyKeyPressed() || isAnyControllerButtonPressed()) {
                     LOG_INFO("Launcher", "User input detected, waiting indefinitely.");
                     userInputDetected = true;
                     break;
@@ -485,7 +524,8 @@ bool Launcher::execute(std::string executable, std::string args, std::string cur
                 WaitForSingleObject(hLaunchedProcess, INFINITE);
             } else {
                 LOG_INFO("Launcher", "Attract Mode timeout reached, terminating game.");
-                TerminateProcess(hLaunchedProcess, 0);
+                DWORD processId = GetProcessId(hLaunchedProcess);
+                TerminateProcessAndChildren(processId);  // Terminate the process and its children
             }
         }
         else if (wait) {

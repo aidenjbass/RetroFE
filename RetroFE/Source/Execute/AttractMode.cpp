@@ -111,19 +111,27 @@ int AttractMode::update(float dt, Page &page)
 
             // Check if it's time to launch a random game
             if (cooldownElapsedTime >= cooldownTime) {
-                // Reset the attract mode timing
-                elapsedTime_ = 0;
-                isActive_ = false;
+                // Introduce randomness: 50% chance to skip launching
+                if (rand() % 2 == 0) {  // Change the condition here to control frequency
+                    // Reset the attract mode timing
+                    elapsedTime_ = 0;
+                    isActive_ = false;
 
-                // Signal to RetroFe to launch a random game
-                return 3;
+                    // Signal to RetroFe to launch a random game
+                    return 3;
+                } else {
+                    // Skip launching and continue scrolling
+                    cooldownElapsedTime = 0;  // Reset cooldown for next cycle
+                    isActive_ = true;  // Keep attract mode active
+                    elapsedTime_ = 0;
+                    activeTime_ = ((float)(minTime + (rand() % (maxTime - minTime)))) / 1000;  // New scroll time
+                }
             }
         }
     }
 
     return 0;
 }
-
 bool AttractMode::isActive() const
 {
     return isActive_;
