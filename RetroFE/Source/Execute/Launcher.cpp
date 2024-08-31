@@ -32,6 +32,8 @@
 #include <filesystem>
 #ifdef WIN32
 #include <Windows.h>
+#pragma comment(lib, "Xinput.lib")
+#include <Xinput.h>
 #include <cstring>
 #include "PacDrive.h"
 #include "StdAfx.h"
@@ -71,7 +73,7 @@ std::string replaceVariables(std::string str,
     return str;
 }
 
-bool Launcher::run(std::string collection, Item* collectionItem, Page* currentPage)
+bool Launcher::run(std::string collection, Item* collectionItem, Page* currentPage, bool isAttractMode)
 {
     // Initialize with the default launcher for the collection
     std::string launcherName = collectionItem->collectionInfo->launcher;
@@ -172,7 +174,7 @@ bool Launcher::run(std::string collection, Item* collectionItem, Page* currentPa
         selectedItemsDirectory,
         collection);
 
-    if (!execute(executablePath, args, currentDirectory, true, currentPage)) {
+    if (!execute(executablePath, args, currentDirectory, true, currentPage, isAttractMode)) {
         LOG_ERROR("Launcher", "Failed to launch.");
         return false;
     }
@@ -264,7 +266,7 @@ void Launcher::LEDBlinky( int command, std::string collection, Item *collectionI
 }
 
 
-bool Launcher::execute(std::string executable, std::string args, std::string currentDirectory, bool wait, Page* currentPage)
+bool Launcher::execute(std::string executable, std::string args, std::string currentDirectory, bool wait, Page* currentPage, bool isAttractMode)
 {
     bool retVal = false;
     std::string executionString = "\"" + executable + "\" " + args;
@@ -313,7 +315,6 @@ bool Launcher::execute(std::string executable, std::string args, std::string cur
         if (!GetWindowRect(hwnd, &appBounds))
             return false;
 
-        // Get the monitor that the window is on
         HMONITOR hMonitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
         if (hMonitor == nullptr)
             return false;
@@ -323,9 +324,8 @@ bool Launcher::execute(std::string executable, std::string args, std::string cur
         if (!GetMonitorInfo(hMonitor, &monitorInfo))
             return false;
 
-        // Check if the window occupies the entire monitor's work area
         return (appBounds.bottom - appBounds.top) == (monitorInfo.rcMonitor.bottom - monitorInfo.rcMonitor.top)
-            && (appBounds.right - appBounds.left) == (monitorInfo.rcMonitor.right - monitorInfo.rcMonitor.left);
+            && (appBounds.right - appBounds.left) == (monitorInfo.rcMonitor.right - appBounds.left);
         };
 
     std::wstring executionStringW = exePathW + L" " + argsW;
@@ -343,8 +343,10 @@ bool Launcher::execute(std::string executable, std::string args, std::string cur
     // Lower priority before launching the process
     SetPriorityClass(GetCurrentProcess(), BELOW_NORMAL_PRIORITY_CLASS);
 
+    HANDLE hLaunchedProcess = nullptr;
+    bool handleObtained = false;
+
     if (exePath.extension() == L".exe") {
-        // Use CreateProcessW for the evaluated command
         STARTUPINFOW startupInfo;
         PROCESS_INFORMATION processInfo;
         memset(&startupInfo, 0, sizeof(startupInfo));
@@ -356,44 +358,14 @@ bool Launcher::execute(std::string executable, std::string args, std::string cur
         startupInfo.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
         startupInfo.wShowWindow = SW_SHOWDEFAULT;
 
-        if (!CreateProcessW(pszApplication, pszCommandLine, nullptr, nullptr, FALSE, CREATE_NO_WINDOW, nullptr, currDirW.c_str(), &startupInfo, &processInfo)) {
-            LOG_WARNING("Launcher", "Failed to run: " + executable + " with error code: " + std::to_string(GetLastError()));
-        } else {
-            bool is4waySet = false;
-            bool isServoStikEnabled = false;
-            config_.getProperty(OPTION_SERVOSTIKENABLED, isServoStikEnabled);
-            if (currentPage->getSelectedItem()->ctrlType.find("4") != std::string::npos && isServoStikEnabled) {
-                if (!PacSetServoStik4Way()) {
-                    LOG_ERROR("RetroFE", "Failed to set ServoStik to 4-way");
-                }
-                else {
-                    LOG_INFO("RetroFE", "Setting ServoStik to 4-way");
-                    is4waySet = true;
-                }
-            }
-            HANDLE hLaunchedProcess = processInfo.hProcess;
-            if (wait) {
-                while (WAIT_OBJECT_0 != MsgWaitForMultipleObjects(1, &hLaunchedProcess, FALSE, INFINITE, QS_ALLINPUT)) {
-                    MSG msg;
-                    while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
-                        DispatchMessage(&msg);
-                    }
-                }
-            }
-            if (is4waySet) {
-                if (!PacSetServoStik8Way()) { // return to 8-way if 4-way switch occurred
-                    LOG_ERROR("RetroFE", "Failed to return ServoStik to 8-way");
-                }
-                else {
-                    LOG_INFO("RetroFE", "Returned ServoStik to 8-way");
-                }
-            }
-            CloseHandle(hLaunchedProcess);
+        if (CreateProcessW(pszApplication, pszCommandLine, nullptr, nullptr, FALSE, CREATE_NO_WINDOW, nullptr, currDirW.c_str(), &startupInfo, &processInfo)) {
+            hLaunchedProcess = processInfo.hProcess;
+            handleObtained = true;
             CloseHandle(processInfo.hThread);
-            retVal = true;
+        } else {
+            LOG_WARNING("Launcher", "Failed to run: " + executable + " with error code: " + std::to_string(GetLastError()));
         }
     } else {
-        // Use ShellExecuteEx for other types like .lnk or .url
         SHELLEXECUTEINFOW shExInfo = {0};
         shExInfo.cbSize = sizeof(SHELLEXECUTEINFOW);
         shExInfo.fMask = SEE_MASK_NOCLOSEPROCESS;
@@ -405,85 +377,129 @@ bool Launcher::execute(std::string executable, std::string args, std::string cur
         shExInfo.nShow = SW_SHOWDEFAULT;
         shExInfo.hInstApp = nullptr;
 
-        if (!ShellExecuteExW(&shExInfo)) {
-            LOG_WARNING("Launcher", "ShellExecuteEx failed to run: " + executable + " with error code: " + std::to_string(GetLastError()));
+        if (ShellExecuteExW(&shExInfo)) {
+            hLaunchedProcess = shExInfo.hProcess;
+            handleObtained = true;
         } else {
-            HANDLE hLaunchedProcess = shExInfo.hProcess;
-
-            if (wait) {
-                if (hLaunchedProcess) {
-                    // If a valid handle is returned, simply wait for the process to exit
-                    while (WAIT_OBJECT_0 != MsgWaitForMultipleObjects(1, &hLaunchedProcess, FALSE, INFINITE, QS_ALLINPUT)) {
-                        MSG msg;
-                        while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
-                            DispatchMessage(&msg);
-                        }
-                    }
-                } else {
-                    // If no valid handle is returned, proceed with fullscreen check
-                    auto start = std::chrono::high_resolution_clock::now();
-                    bool timeoutOccurred = false;
-                    HWND hwndFullscreen = nullptr;
-
-                    // Wait for the fullscreen window to be found or timeout
-                    while (true) {
-                        HWND hwnd = GetForegroundWindow();
-                        if (hwnd != nullptr) {
-                            DWORD windowProcessId;
-                            GetWindowThreadProcessId(hwnd, &windowProcessId);
-                            if (windowProcessId != launcherProcessId && isFullscreenWindow(hwnd)) {
-                                hwndFullscreen = hwnd;
-                                break;
-                            }
-                        }
-
-                        auto now = std::chrono::high_resolution_clock::now();
-                        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - start).count();
-
-                        if (elapsed > 40000) { // 40 seconds timeout
-                            LOG_WARNING("Launcher", "Timeout while waiting for fullscreen state.");
-                            timeoutOccurred = true;
-                            break;
-                        }
-
-                        Sleep(500); // Polling interval
-                    }
-
-                    if (!timeoutOccurred && hwndFullscreen) {
-                        // If a fullscreen window was found, wait for the associated process to exit
-                        DWORD gameProcessId;
-                        GetWindowThreadProcessId(hwndFullscreen, &gameProcessId);
-                        HANDLE hGameProcess = OpenProcess(SYNCHRONIZE, FALSE, gameProcessId);
-                        if (hGameProcess) {
-                            while (WAIT_OBJECT_0 != MsgWaitForMultipleObjects(1, &hGameProcess, FALSE, INFINITE, QS_ALLINPUT)) {
-                                MSG msg;
-                                while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
-                                    DispatchMessage(&msg);
-                                }
-                            }
-                            CloseHandle(hGameProcess);
-                        }
-                    }
-                }
-            }
-
-            if (hLaunchedProcess) {
-                CloseHandle(hLaunchedProcess);
-            }
-            retVal = true;
+            LOG_WARNING("Launcher", "ShellExecuteEx failed to run: " + executable + " with error code: " + std::to_string(GetLastError()));
         }
     }
 
-    // Resume priority
-    bool highPriority = false;
-    config_.getProperty("OPTION_HIGHPRIORITY", highPriority);
-    if (highPriority) {
-        SetPriorityClass(GetCurrentProcess(), ABOVE_NORMAL_PRIORITY_CLASS);
-    } else {
-        SetPriorityClass(GetCurrentProcess(), NORMAL_PRIORITY_CLASS);
+    if (!handleObtained) {
+        auto start = std::chrono::high_resolution_clock::now();
+        HWND hwndFullscreen = nullptr;
+
+        while (true) {
+            HWND hwnd = GetForegroundWindow();
+            if (hwnd != nullptr) {
+                DWORD windowProcessId;
+                GetWindowThreadProcessId(hwnd, &windowProcessId);
+                if (windowProcessId != GetCurrentProcessId() && isFullscreenWindow(hwnd)) {
+                    hwndFullscreen = hwnd;
+                    break;
+                }
+            }
+
+            auto now = std::chrono::high_resolution_clock::now();
+            auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - start).count();
+
+            if (elapsed > 40000) {
+                LOG_WARNING("Launcher", "Timeout while waiting for fullscreen state.");
+                break;
+            }
+
+            Sleep(500);
+        }
+
+        if (hwndFullscreen) {
+            DWORD gameProcessId;
+            GetWindowThreadProcessId(hwndFullscreen, &gameProcessId);
+            hLaunchedProcess = OpenProcess(SYNCHRONIZE, FALSE, gameProcessId);
+            if (hLaunchedProcess) {
+                handleObtained = true;
+            }
+        }
     }
 
-    // Free memory allocated by SHEvaluateSystemCommandTemplate
+
+
+    if (handleObtained) {
+        
+
+        
+        if (isAttractMode) {
+            auto start = std::chrono::high_resolution_clock::now();
+            bool userInputDetected = false;
+
+            auto isKeyPressed = [](int virtualKey) -> bool {
+                return (GetAsyncKeyState(virtualKey) & 0x8000) != 0;
+                };
+
+            // Define the lambda function to check for controller button presses
+            auto isControllerButtonPressed = [](WORD button) -> bool {
+                XINPUT_STATE state;
+                ZeroMemory(&state, sizeof(XINPUT_STATE));
+                if (XInputGetState(0, &state) == ERROR_SUCCESS) { // Check the first controller
+                    return (state.Gamepad.wButtons & button) != 0;
+                }
+                return false;
+                };
+
+
+            while (true) {
+
+                // Check for keyboard input
+                if (isKeyPressed(VK_UP) || isKeyPressed(VK_DOWN) ||
+                    isKeyPressed(VK_LEFT) || isKeyPressed(VK_RIGHT) ||
+                    isKeyPressed(VK_RETURN) || isKeyPressed(VK_ESCAPE) ||
+                    isControllerButtonPressed(XINPUT_GAMEPAD_A) || // A button
+                    isControllerButtonPressed(XINPUT_GAMEPAD_B) || // B button
+                    isControllerButtonPressed(XINPUT_GAMEPAD_X) || // X button
+                    isControllerButtonPressed(XINPUT_GAMEPAD_Y)) {
+                    LOG_INFO("Launcher", "User input detected, waiting indefinitely.");
+                    userInputDetected = true;
+                    break;
+                }
+
+                // Check if the launched process has exited
+                DWORD exitCode;
+                if (GetExitCodeProcess(hLaunchedProcess, &exitCode)) {
+                    if (exitCode != STILL_ACTIVE) {
+                        // Process has terminated
+                        break;
+                    }
+                }
+
+                // Check if the timeout has been reached
+                auto now = std::chrono::high_resolution_clock::now();
+                auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - start).count();
+                if (elapsed >= 30) {
+                    break;
+                }
+
+                // Sleep to prevent high CPU usage
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            }
+
+            if (userInputDetected) {
+                WaitForSingleObject(hLaunchedProcess, INFINITE);
+            } else {
+                LOG_INFO("Launcher", "Attract Mode timeout reached, terminating game.");
+                TerminateProcess(hLaunchedProcess, 0);
+            }
+        }
+        else if (wait) {
+            WaitForSingleObject(hLaunchedProcess, INFINITE);
+        }
+
+        CloseHandle(hLaunchedProcess);
+        retVal = true;
+    }
+
+    bool highPriority = false;
+    config_.getProperty("OPTION_HIGHPRIORITY", highPriority);
+    SetPriorityClass(GetCurrentProcess(), highPriority ? ABOVE_NORMAL_PRIORITY_CLASS : NORMAL_PRIORITY_CLASS);
+
     if (pszApplication) {
         CoTaskMemFree(pszApplication);
     }
@@ -502,6 +518,12 @@ bool Launcher::execute(std::string executable, std::string args, std::string cur
     } else {
         retVal = true;
     }
+
+    if (isAttractMode) {
+        std::this_thread::sleep_for(std::chrono::seconds(30));
+        LOG_INFO("Launcher", "Attract Mode timeout reached.");
+        // Unix/Linux specific logic to terminate the process if needed
+    }
 #endif
 
     if (multiple_display && stop_thread == false) {
@@ -512,7 +534,7 @@ bool Launcher::execute(std::string executable, std::string args, std::string cur
     LOG_INFO("Launcher", "Completed");
 
     return retVal;
-}
+    }
 
 
 

@@ -27,7 +27,7 @@ class Launcher
 {
 public:
     explicit Launcher(Configuration &c);
-    bool run(std::string collection, Item *collectionItem, Page *currentPage = NULL);
+    bool run(std::string collection, Item *collectionItem, Page *currentPage = NULL, bool isAttractMode = false);
     void startScript();
     void exitScript();
 	void LEDBlinky( int command, std::string collection = "", Item *collectionItem = NULL);
@@ -40,6 +40,6 @@ private:
     bool extensions(std::string &extensions, std::string launcherName);
     bool collectionDirectory(std::string &directory, std::string collection);
     bool findFile(std::string& foundFilePath, std::string& foundFilename, const std::string& directory, const std::string& filenameWithoutExtension, const std::string& extensions);
-    bool execute(std::string executable, std::string arguments, std::string currentDirectory, bool wait = true, Page*currentPage = NULL);
+    bool execute(std::string executable, std::string args, std::string currentDirectory, bool wait = true, Page* currentPage = nullptr, bool isAttractMode = false);
     Configuration &config_;
 };

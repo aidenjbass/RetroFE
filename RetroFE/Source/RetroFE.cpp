@@ -415,6 +415,8 @@ bool RetroFE::run()
     int attractModeCollectionTime = 0;
     int attractModeMinTime = 1000;
     int attractModeMaxTime = 5000;
+    bool attractModeLaunch = false;
+
     std::string firstCollection = "Main";
     bool running = true;
     RETROFE_STATE state = RETROFE_NEW;
@@ -427,6 +429,7 @@ bool RetroFE::run()
     config_.getProperty(OPTION_ATTRACTMODEMAXTIME, attractModeMaxTime);
     config_.getProperty(OPTION_FIRSTCOLLECTION, firstCollection);
     config_.getProperty(OPTION_ATTRACTMODEFAST, attractModeFast);
+    config_.getProperty(OPTION_ATTRACTMODELAUNCH, attractModeLaunch);
 
     attract_.idleTime = static_cast<float>(attractModeTime);
     attract_.idleNextTime = static_cast<float>(attractModeNextTime);
@@ -1652,7 +1655,50 @@ bool RetroFE::run()
             state = RETROFE_IDLE;
             break;
 
-        // Launching game; start onGameEnter animation
+        case RETROFE_ATTRACT_LAUNCH_ENTER:
+            if (currentPage_->isIdle())
+            {
+                currentPage_->setSelectedItem();
+                currentPage_->onNewItemSelected();
+                currentPage_->enterGame();  // Start onGameEnter animation
+                currentPage_->playSelect(); // Play launch sound
+                state = RETROFE_ATTRACT_LAUNCH_REQUEST;
+            }
+
+            break;
+        case RETROFE_ATTRACT_LAUNCH_REQUEST:
+            if (currentPage_->isIdle())
+            {
+                nextPageItem_ = currentPage_->getSelectedItem();
+                launchEnter();
+
+                l.LEDBlinky(3, nextPageItem_->collectionInfo->name, nextPageItem_);
+                // Run and check if we need to reboot
+                if (l.run(nextPageItem_->collectionInfo->name, nextPageItem_, currentPage_, true))
+                {
+                    attract_.reset();
+                    // Run launchExit function when unloadSDL flag is set
+                    bool unloadSDL = false;
+                    config_.getProperty(OPTION_UNLOADSDL, unloadSDL);
+                    if (unloadSDL)
+                    {
+                        launchExit();
+                    }
+                    reboot_ = true;
+                    state = RETROFE_QUIT_REQUEST;
+                }
+                else
+                {
+                    launchExit();
+                    l.LEDBlinky(4);
+                    currentPage_->exitGame();
+
+                    state = RETROFE_LAUNCH_EXIT;
+                }
+            }
+            break;
+
+            // Launching game; start onGameEnter animation
         case RETROFE_LAUNCH_ENTER:
             if (currentPage_->isMenuScrolling())
             {
@@ -2008,6 +2054,10 @@ bool RetroFE::run()
                     {
                         attract_.reset(attract_.isSet());
                         state = RETROFE_COLLECTION_DOWN_REQUEST;
+                    }
+                    if (attractModeLaunch && !kioskLock_ && attractReturn == 3) {
+                        attract_.reset(attract_.isSet());
+                        state = RETROFE_ATTRACT_LAUNCH_ENTER;
                     }
                 }
                 if (menuMode_)
