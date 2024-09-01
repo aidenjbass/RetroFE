@@ -417,7 +417,8 @@ bool Launcher::execute(std::string executable, std::string args, std::string cur
 
         if (ShellExecuteExW(&shExInfo)) {
             hLaunchedProcess = shExInfo.hProcess;
-            handleObtained = true;
+            if (hLaunchedProcess)
+                handleObtained = true;
         } else {
             LOG_WARNING("Launcher", "ShellExecuteEx failed to run: " + executable + " with error code: " + std::to_string(GetLastError()));
         }
@@ -459,13 +460,10 @@ bool Launcher::execute(std::string executable, std::string args, std::string cur
         }
     }
 
-
-
     if (handleObtained) {
-        
-
-        
         if (isAttractMode) {
+            int attractModeLaunchTime = 30;
+            config_.getProperty(OPTION_ATTRACTMODELAUNCHTIME, attractModeLaunchTime);
             auto start = std::chrono::high_resolution_clock::now();
             bool userInputDetected = false;
 
@@ -478,7 +476,6 @@ bool Launcher::execute(std::string executable, std::string args, std::string cur
                 return false;
                 };
 
-            // Define the lambda function to check if any controller button is pressed
             auto isAnyControllerButtonPressed = []() -> bool {
                 XINPUT_STATE state;
                 ZeroMemory(&state, sizeof(XINPUT_STATE));
@@ -489,11 +486,16 @@ bool Launcher::execute(std::string executable, std::string args, std::string cur
                 }
                 return false;
                 };
-
-
+            
             while (true) {
+             
+                // Process window messages
+                MSG msg;
+                while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
+                    DispatchMessage(&msg);
+                }
 
-                // Check for keyboard input
+                // Check for keyboard/controller input
                 if (isAnyKeyPressed() || isAnyControllerButtonPressed()) {
                     LOG_INFO("Launcher", "User input detected, waiting indefinitely.");
                     userInputDetected = true;
@@ -512,7 +514,7 @@ bool Launcher::execute(std::string executable, std::string args, std::string cur
                 // Check if the timeout has been reached
                 auto now = std::chrono::high_resolution_clock::now();
                 auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - start).count();
-                if (elapsed >= 30) {
+                if (elapsed >= attractModeLaunchTime) {
                     break;
                 }
 
@@ -521,7 +523,12 @@ bool Launcher::execute(std::string executable, std::string args, std::string cur
             }
 
             if (userInputDetected) {
-                WaitForSingleObject(hLaunchedProcess, INFINITE);
+                while(WAIT_OBJECT_0 != MsgWaitForMultipleObjects(1, &hLaunchedProcess, FALSE, INFINITE, QS_ALLINPUT)) {
+                    MSG msg;
+                    while(PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
+                        DispatchMessage(&msg);
+                    }
+                }
             } else {
                 LOG_INFO("Launcher", "Attract Mode timeout reached, terminating game.");
                 DWORD processId = GetProcessId(hLaunchedProcess);
@@ -529,9 +536,14 @@ bool Launcher::execute(std::string executable, std::string args, std::string cur
             }
         }
         else if (wait) {
-            WaitForSingleObject(hLaunchedProcess, INFINITE);
-        }
+            while (WAIT_OBJECT_0 != MsgWaitForMultipleObjects(1, &hLaunchedProcess, FALSE, INFINITE, QS_ALLINPUT)) {
+                MSG msg;
+                while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
+                    DispatchMessage(&msg);
+                }
+            }
 
+        }
         CloseHandle(hLaunchedProcess);
         retVal = true;
     }

@@ -111,6 +111,7 @@ const global_options::options_entry global_options::s_option_entries[] =
     { OPTION_ATTRACTMODEMINTIME,        "100",     global_options::option_type::INTEGER,  "Minimum number of milliseconds attract mode will scroll" },
     { OPTION_ATTRACTMODEMAXTIME,        "1600",    global_options::option_type::INTEGER,  "Maximum number of milliseconds attract mode will scroll" },
     { OPTION_ATTRACTMODEFAST,           "false",   global_options::option_type::BOOLEAN,  "Scroll(false) or jump(true) to the next random point while in attract mode" },
+    { OPTION_ATTRACTMODELAUNCH,         "false",   global_options::option_type::BOOLEAN,  "When in attract mode will launch games for a time configured by attracModeLaunchTime, default 30 sec" },
 
     { nullptr,                         nullptr,    global_options::option_type::HEADER,   "INPUT OPTIONS" },
     { OPTION_COLLECTIONINPUTCLEAR,     "false",    global_options::option_type::BOOLEAN,  "Clear input queue on collection change" },
