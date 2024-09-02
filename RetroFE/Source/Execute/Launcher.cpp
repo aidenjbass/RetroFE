@@ -618,13 +618,21 @@ void Launcher::keepRendering(std::atomic<bool> &stop_thread, Page &currentPage) 
         // start on secondary monitor
         // todo support future main screen swap
         for (int i = 1; i < SDL::getScreenCount(); ++i) {
-            SDL_SetRenderDrawColor(SDL::getRenderer(i), 0x0, 0x0, 0x00, 0xFF);
+            SDL_SetRenderTarget(SDL::getRenderer(i), SDL::getRenderTarget(i));
+            SDL_SetRenderDrawColor(SDL::getRenderer(i), 0x0, 0x0, 0x0, 0xFF);
             SDL_RenderClear(SDL::getRenderer(i));
         }
 
         currentPage.draw();
 
         for (int i = 1; i < SDL::getScreenCount(); ++i) {
+            // Switch back to the screen's framebuffer
+            SDL_SetRenderTarget(SDL::getRenderer(i), nullptr);
+
+            // Render the texture onto the screen
+            SDL_RenderCopy(SDL::getRenderer(i), SDL::getRenderTarget(i), nullptr, nullptr);
+
+            // Present the final result to the screen
             SDL_RenderPresent(SDL::getRenderer(i));
         }
 
