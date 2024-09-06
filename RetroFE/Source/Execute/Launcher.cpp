@@ -83,7 +83,7 @@ void TerminateProcessAndChildren(DWORD processId) {
         return;
     }
 
-    PROCESSENTRY32 pe32;
+    PROCESSENTRY32 pe32{};
     pe32.dwSize = sizeof(PROCESSENTRY32);
 
     // Get the first process
@@ -317,6 +317,7 @@ bool Launcher::execute(std::string executable, std::string args, std::string cur
     bool multiple_display = SDL_GetNumVideoDisplays() > 1;
     bool animateDuringGame = true;
     config_.getProperty("OPTION_ANIMATEDURINGGAME", animateDuringGame);
+    
     if (animateDuringGame && multiple_display && currentPage != nullptr) {
         stop_thread = false;
         proc_thread = std::thread([this, &stop_thread, currentPage]() {
@@ -345,10 +346,8 @@ bool Launcher::execute(std::string executable, std::string args, std::string cur
     std::wstring argsW = std::wstring(args.begin(), args.end());
     std::wstring currDirW = currDir.wstring();
 
-    DWORD launcherProcessId = GetCurrentProcessId();
-
     // Lambda function to check if a window is fullscreen
-    auto isFullscreenWindow = [](HWND hwnd) -> bool {
+    auto isFullscreenWindow = [](HWND hwnd) -> auto {
         RECT appBounds;
         if (!GetWindowRect(hwnd, &appBounds))
             return false;
@@ -357,7 +356,7 @@ bool Launcher::execute(std::string executable, std::string args, std::string cur
         if (hMonitor == nullptr)
             return false;
 
-        MONITORINFO monitorInfo;
+        MONITORINFO monitorInfo{};
         monitorInfo.cbSize = sizeof(MONITORINFO);
         if (!GetMonitorInfo(hMonitor, &monitorInfo))
             return false;
@@ -461,13 +460,25 @@ bool Launcher::execute(std::string executable, std::string args, std::string cur
     }
 
     if (handleObtained) {
+        bool is4waySet = false;
+        bool isServoStikEnabled = false;
+        config_.getProperty(OPTION_SERVOSTIKENABLED, isServoStikEnabled);
+        if (currentPage->getSelectedItem()->ctrlType.find("4") != std::string::npos && isServoStikEnabled) {
+            if (!PacSetServoStik4Way()) {
+                LOG_ERROR("RetroFE", "Failed to set ServoStik to 4-way mode");
+            }
+            else {
+                LOG_INFO("RetroFE", "Setting ServoStik to 4-way mode");
+                is4waySet = true;
+            }
+        }
         if (isAttractMode) {
             int attractModeLaunchTime = 30;
             config_.getProperty(OPTION_ATTRACTMODELAUNCHTIME, attractModeLaunchTime);
             auto start = std::chrono::high_resolution_clock::now();
             bool userInputDetected = false;
 
-            auto isAnyKeyPressed = []() -> bool {
+            auto isAnyKeyPressed = []() -> auto {
                 for (int virtualKey = 0x01; virtualKey <= 0xFE; ++virtualKey) {
                     if (GetAsyncKeyState(virtualKey) & 0x8000) {
                         return true;
@@ -476,7 +487,7 @@ bool Launcher::execute(std::string executable, std::string args, std::string cur
                 return false;
                 };
 
-            auto isAnyControllerButtonPressed = []() -> bool {
+            auto isAnyControllerButtonPressed = []() -> auto {
                 XINPUT_STATE state;
                 ZeroMemory(&state, sizeof(XINPUT_STATE));
                 if (XInputGetState(0, &state) == ERROR_SUCCESS) { // Check the first controller
@@ -543,6 +554,15 @@ bool Launcher::execute(std::string executable, std::string args, std::string cur
                 }
             }
 
+        }
+        if (is4waySet)
+        {
+            if (!PacSetServoStik8Way()) { // return to 8-way if 4-way switch occurred
+                LOG_ERROR("RetroFE", "Failed to return ServoStik to 8-way mode");
+            }
+            else {
+                LOG_INFO("RetroFE", "Returned ServoStik to 8-way mode");
+            }
         }
         CloseHandle(hLaunchedProcess);
         retVal = true;
