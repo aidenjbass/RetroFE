@@ -82,5 +82,4 @@ public:
 private:
     float AbsoluteHeight() const;
     float AbsoluteWidth() const;
-    float ScaleDimension(float size, float minSize, float maxSize, float otherSize, bool isWidth) const;
 };
