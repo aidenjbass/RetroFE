@@ -592,6 +592,7 @@ void GStreamerVideo::draw() {
                     GST_VIDEO_FRAME_PLANE_STRIDE(&vframe, 0),
                     static_cast<const Uint8*>(GST_VIDEO_FRAME_PLANE_DATA(&vframe, 1)),
                     GST_VIDEO_FRAME_PLANE_STRIDE(&vframe, 1)) != 0) {
+                    LOG_ERROR("GStreamerVideo", "Unable to update NV texture.");
                 }
             }
             else if (sdlFormat_ == SDL_PIXELFORMAT_IYUV) {
@@ -602,6 +603,7 @@ void GStreamerVideo::draw() {
                     GST_VIDEO_FRAME_PLANE_STRIDE(&vframe, 1),
                     static_cast<const Uint8*>(GST_VIDEO_FRAME_PLANE_DATA(&vframe, 2)),
                     GST_VIDEO_FRAME_PLANE_STRIDE(&vframe, 2)) != 0) {
+                    LOG_ERROR("GStreamerVideo", "Unable to update YUV texture.");
                 }
             }
             SDL_UnlockMutex(SDL::getMutex());

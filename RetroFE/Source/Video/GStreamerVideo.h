@@ -77,10 +77,18 @@ public:
         size_t nextTail = (currentTail + 1) & (N - 1);
 
         if (nextTail == head.load(std::memory_order_acquire)) {
-            // Queue is full, drop the oldest item
-            return false;  // Drop on full
+            // Queue is full, we need to drop the oldest item.
+            size_t currentHead = head.load(std::memory_order_relaxed);
+            T& oldestItem = storage[currentHead];
+
+            // Unref or clear the buffer if needed.
+            gst_clear_buffer(&oldestItem);  // Ensure proper cleanup of the dropped buffer
+
+            // Advance the head to effectively "remove" the oldest item.
+            head.store((currentHead + 1) & (N - 1), std::memory_order_release);
         }
 
+        // Store the new item in the queue.
         storage[currentTail] = item;
         tail.store(nextTail, std::memory_order_release);  // Commit the write
         return true;
@@ -102,7 +110,11 @@ public:
     // Clear the queue
     void clear() {
         while (!isEmpty()) {
-            pop();  // Just pop all elements
+            auto itemOpt = pop();
+            if (itemOpt.has_value()) {
+                // Properly unref or clear the buffer
+                gst_clear_buffer(&(*itemOpt));
+            }
         }
 
         // Reset indices safely (not strictly necessary since pop() manages this, but good for consistency)
@@ -184,7 +196,7 @@ private:
     guint prerollHandlerId_{ 0 };
     gint height_{ 0 };
     gint width_{ 0 };
-    TNQueue<GstBuffer*, 8> bufferQueue_; // Using TNQueue to hold a maximum of 15 buffers
+    TNQueue<GstBuffer*, 8> bufferQueue_; // Using TNQueue to hold a maximum of 8 buffers
     bool isPlaying_{ false };
     static bool initialized_;
     int playCount_{ 0 };
