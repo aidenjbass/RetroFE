@@ -21,7 +21,6 @@
 #include "../Utility/Log.h"
 #include "IVideo.h"
 #include <atomic>
-#include <mutex>
 #include <shared_mutex>
 #include <string>
 #include <optional>
@@ -174,7 +173,6 @@ private:
     static void processNewBuffer(GstElement const* /* fakesink */, GstBuffer* buf, GstPad* new_pad,
         gpointer userdata);
     static void elementSetupCallback(GstElement* playbin, GstElement* element, gpointer data);
-    static void sourceSetupCallback(GstElement* playbin, GstElement* element, gpointer data);
     static GstPadProbeReturn padProbeCallback(GstPad* pad, GstPadProbeInfo* info, gpointer user_data);
     static void initializePlugins();
     bool initializeGstElements(const std::string& file);
