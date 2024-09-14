@@ -45,82 +45,79 @@ constexpr size_t CACHE_LINE_SIZE = 64;
 template<typename T, size_t N>
 class TNQueue {
     // Ensure N is a power of two for efficient bitwise index wrapping
-    static_assert((N & (N - 1)) == 0, "N must be a power of 2");
+    static_assert((N& (N - 1)) == 0, "N must be a power of 2");
 
 protected:
     alignas(CACHE_LINE_SIZE) T storage[N];  // C-style array for holding the buffers
     alignas(CACHE_LINE_SIZE) std::atomic<size_t> head;  // Atomic index for reading buffers
     alignas(CACHE_LINE_SIZE) std::atomic<size_t> tail;  // Atomic index for writing new buffers
-    alignas(CACHE_LINE_SIZE) std::atomic<size_t> count; // Atomic count of items in the queue
-
-private:
-    std::mutex queueMutex_;
 
 public:
-    TNQueue() : head(0), tail(0), count(0) {}
+    TNQueue() : head(0), tail(0) {}
 
     // Check if the queue is full
     bool isFull() const {
-        return count.load(std::memory_order_acquire) == N;  // Full if count equals capacity
+        size_t currentTail = tail.load(std::memory_order_acquire);
+        size_t currentHead = head.load(std::memory_order_acquire);
+        // Full when advancing tail would equal the head
+        return ((currentTail + 1) & (N - 1)) == currentHead;
     }
 
     // Check if the queue is empty
     bool isEmpty() const {
-        return count.load(std::memory_order_acquire) == 0;  // Empty if count is zero
+        size_t currentTail = tail.load(std::memory_order_acquire);
+        size_t currentHead = head.load(std::memory_order_acquire);
+        // Empty when head equals tail
+        return currentHead == currentTail;
     }
 
-    // Push a new item into the queue
-    void push(T item) {
+    // Push a new item into the queue (Non-blocking)
+    bool push(T item) {
         size_t currentTail = tail.load(std::memory_order_relaxed);
+        size_t nextTail = (currentTail + 1) & (N - 1);
 
-        if (isFull()) {
-            LOG_DEBUG("TNQueue", "Queue is full. Dropping the oldest item.");
-            auto droppedItemOpt = pop();  // Remove the oldest item
-            if (droppedItemOpt.has_value()) {
-                gst_clear_buffer(&(*droppedItemOpt));  // Use gst_clear_buffer to unref and clear the buffer
-            }
+        if (nextTail == head.load(std::memory_order_acquire)) {
+            // Queue is full, drop the oldest item
+            return false;  // Drop on full
         }
 
         storage[currentTail] = item;
-        tail.store((currentTail + 1) & (N - 1), std::memory_order_release);  // Update tail with release semantics
-        count.fetch_add(1, std::memory_order_release);  // Increment count
+        tail.store(nextTail, std::memory_order_release);  // Commit the write
+        return true;
     }
 
-    // Pop an item from the queue
+    // Pop an item from the queue (Non-blocking)
     std::optional<T> pop() {
         size_t currentHead = head.load(std::memory_order_relaxed);
 
-        if (isEmpty()) {
+        if (currentHead == tail.load(std::memory_order_acquire)) {
             return std::nullopt;  // Queue is empty
         }
 
         T item = storage[currentHead];
-        head.store((currentHead + 1) & (N - 1), std::memory_order_release);  // Update head with release semantics
-        count.fetch_sub(1, std::memory_order_release);  // Decrement count
+        head.store((currentHead + 1) & (N - 1), std::memory_order_release);  // Commit the read
         return item;
     }
 
     // Clear the queue
     void clear() {
         while (!isEmpty()) {
-            auto itemOpt = pop();  // Use the pop() method to handle the queue logic
-
-            if (itemOpt.has_value()) {
-                gst_clear_buffer(&(*itemOpt));  // Safely clear and unref the buffer
-            }
+            pop();  // Just pop all elements
         }
 
         // Reset indices safely (not strictly necessary since pop() manages this, but good for consistency)
         head.store(0, std::memory_order_relaxed);
         tail.store(0, std::memory_order_relaxed);
-        count.store(0, std::memory_order_relaxed);
     }
 
-    // Get the current size of the queue
+    // Get the current size of the queue (Note: This is not lock-free, just for diagnostics)
     size_t size() const {
-        return count.load(std::memory_order_acquire);  // Directly return the count
+        size_t currentHead = head.load(std::memory_order_acquire);
+        size_t currentTail = tail.load(std::memory_order_acquire);
+        return (currentTail + N - currentHead) & (N - 1);  // Calculate size based on head/tail positions
     }
 };
+
 
 class GStreamerVideo final : public IVideo {
 public:
