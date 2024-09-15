@@ -460,7 +460,7 @@ bool RetroFE::run()
     bool screensaver = false;
     config_.getProperty(OPTION_SCREENSAVER, screensaver);
 
-    Launcher l(config_);
+    Launcher l(config_, *this);
     Menu m(config_, input_);
     preloadTime = static_cast<float>(SDL_GetTicks()) / 1000;
 
@@ -3242,4 +3242,8 @@ void RetroFE::resetInfoToggle()
         currentPage_->buildInfoExit();
         buildInfo_ = false;
     }
+}
+
+MetadataDatabase* RetroFE::getMetaDb() {
+    return metadb_;
 }

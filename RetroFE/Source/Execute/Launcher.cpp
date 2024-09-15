@@ -15,6 +15,7 @@
  */
 
 #include "Launcher.h"
+#include "../RetroFE.h"
 #include "../Collection/Item.h"
 #include "../Utility/Log.h"
 #include "../Database/Configuration.h"
@@ -22,6 +23,7 @@
 #include "../RetroFE.h"
 #include "../SDL.h"
 #include "../Database/GlobalOpts.h"
+#include "../Collection/CollectionInfoBuilder.h"
 #include <cstdlib>
 #include <locale>
 #include <sstream>
@@ -42,8 +44,9 @@
 
 namespace fs = std::filesystem;
 
-Launcher::Launcher(Configuration &c)
-    : config_(c)
+Launcher::Launcher(Configuration &c, RetroFE &retroFe)
+    : config_(c),
+    retroFeInstance_(retroFe)
 {
 }
 
@@ -212,7 +215,7 @@ bool Launcher::run(std::string collection, Item* collectionItem, Page* currentPa
         selectedItemsDirectory,
         collection);
 
-    if (!execute(executablePath, args, currentDirectory, true, currentPage, isAttractMode)) {
+    if (!execute(executablePath, args, currentDirectory, true, currentPage, isAttractMode, collectionItem)) {
         LOG_ERROR("Launcher", "Failed to launch.");
         return false;
     }
@@ -304,7 +307,7 @@ void Launcher::LEDBlinky( int command, std::string collection, Item *collectionI
 }
 
 
-bool Launcher::execute(std::string executable, std::string args, std::string currentDirectory, bool wait, Page* currentPage, bool isAttractMode)
+bool Launcher::execute(std::string executable, std::string args, std::string currentDirectory, bool wait, Page* currentPage, bool isAttractMode, Item* collectionItem)
 {
     bool retVal = false;
     std::string executionString = "\"" + executable + "\" " + args;
@@ -538,6 +541,36 @@ bool Launcher::execute(std::string executable, std::string args, std::string cur
                     MSG msg;
                     while(PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
                         DispatchMessage(&msg);
+                    }
+                    // Add to last played if user interrupted during attract mode
+                    CollectionInfoBuilder cib(config_, *retroFeInstance_.getMetaDb());
+                    std::string lastPlayedSkipCollection = "";
+                    int size = 0;
+                    config_.getProperty(OPTION_LASTPLAYEDSKIPCOLLECTION, lastPlayedSkipCollection);
+                    config_.getProperty(OPTION_LASTPLAYEDSIZE, size);
+
+                    if (lastPlayedSkipCollection != "")
+                    {
+                        // see if any of the comma seperated match current collection
+                        std::stringstream ss(lastPlayedSkipCollection);
+                        std::string collection = "";
+                        bool updateLastPlayed = true;
+                        while (ss.good())
+                        {
+                            getline(ss, collection, ',');
+                            // Check if the current collection matches any collection in lastPlayedSkipCollection
+                            if (collectionItem->collectionInfo->name == collection)
+                            {
+                                updateLastPlayed = false;
+                                break; // No need to check further, as we found a match
+                            }
+                        }
+                        // Update last played collection if not found in the skip collection
+                        if (updateLastPlayed)
+                        {
+                            cib.updateLastPlayedPlaylist(currentPage->getCollection(), collectionItem, size);
+                            //currentPage_->updateReloadables(0);
+                        }
                     }
                 }
             } else {

@@ -61,6 +61,8 @@ public:
     std::vector<std::string>     getPlaylistCycle();
     void selectRandomOnFirstCycle();
     bool getAttractModeCyclePlaylist();
+    MetadataDatabase* getMetaDb();
+
 
 
 private:
@@ -164,7 +166,6 @@ private:
 	void            saveRetroFEState( ) const;
     std::string getLayoutFileName();
     void resetInfoToggle();
-
 
     Configuration     &config_;
     DB                *db_;
