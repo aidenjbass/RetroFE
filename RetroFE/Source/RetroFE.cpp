@@ -460,7 +460,7 @@ bool RetroFE::run()
     bool screensaver = false;
     config_.getProperty(OPTION_SCREENSAVER, screensaver);
 
-    Launcher l(config_);
+    Launcher l(config_, *this);
     Menu m(config_, input_);
     preloadTime = static_cast<float>(SDL_GetTicks()) / 1000;
 
@@ -2300,10 +2300,8 @@ RetroFE::RETROFE_STATE RetroFE::processUserInput(Page *page)
     if (page->isHorizontalScroll())
     {
         // playlist scroll
-        if (input_.keystate(UserInput::KeyCodeDown))
-        {
-            if (page->isGamesScrolling())
-            {
+        if (!kioskLock_ && input_.keystate(UserInput::KeyCodeDown)) {
+            if (page->isGamesScrolling()) {
                 return RETROFE_HIGHLIGHT_REQUEST;
             }
             attract_.reset();
@@ -2313,10 +2311,8 @@ RetroFE::RETROFE_STATE RetroFE::processUserInput(Page *page)
             }
             return RETROFE_SCROLL_PLAYLIST_FORWARD;
         }
-        else if (input_.keystate(UserInput::KeyCodeUp))
-        {
-            if (page->isGamesScrolling())
-            {
+        else if (!kioskLock_ && input_.keystate(UserInput::KeyCodeUp)) {
+            if (page->isGamesScrolling()) {
                 return RETROFE_HIGHLIGHT_REQUEST;
             }
             attract_.reset();
@@ -2360,10 +2356,8 @@ RetroFE::RETROFE_STATE RetroFE::processUserInput(Page *page)
         // vertical
         //
         // playlist scroll
-        if (input_.keystate(UserInput::KeyCodeRight))
-        {
-            if (page->isGamesScrolling())
-            {
+        if (!kioskLock_ && input_.keystate(UserInput::KeyCodeRight)) {
+            if (page->isGamesScrolling()) {
                 return RETROFE_HIGHLIGHT_REQUEST;
             }
             attract_.reset();
@@ -2373,10 +2367,8 @@ RetroFE::RETROFE_STATE RetroFE::processUserInput(Page *page)
             }
             return RETROFE_SCROLL_PLAYLIST_FORWARD;
         }
-        else if (input_.keystate(UserInput::KeyCodeLeft))
-        {
-            if (page->isGamesScrolling())
-            {
+        else if (!kioskLock_ && input_.keystate(UserInput::KeyCodeLeft)) {
+            if (page->isGamesScrolling()) {
                 return RETROFE_HIGHLIGHT_REQUEST;
             }
             attract_.reset();
@@ -3250,4 +3242,8 @@ void RetroFE::resetInfoToggle()
         currentPage_->buildInfoExit();
         buildInfo_ = false;
     }
+}
+
+MetadataDatabase* RetroFE::getMetaDb() {
+    return metadb_;
 }
