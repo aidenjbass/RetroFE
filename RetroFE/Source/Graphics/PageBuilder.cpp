@@ -364,20 +364,24 @@ float PageBuilder::getHorizontalAlignment(const xml_attribute<> *attribute, floa
     float value;
     std::string str;
 
-    if(!attribute) {
+    if (!attribute) {
         value = valueIfNull;
     }
     else {
         str = attribute->value();
 
-        if(!str.compare("left")) {
+        if (!str.compare("left")) {
             value = 0;
         }
-        else if(!str.compare("center")) {
+        else if (!str.compare("center")) {
             value = static_cast<float>(layoutWidth_) / 2;
         }
-        else if(!str.compare("right") || !str.compare("stretch")) {
+        else if (!str.compare("right") || !str.compare("stretch")) {
             value = static_cast<float>(layoutWidth_);
+        }
+        else if (str.back() == '%') {
+            float percent = Utils::convertFloat(str.substr(0, str.length() - 1));
+            value = std::round(static_cast<float>(layoutWidth_) * (percent / 100.0f));
         }
         else {
             value = Utils::convertFloat(str);
@@ -391,20 +395,26 @@ float PageBuilder::getVerticalAlignment(const xml_attribute<> *attribute, float 
 {
     float value;
     std::string str;
-    if(!attribute) {
+
+    if (!attribute) {
         value = valueIfNull;
     }
     else {
         str = attribute->value();
 
-        if(!str.compare("top")) {
+        if (!str.compare("top")) {
             value = 0;
         }
-        else if(!str.compare("center")) {
-            value = static_cast<float>(layoutHeight_ / 2);
+        else if (!str.compare("center")) {
+            value = static_cast<float>(layoutHeight_) / 2;
         }
-        else if(!str.compare("bottom") || !str.compare("stretch")) {
+        else if (!str.compare("bottom") || !str.compare("stretch")) {
             value = static_cast<float>(layoutHeight_);
+        }
+        else if (str.back() == '%') {
+            std::string_view percentStr(str.data(), str.length() - 1);
+            float percent = Utils::convertFloat(percentStr);
+            value = std::round(static_cast<float>(layoutHeight_) * (percent / 100.0f));
         }
         else {
             value = Utils::convertFloat(str);
