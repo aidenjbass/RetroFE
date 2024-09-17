@@ -438,6 +438,7 @@ bool RetroFE::run()
     attract_.minTime = attractModeMinTime;
     attract_.maxTime = attractModeMaxTime;
     attract_.isFast = attractModeFast;
+    attract_.shouldLaunch = attractModeLaunch;
 
     int fps = 60;
     int fpsIdle = 60;

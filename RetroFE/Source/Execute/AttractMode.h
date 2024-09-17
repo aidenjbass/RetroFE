@@ -27,9 +27,11 @@ public:
     float idleNextTime;
     float idlePlaylistTime;
     float idleCollectionTime;
+    float launchDelayTimer_;
 	int   minTime;
 	int   maxTime;
     bool isFast;
+    bool shouldLaunch;
     bool  isActive() const;
     void activate();
     bool  isSet() const;
