@@ -415,6 +415,7 @@ bool RetroFE::run()
     int attractModeCollectionTime = 0;
     int attractModeMinTime = 1000;
     int attractModeMaxTime = 5000;
+    int attractModeLaunchScrollTime = 30;
     bool attractModeLaunch = false;
 
     std::string firstCollection = "Main";
@@ -430,6 +431,7 @@ bool RetroFE::run()
     config_.getProperty(OPTION_FIRSTCOLLECTION, firstCollection);
     config_.getProperty(OPTION_ATTRACTMODEFAST, attractModeFast);
     config_.getProperty(OPTION_ATTRACTMODELAUNCH, attractModeLaunch);
+    config_.getProperty(OPTION_ATTRACTMODELAUNCHSCROLLTIME, attractModeLaunchScrollTime);
 
     attract_.idleTime = static_cast<float>(attractModeTime);
     attract_.idleNextTime = static_cast<float>(attractModeNextTime);
@@ -439,6 +441,7 @@ bool RetroFE::run()
     attract_.maxTime = attractModeMaxTime;
     attract_.isFast = attractModeFast;
     attract_.shouldLaunch = attractModeLaunch;
+    attract_.minScrollBeforeLaunchTime_ = static_cast<float>(attractModeLaunchScrollTime);
 
     int fps = 60;
     int fpsIdle = 60;

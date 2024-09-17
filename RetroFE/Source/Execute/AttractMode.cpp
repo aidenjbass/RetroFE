@@ -25,6 +25,7 @@ AttractMode::AttractMode()
     , idleCollectionTime(0)
     , minTime(0)
     , maxTime(0)
+    , minScrollBeforeLaunchTime_(0)
     , isFast(false)
     , isActive_(false)
     , isSet_(false)
@@ -52,14 +53,16 @@ int AttractMode::update(float dt, Page& page)
 {
     static float cooldownTime = 2.0f;  // Cooldown period in seconds
     static float cooldownElapsedTime = 0.0f;
+    static float timeSinceLastLaunch = 0.0f;  // Time since last game launch
 
     // Timers for the main loop
     elapsedTime_ += dt;
     elapsedPlaylistTime_ += dt;
     elapsedCollectionTime_ += dt;
+    timeSinceLastLaunch += dt;  // Increment time since the last launch
 
     // If shouldLaunch is true, use cooldown logic for game launch
-    if (shouldLaunch)
+    if (shouldLaunch && timeSinceLastLaunch >= minScrollBeforeLaunchTime_)
     {
         if (page.isJukebox())
         {
@@ -132,6 +135,7 @@ int AttractMode::update(float dt, Page& page)
                     // Launch the game after the cooldown
                     elapsedTime_ = 0;
                     isActive_ = false;
+                    timeSinceLastLaunch = 0.0f;  // Reset time since the last launch
                     return 3;  // Signal to RetroFe to launch a random game
                 }
             }
@@ -164,10 +168,11 @@ int AttractMode::update(float dt, Page& page)
                 return 2;
             }
 
-            // enable attract mode when idling for the expected time. Disable if idle time is set to 0.
-            if (!isActive_ && ((elapsedTime_ > idleTime && idleTime > 0) || (isSet_ && elapsedTime_ > idleNextTime && idleNextTime > 0))) {
+            // Enable attract mode when idling for the expected time
+            if (!isActive_ && ((elapsedTime_ > idleTime && idleTime > 0) || (isSet_ && elapsedTime_ > idleNextTime && idleNextTime > 0)))
+            {
                 if (!isSet_)
-                    elapsedPlaylistTime_ = 0; // Reset playlist timer if we are entering attract mode
+                    elapsedPlaylistTime_ = 0;  // Reset playlist timer if entering attract mode
                 isActive_ = true;
                 isSet_ = true;
                 elapsedTime_ = 0;

@@ -234,7 +234,7 @@ void Launcher::startScript()
     std::string exe = Utils::combinePath(Configuration::absolutePath, "start.sh");
 #endif
     if(fs::exists(exe)) {
-        execute(exe, "", Configuration::absolutePath, false);
+        simpleExecute(exe, "", Configuration::absolutePath, false);
     }
 }
 
@@ -246,7 +246,7 @@ void Launcher::exitScript()
     std::string exe = Utils::combinePath(Configuration::absolutePath, "exit.sh");
 #endif
     if(fs::exists(exe)) {
-        execute(exe, "", Configuration::absolutePath, false);
+        simpleExecute(exe, "", Configuration::absolutePath, false);
     }
 }
 
@@ -300,12 +300,102 @@ void Launcher::LEDBlinky( int command, std::string collection, Item *collectionI
 		if ( emulator == "" )
 			return;
 	}
-	if ( LEDBlinkyDirectory != "" && !execute( exe, args, LEDBlinkyDirectory, wait )) {
+	if ( LEDBlinkyDirectory != "" && !simpleExecute( exe, args, LEDBlinkyDirectory, wait )) {
         LOG_WARNING("LEDBlinky", "Failed to launch." );
 	}
 	return;
 }
 
+bool Launcher::simpleExecute(std::string executable, std::string args, std::string currentDirectory, bool wait, Page* currentPage)
+{
+    bool retVal = false;
+    std::string executionString = "\"" + executable + "\" " + args;
+
+    LOG_INFO("Launcher", "Attempting to launch: " + executionString);
+    LOG_INFO("Launcher", "     from within folder: " + currentDirectory);
+
+    std::atomic<bool> stop_thread = true;
+    std::thread proc_thread;
+    bool multiple_display = SDL::getScreenCount() > 1;
+    bool animateDuringGame = true;
+    config_.getProperty(OPTION_ANIMATEDURINGGAME, animateDuringGame);
+    if (animateDuringGame && multiple_display && currentPage != nullptr) {
+        stop_thread = false;
+        proc_thread = std::thread([this, &stop_thread, &currentPage]() {
+            this->keepRendering(std::ref(stop_thread), *currentPage);
+            });
+    }
+
+#ifdef WIN32
+    STARTUPINFO startupInfo;
+    PROCESS_INFORMATION processInfo;
+    char applicationName[2048];
+    char currDir[2048];
+    memset(&applicationName, 0, sizeof(applicationName));
+    memset(&startupInfo, 0, sizeof(startupInfo));
+    memset(&processInfo, 0, sizeof(processInfo));
+    strncpy(applicationName, executionString.c_str(), sizeof(applicationName));
+    strncpy(currDir, currentDirectory.c_str(), sizeof(currDir));
+    startupInfo.dwFlags = STARTF_USESTDHANDLES;
+    startupInfo.hStdError = GetStdHandle(STD_ERROR_HANDLE);
+    startupInfo.hStdOutput = GetStdHandle(STD_OUTPUT_HANDLE);
+    startupInfo.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
+    startupInfo.wShowWindow = SW_SHOWDEFAULT;
+
+    if (!CreateProcess(nullptr, applicationName, nullptr, nullptr, FALSE, CREATE_NO_WINDOW, nullptr, currDir, &startupInfo, &processInfo))
+#else
+    const std::size_t last_slash_idx = executable.rfind(Utils::pathSeparator);
+    if (last_slash_idx != std::string::npos) {
+        std::string applicationName = executable.substr(last_slash_idx + 1);
+        executionString = "cd \"" + currentDirectory + "\" && exec \"./" + applicationName + "\" " + args;
+    }
+    if (system(executionString.c_str()) != 0)
+#endif
+    {
+        LOG_WARNING("Launcher", "Failed to run: " + executable);
+    }
+
+    else
+    {
+#ifdef WIN32
+        // lower priority
+        SetPriorityClass(GetCurrentProcess(), BELOW_NORMAL_PRIORITY_CLASS);
+
+        if (wait) {
+            while (WAIT_OBJECT_0 != MsgWaitForMultipleObjects(1, &processInfo.hProcess, FALSE, INFINITE, QS_ALLINPUT)) {
+                MSG msg;
+                while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
+                    DispatchMessage(&msg);
+                }
+            }
+        }
+
+        //resume priority
+        bool highPriority = false;
+        config_.getProperty(OPTION_HIGHPRIORITY, highPriority);
+        if (highPriority) {
+            SetPriorityClass(GetCurrentProcess(), ABOVE_NORMAL_PRIORITY_CLASS);
+        }
+        else {
+            SetPriorityClass(GetCurrentProcess(), NORMAL_PRIORITY_CLASS);
+        }
+
+        // result = GetExitCodeProcess(processInfo.hProcess, &exitCode);
+        CloseHandle(processInfo.hProcess);
+        CloseHandle(processInfo.hThread);
+#endif
+        retVal = true;
+    }
+
+    if (multiple_display && stop_thread == false) {
+        stop_thread = true;
+        proc_thread.join();
+    }
+
+    LOG_INFO("Launcher", "Completed");
+
+    return retVal;
+}
 
 bool Launcher::execute(std::string executable, std::string args, std::string currentDirectory, bool wait, Page* currentPage, bool isAttractMode, Item* collectionItem)
 {
@@ -476,14 +566,31 @@ bool Launcher::execute(std::string executable, std::string args, std::string cur
             }
         }
         if (isAttractMode) {
-            int attractModeLaunchTime = 30;
-            config_.getProperty(OPTION_ATTRACTMODELAUNCHTIME, attractModeLaunchTime);
+            int attractModeLaunchRunTime = 30;
+            config_.getProperty(OPTION_ATTRACTMODELAUNCHRUNTIME, attractModeLaunchRunTime);
             auto start = std::chrono::high_resolution_clock::now();
             bool userInputDetected = false;
 
             auto isAnyKeyPressed = []() -> auto {
-                for (int virtualKey = 0x01; virtualKey <= 0xFE; ++virtualKey) {
+                // Common virtual key codes, adjust this list as necessary
+                std::vector<int> relevantKeys = {
+                    // Letters A-Z
+                    0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4A,
+                    0x4B, 0x4C, 0x4D, 0x4E, 0x4F, 0x50, 0x51, 0x52, 0x53, 0x54,
+                    0x55, 0x56, 0x57, 0x58, 0x59, 0x5A, // A-Z
+                    // Numbers 0-9
+                    0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, // 0-9
+                    // Arrow keys
+                    VK_UP, VK_DOWN, VK_LEFT, VK_RIGHT,
+                    // Other common keys
+                    VK_RETURN, VK_SPACE, VK_ESCAPE, VK_TAB, VK_BACK,
+                    // Modifier keys
+                    VK_SHIFT, VK_CONTROL, VK_MENU // Shift, Ctrl, Alt
+                };
+
+                for (int virtualKey : relevantKeys) {
                     if (GetAsyncKeyState(virtualKey) & 0x8000) {
+                        LOG_INFO("Launcher", "Key press detected: " + std::to_string(virtualKey));
                         return true;
                     }
                 }
@@ -528,7 +635,7 @@ bool Launcher::execute(std::string executable, std::string args, std::string cur
                 // Check if the timeout has been reached
                 auto now = std::chrono::high_resolution_clock::now();
                 auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - start).count();
-                if (elapsed >= attractModeLaunchTime) {
+                if (elapsed >= attractModeLaunchRunTime) {
                     break;
                 }
 

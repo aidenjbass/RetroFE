@@ -28,6 +28,7 @@ public:
     float idlePlaylistTime;
     float idleCollectionTime;
     float launchDelayTimer_;
+    float minScrollBeforeLaunchTime_;
 	int   minTime;
 	int   maxTime;
     bool isFast;
