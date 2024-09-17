@@ -762,11 +762,9 @@ void PageBuilder::loadReloadableImages(const xml_node<> *layout, const std::stri
         if (tagName == "reloadableText") {
             if (type) {
                 Font* font = addFont(componentXml, NULL, cMonitor);
-
                 std::string typeValue = type->value();
                 std::string textFormat = "";
 
-                // Handle the "file" type by passing the location to ReloadableText
                 if (typeValue == "file") {
                     // Ensure the location attribute is present
                     if (!locationXml) {
@@ -779,8 +777,6 @@ void PageBuilder::loadReloadableImages(const xml_node<> *layout, const std::stri
 
                     // Create the ReloadableText component with the location path
                     c = new ReloadableText(typeValue, *page, config_, systemMode, font, layoutKey, "", "", "", "", "", "", location);
-                    c->baseViewInfo.Monitor = cMonitor;
-                    c->baseViewInfo.Layout = page->getCurrentLayout();
                 }
                 else {
                     // Existing handling for other types
@@ -808,18 +804,25 @@ void PageBuilder::loadReloadableImages(const xml_node<> *layout, const std::stri
                     if (timeFormatXml) {
                         timeFormat = timeFormatXml->value();
                     }
+
+                    // Create the ReloadableText component
                     c = new ReloadableText(typeValue, *page, config_, systemMode, font, layoutKey, timeFormat, textFormat, singlePrefix, singlePostfix, pluralPrefix, pluralPostfix);
-                    c->baseViewInfo.Monitor = cMonitor;
-                    c->baseViewInfo.Layout = page->getCurrentLayout();
                 }
 
-                c->setId(id);
+                if (c) {
+                    // Set common properties for the component
+                    c->baseViewInfo.Monitor = cMonitor;
+                    c->baseViewInfo.Layout = page->getCurrentLayout();
+                    c->setId(id);
 
-                xml_attribute<> const* menuScrollReload = componentXml->first_attribute("menuScrollReload");
-                if (menuScrollReload &&
-                    (Utils::toLower(menuScrollReload->value()) == "true" ||
-                        Utils::toLower(menuScrollReload->value()) == "yes")) {
-                    c->setMenuScrollReload(true);
+                    // Check for and set menuScrollReload
+                    xml_attribute<> const* menuScrollReload = componentXml->first_attribute("menuScrollReload");
+                    if (menuScrollReload &&
+                        (Utils::toLower(menuScrollReload->value()) == "true" ||
+                            Utils::toLower(menuScrollReload->value()) == "yes")) {
+                        c->setMenuScrollReload(true);
+                        LOG_INFO("Layout", "menuScrollReload set to true for component ID: " + std::to_string(id));
+                    }
                 }
             }
         }

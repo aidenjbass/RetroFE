@@ -124,7 +124,7 @@ void ReloadableText::ReloadTexture()
     }
 
     // Get the selected item
-    Item *selectedItem = page.getSelectedItem();
+    Item *selectedItem = page.getSelectedMenuItem();
 
     // If there's no selected item, we might be in a transition state
     if (selectedItem == nullptr)
