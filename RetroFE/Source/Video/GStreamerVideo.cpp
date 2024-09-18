@@ -58,7 +58,7 @@ void GStreamerVideo::initializePlugins()
         pluginsInitialized_ = true;
 
 #if defined(WIN32)
-        enablePlugin("directsoundsink");
+        //enablePlugin("directsoundsink");
         disablePlugin("mfdeviceprovider");
         if (!Configuration::HardwareVideoAccel)
         {
@@ -352,8 +352,8 @@ bool GStreamerVideo::initializeGstElements(const std::string &file)
     videoBus_ = gst_pipeline_get_bus(GST_PIPELINE(playbin_));
     gst_object_unref(videoBus_);
 
-    g_object_set(videoSink_, "signal-handoffs", TRUE, "sync", TRUE, "enable-last-sample", FALSE, nullptr);
-    bufferDisconnected_ = false;
+    g_object_set(videoSink_, "sync", TRUE, "enable-last-sample", FALSE, nullptr);
+    bufferDisconnected_ = true;
 
     handoffHandlerId_ = g_signal_connect(videoSink_, "handoff", G_CALLBACK(processNewBuffer), this);
 
