@@ -311,6 +311,11 @@ int main(int argc, char** argv)
     // Initialize random seed
     srand(static_cast<unsigned int>(time(nullptr)));
 
+#ifdef WIN32
+    std::string gstPluginPath = Utils::combinePath(Configuration::absolutePath, "retrofe");
+    _putenv_s("GST_PLUGIN_PATH", gstPluginPath.c_str());
+#endif
+
     gst_debug_set_default_threshold(GST_LEVEL_ERROR);
 
     gst_init(nullptr, nullptr);
@@ -399,11 +404,6 @@ static bool ImportConfiguration(Configuration* c) {
     
     // Check if GStreamer initialization was successful
     if (gst_is_initialized()) {
-    #ifdef WIN32
-            std::string path = Utils::combinePath(Configuration::absolutePath, "retrofe");
-            GstRegistry* registry = gst_registry_get();
-            gst_registry_scan_path(registry, path.c_str());
-    #endif
         LOG_INFO("RetroFE", "GStreamer successfully initialized");
     }
     else {
