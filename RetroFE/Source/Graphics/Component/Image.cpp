@@ -64,24 +64,29 @@ void Image::freeGraphicsMemory() {
 void Image::allocateGraphicsMemory() {
 	if (!texture_ && frameTextures_.empty()) {
 
-		auto endsWith = [](std::string_view str, std::string_view suffix) {
-			return str.size() >= suffix.size() &&
-				str.compare(str.size() - suffix.size(), suffix.size(), suffix) == 0;
-			};
-
 		std::string_view fileView = file_;
 		std::string_view altFileView = altFile_;
-		bool isGif = endsWith(fileView, ".gif") || (!altFile_.empty() && endsWith(altFileView, ".gif"));
 
-		if (isGif) {
-			// Try to load the GIF as an animation
+		bool isGifOrWebP = false;
+		if (!file_.empty()) {
+			std::string_view fileExt = fileView.substr(fileView.find_last_of('.'));
+			isGifOrWebP = (fileExt == ".gif" || fileExt == ".webp");
+		}
+
+		if (!isGifOrWebP && !altFile_.empty()) {
+			std::string_view altFileExt = altFileView.substr(altFileView.find_last_of('.'));
+			isGifOrWebP = (altFileExt == ".gif" || altFileExt == ".webp");
+		}
+
+		if (isGifOrWebP) {
+			// Try to load the GIF or WebP as an animation
 			animation_ = IMG_LoadAnimation(file_.c_str());
 			if (!animation_ && !altFile_.empty()) {
 				animation_ = IMG_LoadAnimation(altFile_.c_str());
 			}
 
 			if (animation_) {
-				// Preload all frames as textures
+				// Preload all frames as textures (same as GIF logic)
 				for (int i = 0; i < animation_->count; ++i) {
 					SDL_Texture* frameTexture = SDL_CreateTextureFromSurface(SDL::getRenderer(baseViewInfo.Monitor), animation_->frames[i]);
 					if (frameTexture) {
@@ -93,10 +98,9 @@ void Image::allocateGraphicsMemory() {
 				lastFrameTime_ = SDL_GetTicks();
 			}
 			else {
-				LOG_ERROR("Image", "Failed to load GIF animation: " + std::string(IMG_GetError()));
+				LOG_ERROR("Image", "Failed to load animation (GIF or WebP): " + std::string(IMG_GetError()));
 			}
 		}
-
 		// If not a GIF, or GIF loading failed, treat as a static image
 		if (!animation_) {
 			texture_ = IMG_LoadTexture(SDL::getRenderer(baseViewInfo.Monitor), file_.c_str());
