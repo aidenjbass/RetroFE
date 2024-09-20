@@ -52,8 +52,12 @@ protected:
     alignas(CACHE_LINE_SIZE) std::atomic<size_t> tail;  // Atomic index for writing new buffers
 
 public:
-    TNQueue() : head(0), tail(0) {}
-
+    TNQueue() : head(0), tail(0) {
+        // Initialize the storage array to nullptr
+        for (size_t i = 0; i < N; ++i) {
+            storage[i] = nullptr;  // For GstBuffer*, initialize to nullptr
+        }
+    }
     // Check if the queue is full
     bool isFull() const {
         size_t currentTail = tail.load(std::memory_order_acquire);
@@ -112,13 +116,9 @@ public:
             auto itemOpt = pop();
             if (itemOpt.has_value()) {
                 // Properly unref or clear the buffer
-                gst_clear_buffer(&(*itemOpt));
+                gst_buffer_unref(*itemOpt);
             }
         }
-
-        // Reset indices safely (not strictly necessary since pop() manages this, but good for consistency)
-        head.store(0, std::memory_order_relaxed);
-        tail.store(0, std::memory_order_relaxed);
     }
 
     // Get the current size of the queue (Note: This is not lock-free, just for diagnostics)

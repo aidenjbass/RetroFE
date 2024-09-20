@@ -94,9 +94,9 @@ void GStreamerVideo::initializePlugins()
         {
             disablePlugin("vah264dec");
             disablePlugin("vah265dec");
-            //enablePlugin("openh264dec");
-            //disablePlugin("avdec_h264");
-            //disablePlugin("avdec_h265");
+            enablePlugin("openh264dec");
+            disablePlugin("avdec_h264");
+            disablePlugin("avdec_h265");
         }
 #endif
     }
@@ -365,7 +365,7 @@ void GStreamerVideo::elementSetupCallback(GstElement* playbin, GstElement* eleme
     // Check if the element is a video decoder
     if (GST_IS_VIDEO_DECODER(element))
     {
-        if (!Configuration::HardwareVideoAccel)
+        if (!Configuration::HardwareVideoAccel && Utils::getOSType() != "linux")
         {
             // Configure the video decoder
             g_object_set(element, "thread-type", Configuration::AvdecThreadType,
@@ -560,10 +560,10 @@ void GStreamerVideo::processNewBuffer(GstElement const* /* fakesink */, GstBuffe
         return;
     }
 
-    GstBuffer* copied_buf = gst_buffer_ref(buf);  // Copy the buffer for independent lifecycle management
-    video->bufferQueue_.push(copied_buf);          // Push the buffer into the queue
-    size_t queueSize = video->bufferQueue_.size();
-    LOG_DEBUG("GstreamerVideo", "Buffer received and added to queue. Current queue size: " + std::to_string(queueSize));
+    gst_buffer_ref(buf);  // Copy the buffer for independent lifecycle management
+    if (!video->bufferQueue_.push(buf)) {
+        gst_buffer_unref(buf);  // Unref the buffer if it could not be pushed
+    }
 }
 
 void GStreamerVideo::draw() {
@@ -613,7 +613,7 @@ void GStreamerVideo::draw() {
             GstClockTime pts = GST_BUFFER_PTS(buffer);
             if (!GST_CLOCK_TIME_IS_VALID(pts)) {
                 LOG_DEBUG("GStreamerVideo", "Invalid PTS: Skipping QOS event for this buffer.");
-                gst_clear_buffer(&buffer);
+                gst_buffer_unref(buffer);
                 return;
             }
 
@@ -624,7 +624,7 @@ void GStreamerVideo::draw() {
             newFrameAvailable_ = true;
         }
     }
-    gst_clear_buffer(&buffer);  // Release the buffer after use
+    gst_buffer_unref(buffer);  // Release the buffer after use
 }
 
 bool GStreamerVideo::isPlaying()
