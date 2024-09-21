@@ -142,14 +142,14 @@ bool MetadataDatabase::importDirectory()
     return true;
 }
 
-void MetadataDatabase::injectMetadata(CollectionInfo* collection)
+void MetadataDatabase::injectMetadata(CollectionInfo& collection)
 {
     sqlite3* handle = db_.handle;
     int rc;
     sqlite3_stmt* stmt;
 
     // items into a hash to make it easily searchable
-    std::vector<Item*> const* items = &collection->items;
+    std::vector<Item*> const* items = &collection.items;
     std::map<std::string, Item*, std::less<>> itemMap;
 
     for (auto* item : *items) {
@@ -162,7 +162,7 @@ void MetadataDatabase::injectMetadata(CollectionInfo* collection)
         "FROM Meta WHERE collectionName=? ORDER BY title ASC;",
         -1, &stmt, nullptr);
 
-    sqlite3_bind_text(stmt, 1, collection->metadataType.c_str(), -1, SQLITE_TRANSIENT);
+    sqlite3_bind_text(stmt, 1, collection.metadataType.c_str(), -1, SQLITE_TRANSIENT);
 
     rc = sqlite3_step(stmt);
 
@@ -183,8 +183,7 @@ void MetadataDatabase::injectMetadata(CollectionInfo* collection)
         std::string launcher;
         std::string title = fullTitle;
 
-
-        if (std::map<std::string, Item*>::iterator it = itemMap.find(name); it != itemMap.end()) {
+        if (auto it = itemMap.find(name); it != itemMap.end()) {
             Item* item = it->second;
             item->title = title;
             item->fullTitle = fullTitle;

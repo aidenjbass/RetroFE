@@ -3000,18 +3000,17 @@ Page *RetroFE::loadSplashPage()
 }
 
 // Load a collection
-CollectionInfo *RetroFE::getCollection(const std::string &collectionName)
+CollectionInfo* RetroFE::getCollection(const std::string& collectionName)
 {
-
     // Check if subcollections should be merged or split
     bool subsSplit = false;
     config_.getProperty(OPTION_SUBSSPLIT, subsSplit);
 
     // Build the collection
     CollectionInfoBuilder cib(config_, *metadb_);
-    CollectionInfo *collection = cib.buildCollection(collectionName);
+    auto collection = std::unique_ptr<CollectionInfo>(cib.buildCollection(collectionName)); // Use unique_ptr for ownership
     collection->subsSplit = subsSplit;
-    cib.injectMetadata(collection);
+    cib.injectMetadata(*collection);  // Pass by reference
 
     // Check collection folder exists
     fs::path path = Utils::combinePath(Configuration::absolutePath, "collections", collectionName);
@@ -3022,7 +3021,7 @@ CollectionInfo *RetroFE::getCollection(const std::string &collectionName)
     }
 
     // Loading sub collection files
-    for (const auto &entry : fs::directory_iterator(path))
+    for (const auto& entry : fs::directory_iterator(path))
     {
         if (entry.is_regular_file() && entry.path().extension() == ".sub")
         {
@@ -3030,15 +3029,18 @@ CollectionInfo *RetroFE::getCollection(const std::string &collectionName)
 
             LOG_INFO("RetroFE", "Loading subcollection into menu: " + basename);
 
-            CollectionInfo *subcollection = cib.buildCollection(basename, collectionName);
-            collection->addSubcollection(subcollection);
+            auto subcollection = std::unique_ptr<CollectionInfo>(cib.buildCollection(basename, collectionName));
+            collection->addSubcollection(subcollection.get());
             subcollection->subsSplit = subsSplit;
-            cib.injectMetadata(subcollection);
+            cib.injectMetadata(*subcollection);  // Pass by reference
             collection->hasSubs = true;
+
+            // Keep ownership of subcollections, or pass ownership elsewhere as needed
+            subcollection.release();  // release ownership if not needed here
         }
     }
 
-    // sort a collection's items
+    // Sort collection's items
     bool menuSort = true;
     config_.getProperty("collections." + collectionName + ".list.menuSort", menuSort);
     if (menuSort)
@@ -3051,16 +3053,16 @@ CollectionInfo *RetroFE::getCollection(const std::string &collectionName)
         collection->sortItems();
     }
 
+    // Build collection menu
     MenuParser mp;
     bool menuFromCollectionLaunchers = false;
     config_.getProperty("collections." + collectionName + ".menuFromCollectionLaunchers", menuFromCollectionLaunchers);
     if (menuFromCollectionLaunchers)
     {
-        // build menu out of all found collections that have launcherfiles
         std::string collectionLaunchers = "collectionLaunchers";
         std::string launchers = "";
         config_.getProperty(collectionLaunchers, launchers);
-        if (launchers != "")
+        if (!launchers.empty())
         {
             std::vector<std::string> launcherVector;
             std::stringstream ss(launchers);
@@ -3068,37 +3070,38 @@ CollectionInfo *RetroFE::getCollection(const std::string &collectionName)
             {
                 std::string substr;
                 getline(ss, substr, ',');
-                if (substr != "")
+                if (!substr.empty())
                 {
                     launcherVector.push_back(substr);
                 }
             }
-            mp.buildMenuFromCollectionLaunchers(collection, launcherVector);
+            // Call buildMenuFromCollectionLaunchers with dereferenced collection
+            mp.buildMenuFromCollectionLaunchers(*collection, launcherVector);  // Pass by reference
         }
         else
         {
             // todo log error
         }
     }
+
     else
     {
         // build collection menu if menu.txt exists
-        mp.buildMenuItems(collection, menuSort);
+        mp.buildMenuItems(*collection, menuSort);  // Pass by reference
     }
 
-    // adds items to "all" list except those found in "exclude_all.txt"
-    cib.addPlaylists(collection);
+    // Adds items to "all" list except those found in "exclude_all.txt"
+    cib.addPlaylists(*collection);  // Now using reference
     collection->sortPlaylists();
 
     // Add extra info, if available
     std::string defaultPath =
         Utils::combinePath(Configuration::absolutePath, "collections", collectionName, "info", "default.conf");
-    for (auto &item : collection->items)
+    for (auto& item : collection->items)
     {
         item->loadInfo(defaultPath);
-        std::string path = Utils::combinePath(Configuration::absolutePath, "collections", collectionName, "info",
-                                              item->name + ".conf");
-        item->loadInfo(path);
+        std::string itemPath = Utils::combinePath(Configuration::absolutePath, "collections", collectionName, "info", item->name + ".conf");
+        item->loadInfo(itemPath);
     }
 
     // Remove parenthesis and brackets, if so configured
@@ -3108,10 +3111,9 @@ CollectionInfo *RetroFE::getCollection(const std::string &collectionName)
     (void)config_.getProperty(OPTION_SHOWPARENTHESIS, showParenthesis);
     (void)config_.getProperty(OPTION_SHOWSQUAREBRACKETS, showSquareBrackets);
 
-    // using Playlists_T = std::map<std::string, std::vector<Item *> *>;
-    for (auto const &playlistPair : collection->playlists)
+    for (auto const& playlistPair : collection->playlists)
     {
-        for (auto &item : *(playlistPair.second))
+        for (auto& item : *(playlistPair.second))
         {
             if (!showParenthesis)
             {
@@ -3148,7 +3150,7 @@ CollectionInfo *RetroFE::getCollection(const std::string &collectionName)
         }
     }
 
-    return collection;
+    return collection.release();  // Return the raw pointer, transferring ownership
 }
 
 void RetroFE::updatePageControls(const std::string &type)
@@ -3169,7 +3171,7 @@ CollectionInfo *RetroFE::getMenuCollection(const std::string &collectionName)
     std::vector<Item *> menuVector;
     CollectionInfoBuilder cib(config_, *metadb_);
     auto *collection = new CollectionInfo(config_, collectionName, menuPath, "", "", "");
-    cib.ImportBasicList(collection, menuFile, menuVector);
+    cib.ImportBasicList(*collection, menuFile, menuVector);
 
     for (auto &item : menuVector)
     {
