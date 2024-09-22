@@ -39,47 +39,45 @@ MenuParser::MenuParser() = default;
 
 MenuParser::~MenuParser() = default;
 
-void MenuParser::buildMenuFromCollectionLaunchers(CollectionInfo& collection, const std::vector<std::string>& collectionNames)
+void MenuParser::buildMenuFromCollectionLaunchers(CollectionInfo* collection, std::vector<std::string> collectionNames)
 {
-    collection.menusort = true;
+    collection->menusort = true;
     std::vector<Item*> menuItems;
-
-    for (const auto& title : collectionNames) {
+    for (std::size_t i = 0; i < collectionNames.size(); i++) {
+        std::string title = collectionNames[i];
         auto* item = new Item();
         item->title = title;
         item->fullTitle = title;
         item->name = title;
         item->leaf = false;
-        item->collectionInfo = &collection;  // Reference the collection
+        item->collectionInfo = collection;
 
         menuItems.push_back(item);
     }
-
-    std::sort(menuItems.begin(), menuItems.end(), [](Item const* a, Item const* b) {
-        return Utils::toLower(a->fullTitle) <= Utils::toLower(b->fullTitle);
-        });
-
-    collection.items.insert(collection.items.begin(), menuItems.begin(), menuItems.end());
+    std::sort(menuItems.begin(), menuItems.end(), [](Item const* a, Item const* b) { return Utils::toLower(a->fullTitle) <= Utils::toLower(b->fullTitle); });
+    collection->items.insert(collection->items.begin(), menuItems.begin(), menuItems.end());
 }
 
-bool MenuParser::buildMenuItems(CollectionInfo& collection, bool sort)
+bool MenuParser::buildMenuItems(CollectionInfo *collection, bool sort)
 {
-    if (!buildTextMenu(collection, sort)) {
+
+    if(!buildTextMenu(collection, sort)) {
         return buildLegacyXmlMenu(collection, sort);
     }
+
     return true;
 }
 
-bool MenuParser::buildTextMenu(CollectionInfo& collection, bool sort)
+bool MenuParser::buildTextMenu(CollectionInfo* collection, bool sort)
 {
-    collection.menusort = sort;
-    std::string menuFile = Utils::combinePath(Configuration::absolutePath, "collections", collection.name, "menu.txt");
+    collection->menusort = sort;
+    std::string menuFile = Utils::combinePath(Configuration::absolutePath, "collections", collection->name, "menu.txt");
     std::vector<Item*> menuItems;
 
     if (!fs::exists(menuFile)) {
         LOG_INFO("Menu", "File does not exist: \"" + menuFile + "\"; trying menu directory.");
 
-        std::string path = Utils::combinePath(Configuration::absolutePath, "collections", collection.name, "menu");
+        std::string path = Utils::combinePath(Configuration::absolutePath, "collections", collection->name, "menu");
 
         if (!fs::exists(path) || !fs::is_directory(path)) {
             LOG_WARNING("Menu", "Menu directory does not exist: \"" + path + "\"");
@@ -103,7 +101,7 @@ bool MenuParser::buildTextMenu(CollectionInfo& collection, bool sort)
                     item->fullTitle = title;
                     item->name = title;
                     item->leaf = false;
-                    item->collectionInfo = &collection; // Reference the collection
+                    item->collectionInfo = collection;
 
                     menuItems.push_back(item);
                 }
@@ -126,69 +124,69 @@ bool MenuParser::buildTextMenu(CollectionInfo& collection, bool sort)
                 item->fullTitle = title;
                 item->name = title;
                 item->leaf = false;
-                item->collectionInfo = &collection; // Reference the collection
+                item->collectionInfo = collection;
 
                 menuItems.push_back(item);
             }
         }
     }
-
-    collection.items.insert(collection.items.begin(), menuItems.begin(), menuItems.end());
+    collection->items.insert(collection->items.begin(), menuItems.begin(), menuItems.end());
 
     return true;
 }
 
-bool MenuParser::buildLegacyXmlMenu(CollectionInfo& collection, bool sort)
+bool MenuParser::buildLegacyXmlMenu(CollectionInfo *collection, bool sort)
 {
     bool retVal = false;
-    // Magic string for file path
-    std::string menuFilename = Utils::combinePath(Configuration::absolutePath, "collections", collection.name, "menu.xml");
+    //todo: magic string
+    std::string menuFilename = Utils::combinePath(Configuration::absolutePath, "collections", collection->name, "menu.xml");
     rapidxml::xml_document<> doc;
-    rapidxml::xml_node<> const* rootNode;
-    std::vector<Item*> menuItems;
+    rapidxml::xml_node<> const * rootNode;
+    std::vector<Item *> menuItems;
 
     try {
         std::ifstream file(menuFilename.c_str());
 
-        // Gracefully exit if there is no menu file
-        if (file.good()) {
+        // gracefully exit if there is no menu file for the pa
+        if(file.good()) {
             LOG_INFO("Menu", "Found: \"" + menuFilename + "\"");
-            LOG_INFO("Menu", "Using legacy menu.xml file. Consider using the new menu.txt format.");
+            LOG_INFO("Menu", "Using legacy menu.xml file. Consider using the new menu.txt format");
             std::vector<char> buffer((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
 
-            buffer.push_back('\0');  // Null-terminate buffer
+            buffer.push_back('\0');
 
             doc.parse<0>(&buffer[0]);
 
             rootNode = doc.first_node("menu");
 
-            for (rapidxml::xml_node<> const* itemNode = rootNode->first_node("item"); itemNode; itemNode = itemNode->next_sibling()) {
-                rapidxml::xml_attribute<> const* collectionAttribute = itemNode->first_attribute("collection");
+            for (rapidxml::xml_node<> const * itemNode = rootNode->first_node("item"); itemNode; itemNode = itemNode->next_sibling()) {
+                rapidxml::xml_attribute<> const *collectionAttribute = itemNode->first_attribute("collection");
 
-                if (!collectionAttribute) {
+                if(!collectionAttribute) {
                     retVal = false;
-                    LOG_ERROR("Menu", "Menu item tag is missing collection attribute.");
+                    LOG_ERROR("Menu", "Menu item tag is missing collection attribute");
                     break;
                 }
-
+                //todo, check for empty string
                 std::string title = collectionAttribute->value();
-                auto* item = new Item();
+                auto *item = new Item();
                 item->title = title;
                 item->fullTitle = title;
                 item->name = collectionAttribute->value();
                 item->leaf = false;
-                item->collectionInfo = &collection;  // Reference the collection
+                item->collectionInfo = collection;
 
                 menuItems.push_back(item);
             }
+        
 
-            collection.menusort = sort;
-            collection.items.insert(collection.items.begin(), menuItems.begin(), menuItems.end());
+            collection->menusort = sort;
+            collection->items.insert(collection->items.begin(), menuItems.begin(), menuItems.end());
 
             retVal = true;
         }
     }
-    catch (std::ifstream::failure& e) {
+    catch(std::ifstream::failure &e) {
         std::stringstream ss;
         ss << "Unable to open menu file \"" << menuFilename << "\": " << e.what();
         LOG_ERROR("Menu", ss.str());

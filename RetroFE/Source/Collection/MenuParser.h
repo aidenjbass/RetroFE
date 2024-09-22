@@ -23,10 +23,11 @@ class MenuParser
 public:
     MenuParser();
     virtual ~MenuParser();
-    void buildMenuFromCollectionLaunchers(CollectionInfo& collection, const std::vector<std::string>& collectionNames);
-    bool buildMenuItems(CollectionInfo& collection, bool sort);
+    void buildMenuFromCollectionLaunchers(CollectionInfo* collection, std::vector<std::string> collectionNames);
+    bool buildMenuItems(CollectionInfo *cdb, bool sort);
 
 private:
-    bool buildTextMenu(CollectionInfo& collection, bool sort);
-    bool buildLegacyXmlMenu(CollectionInfo& collection, bool sort);
+    bool buildTextMenu(CollectionInfo *collection, bool sort);
+    bool buildLegacyXmlMenu(CollectionInfo *collection, bool sort);
+
 };

@@ -33,7 +33,7 @@ public:
     bool initialize();
     bool resetDatabase();
 
-    void injectMetadata(CollectionInfo& collection);
+    void injectMetadata(CollectionInfo *collection);
     bool importHyperlist(const std::string& hyperlistFile, const std::string& collectionName);
     bool importMamelist(const std::string& filename, const std::string& collectionName);
     bool importEmuArclist(const std::string& filename);

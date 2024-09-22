@@ -35,7 +35,6 @@
 #include <fstream>
 #include <algorithm>
 #include <filesystem>
-#include <memory>
 
 CollectionInfoBuilder::CollectionInfoBuilder(Configuration &c, MetadataDatabase &mdb)
     : conf_(c)
@@ -190,14 +189,13 @@ bool CollectionInfoBuilder::createCollectionDirectory(const std::string& name, c
 
     return true;
 }
-
-std::unique_ptr<CollectionInfo> CollectionInfoBuilder::buildCollection(const std::string& name)
+CollectionInfo *CollectionInfoBuilder::buildCollection(const std::string& name)
 {
-    return buildCollection(name, "");
+   return buildCollection(name, "");
 }
 
-
-std::unique_ptr<CollectionInfo> CollectionInfoBuilder::buildCollection(const std::string& name, const std::string& mergedCollectionName) {
+CollectionInfo *CollectionInfoBuilder::buildCollection(const std::string& name, const std::string& mergedCollectionName)
+{
     std::string listItemsPathKey = "collections." + name + ".list.path";
     std::string listFilterKey = "collections." + name + ".list.filter";
     std::string extensionsKey = "collections." + name + ".list.extensions";
@@ -231,17 +229,17 @@ std::unique_ptr<CollectionInfo> CollectionInfoBuilder::buildCollection(const std
         LOG_NOTICE("Collections", ss.str());
     }
 
-    auto collection = std::make_unique<CollectionInfo>(conf_, name, listItemsPath, extensions, metadataType, metadataPath);
+    auto *collection = new CollectionInfo(conf_, name, listItemsPath, extensions, metadataType, metadataPath);
 
     (void)conf_.getProperty("collections." + collection->name + ".launcher", collection->launcher);
 
-    ImportDirectory(*collection, mergedCollectionName);
+    ImportDirectory(collection, mergedCollectionName);
 
     return collection;
 }
 
 
-bool CollectionInfoBuilder::ImportBasicList(CollectionInfo& info, const std::string& file, std::map<std::string, Item*>& list)
+bool CollectionInfoBuilder::ImportBasicList(CollectionInfo *info, const std::string& file, std::map<std::string, Item *> &list)
 {
     std::ifstream includeStream(file.c_str());
 
@@ -249,18 +247,18 @@ bool CollectionInfoBuilder::ImportBasicList(CollectionInfo& info, const std::str
         return false;
     }
 
-    std::string line;
+    std::string line; 
     Item* i;
-    while (std::getline(includeStream, line)) {
+    while(std::getline(includeStream, line)) {
         line = Utils::filterComments(line);
         if (!line.empty() && list.find(line) == list.end()) {
             i = new Item();
-            line.erase(std::remove(line.begin(), line.end(), '\r'), line.end());
+            line.erase( std::remove(line.begin(), line.end(), '\r'), line.end() );
 
             i->fullTitle = line;
             i->name = line;
             i->title = line;
-            i->collectionInfo = &info;  // Since info is now a reference, store the address of the reference.
+            i->collectionInfo = info;
 
             list[line] = i;
         }
@@ -269,7 +267,7 @@ bool CollectionInfoBuilder::ImportBasicList(CollectionInfo& info, const std::str
     return true;
 }
 
-bool CollectionInfoBuilder::ImportBasicList(CollectionInfo& info, const std::string& file, std::vector<Item*>& list)
+bool CollectionInfoBuilder::ImportBasicList(CollectionInfo *info, const std::string& file, std::vector<Item *> &list)
 {
     std::ifstream includeStream(file.c_str());
 
@@ -277,11 +275,11 @@ bool CollectionInfoBuilder::ImportBasicList(CollectionInfo& info, const std::str
         return false;
     }
 
-    std::string line;
+    std::string line; 
     Item* i;
-    while (std::getline(includeStream, line)) {
+    while(std::getline(includeStream, line)) {
         line = Utils::filterComments(line);
-
+        
         if (!line.empty()) {
 
             bool found = false;
@@ -293,29 +291,30 @@ bool CollectionInfoBuilder::ImportBasicList(CollectionInfo& info, const std::str
 
             if (!found) {
                 i = new Item();
-                line.erase(std::remove(line.begin(), line.end(), '\r'), line.end());
+                line.erase( std::remove(line.begin(), line.end(), '\r'), line.end() );
 
                 i->fullTitle = line;
                 i->name = line;
                 i->title = line;
-                i->collectionInfo = &info;  // Since info is now a reference, store the address of the reference.
+                i->collectionInfo = info;
 
                 list.push_back(i);
             }
+
         }
     }
 
     return true;
 }
 
-bool CollectionInfoBuilder::ImportDirectory(CollectionInfo& info, const std::string& mergedCollectionName)
+bool CollectionInfoBuilder::ImportDirectory(CollectionInfo *info, const std::string& mergedCollectionName)
 {
-    std::string path = info.listpath;
+    std::string path = info->listpath;
     std::vector<Item *> includeFilterUnsorted;
     std::map<std::string, Item *> includeFilter;
     std::map<std::string, Item *> excludeFilter;
-    std::string includeFile    = Utils::combinePath(Configuration::absolutePath, "collections", info.name, "include.txt");
-    std::string excludeFile    = Utils::combinePath(Configuration::absolutePath, "collections", info.name, "exclude.txt");
+    std::string includeFile    = Utils::combinePath(Configuration::absolutePath, "collections", info->name, "include.txt");
+    std::string excludeFile    = Utils::combinePath(Configuration::absolutePath, "collections", info->name, "exclude.txt");
 
     std::string launcher;
     bool showMissing  = false; 
@@ -323,15 +322,15 @@ bool CollectionInfoBuilder::ImportDirectory(CollectionInfo& info, const std::str
     bool emuarc       = false;
  
     if (mergedCollectionName != "") {
-        std::string mergedFile = Utils::combinePath(Configuration::absolutePath, "collections", mergedCollectionName, info.name + ".sub");
+        std::string mergedFile = Utils::combinePath(Configuration::absolutePath, "collections", mergedCollectionName, info->name + ".sub");
         LOG_INFO("CollectionInfoBuilder", "Checking for \"" + mergedFile + "\"");
         (void)conf_.getProperty("collections." + mergedCollectionName + ".list.includeMissingItems", showMissing);
         ImportBasicList(info, mergedFile, includeFilterUnsorted);
         ImportBasicList(info, mergedFile, includeFilter);
     }
-    (void)conf_.getProperty("collections." + info.name + ".list.includeMissingItems", showMissing);
-    (void)conf_.getProperty("collections." + info.name + ".list.romHierarchy", romHierarchy);
-    (void)conf_.getProperty("collections." + info.name + ".list.emuarc", emuarc);
+    (void)conf_.getProperty("collections." + info->name + ".list.includeMissingItems", showMissing);
+    (void)conf_.getProperty("collections." + info->name + ".list.romHierarchy", romHierarchy);
+    (void)conf_.getProperty("collections." + info->name + ".list.emuarc", emuarc);
     if (emuarc)
         romHierarchy = true;
 
@@ -342,7 +341,7 @@ bool CollectionInfoBuilder::ImportDirectory(CollectionInfo& info, const std::str
 
     for(auto it = includeFilterUnsorted.begin(); it != includeFilterUnsorted.end(); ++it) {
         if (showMissing && excludeFilter.find((*it)->name) == excludeFilter.end()) {
-            info.items.push_back(*it);
+            info->items.push_back(*it);
         }
         else {
             delete *it;
@@ -373,8 +372,8 @@ bool CollectionInfoBuilder::ImportDirectory(CollectionInfo& info, const std::str
     Item* i = nullptr;
 
     if (!curretPlayCountList.empty()) {
-        for (auto it = info.items.begin(); it != info.items.end(); ++it) {
-            lookup = "_" + info.name + ":" + (*it)->name;
+        for (auto it = info->items.begin(); it != info->items.end(); ++it) {
+            lookup = "_" + info->name + ":" + (*it)->name;
             if (curretPlayCountList[lookup]) {
                 i = curretPlayCountList[lookup];
             }
@@ -413,117 +412,117 @@ bool CollectionInfoBuilder::ImportDirectory(CollectionInfo& info, const std::str
 }
 
 
-void CollectionInfoBuilder::addPlaylists(CollectionInfo& info)  // pass CollectionInfo by reference
+void CollectionInfoBuilder::addPlaylists(CollectionInfo *info)
 {
     std::string itemName;
     std::string collectionName;
-    std::map<std::string, Item*> excludeAllFilter;
-    std::string excludeAllFile = Utils::combinePath(Configuration::absolutePath, "collections", info.name, "exclude_all.txt");
+    std::map<std::string, Item *> excludeAllFilter;
+    std::string excludeAllFile = Utils::combinePath(Configuration::absolutePath, "collections", info->name, "exclude_all.txt");
 
-    // Call ImportBasicList with info passed by reference
     ImportBasicList(info, excludeAllFile, excludeAllFilter);
-
-    // Adds items to "all" list except those found in "exclude_all.txt"
-    if (!excludeAllFilter.empty()) {
-        info.playlists["all"] = new std::vector<Item*>();
-        for (auto it = info.items.begin(); it != info.items.end(); it++) {
+    // adds items to "all" list except those found in "exclude_all.txt"
+    if ( !excludeAllFilter.empty()) {
+        info->playlists["all"] = new std::vector<Item *>();
+        for(auto it = info->items.begin(); it != info->items.end(); it++) {
             bool found = false;
-            for (auto itex = excludeAllFilter.begin(); itex != excludeAllFilter.end(); itex++) {
-                collectionName = info.name;
-                itemName = itex->first;
-                if (itemName.at(0) == '_') { // name consists of _<collectionName>:<itemName>
-                    itemName.erase(0, 1); // Remove _
-                    size_t position = itemName.find(":");
-                    if (position != std::string::npos) {
-                        collectionName = itemName.substr(0, position);
-                        itemName = itemName.erase(0, position + 1);
-                    }
+            for(auto itex = excludeAllFilter.begin(); itex != excludeAllFilter.end(); itex++) {
+                collectionName = info->name;
+                itemName       = itex->first;
+                if (itemName.at(0) == '_') // name consists of _<collectionName>:<itemName>
+                {
+                     itemName.erase(0, 1); // Remove _
+                     size_t position = itemName.find(":");
+                     if (position != std::string::npos ) {
+                         collectionName = itemName.substr(0, position);
+                         itemName       = itemName.erase(0, position+1);
+                     }
                 }
-                if (((*it)->name == itemName || itemName == "*") && (*it)->collectionInfo->name == collectionName) {
+                if ( ((*it)->name == itemName || itemName == "*") && (*it)->collectionInfo->name == collectionName ) {
                     found = true;
                 }
             }
-            if (!found) {
-                info.playlists["all"]->push_back((*it));
+            if ( !found ) {
+                info->playlists["all"]->push_back((*it));
             }
         }
-        excludeAllFilter.clear();
+        while(!excludeAllFilter.empty()) {
+            auto it = excludeAllFilter.begin();
+            excludeAllFilter.erase(it);
+        }
     }
     else {
-        info.playlists["all"] = &info.items;
+        info->playlists["all"] = &info->items;
     }
 
-    // Lookup playlist location and add playlists and what items they have
+    // lookup playlist location and add playlists and what items they have
     std::map<std::string, Item*> playlistItems;
-    std::string path = Utils::combinePath(Configuration::absolutePath, "collections", info.name, "playlists");
-    loadPlaylistItems(&info, &playlistItems, path);  // loadPlaylistItems takes a pointer
+    std::string path = Utils::combinePath(Configuration::absolutePath, "collections", info->name, "playlists");
+    loadPlaylistItems(info, &playlistItems, path);
 
-    // Find and load favorites from global playlist if enabled
+    // find and load favorites from global playlist if enabled
     bool globalFavLast = false;
     (void)conf_.getProperty(OPTION_GLOBALFAVLAST, globalFavLast);
     if (globalFavLast) {
         std::map<std::string, Item*> tmpPlaylistItems;
-        // Don't use collection's playlist
-        if (info.playlists["favorites"]) {
-            info.playlists["favorites"]->clear();
+        // don't use collection's playlist
+        if (info->playlists["favorites"]) {
+            info->playlists["favorites"]->clear();
             std::string path = Utils::combinePath(Configuration::absolutePath, "collections", "Favorites", "playlists");
-            loadPlaylistItems(&info, &tmpPlaylistItems, path);  // loadPlaylistItems takes a pointer
+            loadPlaylistItems(info, &tmpPlaylistItems, path);
         }
         else {
-            info.playlists["favorites"] = new std::vector<Item*>();
+            info->playlists["favorites"] = new std::vector<Item*>();
         }
     }
 
-    // No playlists found, done
-    if (playlistItems.empty()) {
+    // no playlists found, done
+    if (!playlistItems.size()) {
         return;
     }
 
-    // If cyclePlaylist then order playlist menu items by that
-    // Get playlist cycle
-    std::string settingPrefix = "collections." + info.name + ".";
+    // if cyclePlaylist then order playlist menu items by that
+    // get playlist cycle
+    std::string settingPrefix = "collections." + info->name + ".";
     std::string cycleString;
     std::string firstCollection = "";
     conf_.getProperty(OPTION_FIRSTCOLLECTION, firstCollection);
     conf_.getProperty(OPTION_CYCLEPLAYLIST, cycleString);
-
-    // Use the global setting as override if firstCollection == current
-    if (cycleString.empty() || firstCollection != info.name) {
-        // Check if collection has a different setting
+    // use the global setting as overide if firstCollection == current
+    if (cycleString == "" || firstCollection != info->name) {
+        // check if collection has different setting
         if (conf_.propertyExists(settingPrefix + OPTION_CYCLEPLAYLIST)) {
             conf_.getProperty(settingPrefix + OPTION_CYCLEPLAYLIST, cycleString);
         }
     }
-
-    if (info.name == "Favorites") {
+    if (info->name == "Favorites") {
         cycleString = "favorites";
     }
 
     std::vector<std::string> cycleVector;
     Utils::listToVector(cycleString, cycleVector, ',');
 
-    if (!cycleVector.empty()) {
-        // Add in order according to the cycle list
-        for (const auto& playlist : cycleVector) {
-            if (playlistItems[playlist]) {
-                info.playlistItems.push_back(playlistItems[playlist]);
+    if (cycleVector.size()) {
+        // add in order according to cycle list
+        for (auto itP = cycleVector.begin(); itP != cycleVector.end(); itP++) {
+            if (playlistItems[*itP]) {
+                info->playlistItems.push_back(playlistItems[*itP]);
             }
         }
     }
     else {
-        // Convert lookup playlist map to vector
-        for (const auto& itP : playlistItems) {
-            info.playlistItems.push_back(itP.second);
+        // convert lookup playlist map to vector
+        for (auto itP = playlistItems.begin(); itP != playlistItems.end(); itP++) {
+            info->playlistItems.push_back(itP->second);
         }
     }
 
-    // Initialize empty dynamic playlists
-    if (info.playlists["favorites"] == nullptr) {
-        info.playlists["favorites"] = new std::vector<Item*>();
+    // intialize empty dynamic playlists
+    if(info->playlists["favorites"] == nullptr) {
+        info->playlists["favorites"] = new std::vector<Item *>();
     }
 
-    if (info.playlists["lastplayed"] == nullptr) {
-        info.playlists["lastplayed"] = new std::vector<Item*>();
+    if(info->playlists["lastplayed"] == nullptr) {
+        info->playlists["lastplayed"] = new std::vector<Item *>();
     }
 
     return;
@@ -579,7 +578,7 @@ void CollectionInfoBuilder::loadPlaylistItems(CollectionInfo* info, std::map<std
 
                 std::vector<Item*> playlistFilter;
                 std::string playlistFile = Utils::combinePath(path, file);
-                ImportBasicList(*info, playlistFile, playlistFilter);
+                ImportBasicList(info, playlistFile, playlistFilter);
 
                 info->playlists[basename] = new std::vector<Item*>();
 
@@ -640,7 +639,7 @@ void CollectionInfoBuilder::updateLastPlayedPlaylist(CollectionInfo *info, Item 
 
     std::vector<Item *> lastplayedList;
     std::string playlistFile = Utils::combinePath(Configuration::absolutePath, "collections", playlistCollectionName, "playlists", "lastplayed.txt");
-    ImportBasicList(*info, playlistFile, lastplayedList);
+    ImportBasicList(info, playlistFile, lastplayedList);
 
     if (info->playlists["lastplayed"] == nullptr)
         info->playlists["lastplayed"] = new std::vector<Item *>();
@@ -867,10 +866,10 @@ std::map<std::string, Item*> CollectionInfoBuilder::ImportPlayCount(const std::s
     return curretPlayCountList;
 }
 
-void CollectionInfoBuilder::ImportRomDirectory(const std::string& path, CollectionInfo& info, std::map<std::string, Item*> includeFilter, std::map<std::string, Item*> excludeFilter, bool romHierarchy, bool emuarc)
+void CollectionInfoBuilder::ImportRomDirectory(const std::string& path, CollectionInfo* info, std::map<std::string, Item*> includeFilter, std::map<std::string, Item*> excludeFilter, bool romHierarchy, bool emuarc)
 {
     std::vector<std::string> extensions;
-    info.extensionList(extensions);  // Access members directly with the reference
+    info->extensionList(extensions);
 
     LOG_INFO("CollectionInfoBuilder", "Scanning directory \"" + path + "\"");
     if (!fs::exists(path) || !fs::is_directory(path))
@@ -884,32 +883,32 @@ void CollectionInfoBuilder::ImportRomDirectory(const std::string& path, Collecti
 
         // Check if the file is a directory or a file
         if (romHierarchy && fs::is_directory(entry) && file != "." && file != "..") {
-            ImportRomDirectory(entry.path().string(), info, includeFilter, excludeFilter, romHierarchy, emuarc);  // Recursively call with the reference
+            ImportRomDirectory(entry.path().string(), info, includeFilter, excludeFilter, romHierarchy, emuarc);
         }
         else if (fs::is_regular_file(entry) && file != "." && file != "..") {
             size_t position = file.find_last_of(".");
             std::string basename = (std::string::npos == position) ? file : file.substr(0, position);
 
-            // If there is an include list, only include roms that are found and are in the include list
-            // If there is an exclude list, exclude those roms
+            // if there is an include list, only include roms that are found and are in the include list
+            // if there is an exclude list, exclude those roms
             if ((includeFilter.empty() || includeFilter.find(basename) != includeFilter.end()) &&
                 (excludeFilter.empty() || excludeFilter.find(basename) == excludeFilter.end()))
             {
-                // Iterate through all known file extensions
+                // iterate through all known file extensions
                 for (const std::string& ext : extensions) {
                     std::string comparator = "." + ext;
                     size_t start = file.length() >= comparator.length() ? file.length() - comparator.length() : std::string::npos;
 
                     if (start != std::string::npos && file.compare(start, comparator.length(), comparator) == 0) {
                         // Add item if it doesn't already exist
-                        bool found = std::any_of(info.items.begin(), info.items.end(), [&](const Item* item) { return item->name == basename; });
+                        bool found = std::any_of(info->items.begin(), info->items.end(), [&](const Item* item) { return item->name == basename; });
                         if (!found) {
                             auto* i = new Item();
 
                             i->name = basename;
                             i->fullTitle = basename;
                             i->title = basename;
-                            i->collectionInfo = &info;  // Reference the collection info
+                            i->collectionInfo = info;
                             i->filepath = path + Utils::pathSeparator;
 
                             if (emuarc) {
@@ -918,7 +917,7 @@ void CollectionInfoBuilder::ImportRomDirectory(const std::string& path, Collecti
                                 i->fullTitle = i->name;
                                 i->title = i->name;
                             }
-                            info.items.push_back(i);  // Access the items directly
+                            info->items.push_back(i);
                         }
                     }
                 }
@@ -928,8 +927,8 @@ void CollectionInfoBuilder::ImportRomDirectory(const std::string& path, Collecti
 }
 
 
-void CollectionInfoBuilder::injectMetadata(CollectionInfo& info)
+void CollectionInfoBuilder::injectMetadata(CollectionInfo *info)
 {
-    metaDB_.injectMetadata(info); // Pass the reference
+    metaDB_.injectMetadata(info);
+    return;
 }
-
