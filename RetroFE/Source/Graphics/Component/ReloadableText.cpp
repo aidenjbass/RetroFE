@@ -182,66 +182,22 @@ void ReloadableText::ReloadTexture()
             return;
         }
     }
-    else if (type_ == "time")
-    {
-        // If timeFormat_ undefined, assign reasonable default
+    else if (type_ == "time") {
+        // If timeFormat_ is undefined, assign a reasonable default
         if (timeFormat_.empty()) {
             timeFormat_ = "%I:%M:%S %p";
-            isTimeFormatChecked_ = true;
-            isTimeFormatValid_ = true;
         }
 
-        // Lambda to validate the time format string
-        auto isValidTimeFormat = [](const std::string& format) {
-            const std::string validSpecifiers = "aAbBcCdDeFgGhHIjklmMnprRStTUwWxXyYzZ%";
-            size_t pos = 0;
-            while ((pos = format.find('%', pos)) != std::string::npos) {
-                if (pos + 1 >= format.size() || validSpecifiers.find(format[pos + 1]) == std::string::npos) {
-                    return false; // Invalid specifier
-                }
-                pos += 2; // Skip over the specifier
-            }
-            return true;
-            };
 
-        // Validate the time format only once
-        if (!isTimeFormatChecked_) {
-            isTimeFormatValid_ = isValidTimeFormat(timeFormat_);
-            isTimeFormatChecked_ = true;
-        }
-
-        // Check if the format is valid
-        if (isTimeFormatValid_) {
-            // Proceed with time formatting if the format is valid
-            auto now = std::chrono::system_clock::now();
-            std::time_t now_c = std::chrono::system_clock::to_time_t(now);
+            time_t now = time(0);           // Get current time in seconds
             struct tm tstruct;
-
-#if defined(_WIN32)
-            localtime_s(&tstruct, &now_c);
-#elif defined(__unix__) || defined(__APPLE__)
-            localtime_r(&now_c, &tstruct);
-#else
-            tstruct = *localtime(&now_c);
-#endif
-
-            std::string buffer(80, '\0');
-            size_t result = strftime(buffer.data(), buffer.size(), timeFormat_.c_str(), &tstruct);
-
-            if (result == 0) {
-                LOG_ERROR("ReloadableText", "strftime failed or buffer was too small.");
-                ss << "Invalid Time"; // Fallback if formatting fails
-            }
-            else {
-                buffer.resize(result); // Trim the string to the actual size
-                ss << buffer;
-            }
-        }
-        else {
-            // If the format is invalid, set ss to "Invalid Time"
-            ss << "Invalid Time";
-        }
+            char buf[80];
+            tstruct = *localtime(&now);     // Convert to local time
+            strftime(buf, sizeof(buf), timeFormat_.c_str(), &tstruct);  // Format the time
+            ss << buf;                      // Append formatted time to stringstream
+        
     }
+
     else if (type_ == "numberButtons")
     {
         text = selectedItem->numberButtons;
