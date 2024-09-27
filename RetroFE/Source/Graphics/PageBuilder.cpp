@@ -841,6 +841,17 @@ void PageBuilder::loadReloadableImages(const xml_node<> *layout, const std::stri
                 Font *font = addFont(componentXml, NULL, cMonitor);
                 std::string direction = "horizontal";
                 std::string textFormat = "";
+                std::string location = "";
+                std::string typeValue = type->value();
+                if (typeValue == "file") {
+                    // Ensure the location attribute is present
+                    if (!locationXml) {
+                        LOG_ERROR("Layout", "reloadableText type='file' requires a 'location' attribute.");
+                        continue; // Skip this component if location is not provided
+                    }
+                    // Get the location value
+                    location = locationXml->value();
+                }
                 if (textFormatXml) {
                     textFormat = textFormatXml->value();
                 }
@@ -884,7 +895,7 @@ void PageBuilder::loadReloadableImages(const xml_node<> *layout, const std::stri
                 if (pluralPostfixXml) {
                     pluralPostfix = pluralPostfixXml->value();
                 }
-                c = new ReloadableScrollingText(config_, systemMode, layoutMode, menuMode, type->value(), singlePrefix, singlePostfix, pluralPrefix, pluralPostfix, textFormat, alignment, *page, selectedOffset, font, direction, scrollingSpeed, startPosition, startTime, endTime);
+                c = new ReloadableScrollingText(config_, systemMode, layoutMode, menuMode, typeValue, singlePrefix, singlePostfix, pluralPrefix, pluralPostfix, textFormat, alignment, *page, selectedOffset, font, direction, scrollingSpeed, startPosition, startTime, endTime, location);
                 c->setId( id );
                 c->baseViewInfo.Monitor = cMonitor;
                 c->baseViewInfo.Layout = page->getCurrentLayout();
