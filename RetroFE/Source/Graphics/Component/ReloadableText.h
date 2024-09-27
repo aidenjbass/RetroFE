@@ -47,8 +47,6 @@ private:
     std::string layoutKey_;
     Font *fontInst_;
     std::string timeFormat_;
-    bool isTimeFormatValid_;
-    bool isTimeFormatChecked_;
     std::string textFormat_;
     std::string singlePrefix_;
     std::string singlePostfix_;

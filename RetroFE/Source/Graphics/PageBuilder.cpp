@@ -107,7 +107,6 @@ Page *PageBuilder::buildPage( const std::string& collectionName, bool defaultToC
     for (int i = 0; i < Page::MAX_LAYOUTS; i++) {
         layouts.push_back("layout - " + std::to_string(i));
     }
-    int monitor=0;
     for ( unsigned int layout = 0; layout < layouts.size(); layout++ ) {
         rapidxml::xml_document<> doc;
         std::ifstream file;
@@ -846,7 +845,7 @@ void PageBuilder::loadReloadableImages(const xml_node<> *layout, const std::stri
                 if (typeValue == "file") {
                     // Ensure the location attribute is present
                     if (!locationXml) {
-                        LOG_ERROR("Layout", "reloadableText type='file' requires a 'location' attribute.");
+                        LOG_ERROR("Layout", "reloadableScrollingText type='file' requires a 'location' attribute.");
                         continue; // Skip this component if location is not provided
                     }
                     // Get the location value
