@@ -498,13 +498,13 @@ bool Launcher::execute(std::string executable, std::string args, std::string cur
     } else {
         SHELLEXECUTEINFOW shExInfo = {0};
         shExInfo.cbSize = sizeof(SHELLEXECUTEINFOW);
-        shExInfo.fMask = SEE_MASK_NOCLOSEPROCESS;
+        shExInfo.fMask = SEE_MASK_NOCLOSEPROCESS | SEE_MASK_NO_CONSOLE;
         shExInfo.hwnd = nullptr;
         shExInfo.lpVerb = L"open";
         shExInfo.lpFile = pszApplication;
         shExInfo.lpParameters = pszCommandLine;
         shExInfo.lpDirectory = currDirW.c_str();
-        shExInfo.nShow = SW_HIDE;
+        shExInfo.nShow = SW_SHOWNORMAL;
         shExInfo.hInstApp = nullptr;
 
         if (ShellExecuteExW(&shExInfo)) {
