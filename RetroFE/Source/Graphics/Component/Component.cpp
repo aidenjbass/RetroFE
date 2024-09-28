@@ -155,66 +155,57 @@ std::string_view Component::filePath()
 
 bool Component::update(float dt) {
     elapsedTweenTime_ += dt;
-
-    // Check if an animation is requested
     if (animationRequested_ && animationRequestedType_ != "" && !tweens_->getAnimationMap().empty()) {
         std::shared_ptr<Animation> newTweens = nullptr;
-
-        // Retrieve animation based on menuIndex_
         if (menuIndex_ >= MENU_INDEX_HIGH) {
             newTweens = tweens_->getAnimation(animationRequestedType_, MENU_INDEX_HIGH);
-            if (!newTweens) {
+            if (!(newTweens && newTweens->size() > 0)) {
                 newTweens = tweens_->getAnimation(animationRequestedType_, menuIndex_ - MENU_INDEX_HIGH);
             }
-        } else {
+        }
+        else {
             newTweens = tweens_->getAnimation(animationRequestedType_, menuIndex_);
         }
 
-        // If the new animation exists and is not empty, update the current animation
-        if (newTweens && newTweens->size() > 0 && currentTweens_.lock() != newTweens) {
+        if (newTweens && newTweens->size() == 0) {
+            newTweens.reset();
+        }
+
+        if (newTweens && newTweens->size() > 0) {
             animationType_ = animationRequestedType_;
-            currentTweens_ = newTweens;  // Update only if the animation is different
+            currentTweens_ = newTweens;  // Assign to weak_ptr
             currentTweenIndex_ = 0;
             elapsedTweenTime_ = 0;
             storeViewInfo_ = baseViewInfo;
             currentTweenComplete_ = false;
         }
-
-        animationRequested_ = false;  // Reset animation request flag
-    }
-
-    // Handle idle animations if the current animation is complete
-    if (tweens_ && currentTweenComplete_) {
-        animationType_ = "idle";
-        auto idleTweens = tweens_->getAnimation("idle", menuIndex_);
-
-        // Fallback to menuIdle if idle animation is empty
-        if (!idleTweens || idleTweens->size() == 0) {
-            if (!page.isMenuScrolling()) {
-                idleTweens = tweens_->getAnimation("menuIdle", menuIndex_);
-            }
-        }
-
-        if (idleTweens && idleTweens != currentTweens_.lock()) {
-            currentTweens_ = idleTweens;  // Set idle animation only if it's different
-            currentTweenIndex_ = 0;
-            elapsedTweenTime_ = 0;
-            storeViewInfo_ = baseViewInfo;
-            currentTweenComplete_ = false;
-        }
-
         animationRequested_ = false;
     }
 
-    // Animate the current tweens
+    if (tweens_ && currentTweenComplete_) {
+        animationType_ = "idle";
+        auto idleTweens = tweens_->getAnimation("idle", menuIndex_);
+        if (idleTweens && idleTweens->size() == 0 && !page.isMenuScrolling()) {
+            idleTweens = tweens_->getAnimation("menuIdle", menuIndex_);
+        }
+        currentTweens_ = idleTweens;  // Assign to weak_ptr
+        currentTweenIndex_ = 0;
+        elapsedTweenTime_ = 0;
+        storeViewInfo_ = baseViewInfo;
+        currentTweenComplete_ = false;
+        animationRequested_ = false;
+    }
+
+    // Lock weak_ptr before using
     std::shared_ptr<Animation> lockedTweens = currentTweens_.lock();
     if (lockedTweens) {
         currentTweenComplete_ = animate();
         if (currentTweenComplete_) {
-            currentTweens_.reset();  // Reset the weak_ptr once the animation is complete
+            currentTweens_.reset();
             currentTweenIndex_ = 0;
         }
-    } else {
+    }
+    else {
         currentTweenComplete_ = true;
     }
 
