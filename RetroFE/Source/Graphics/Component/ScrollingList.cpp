@@ -655,42 +655,62 @@ size_t ScrollingList::getSize() const
 void ScrollingList::resetTweens(Component* c, std::shared_ptr<AnimationEvents> sets, ViewInfo* currentViewInfo, ViewInfo* nextViewInfo, double scrollTime) const {
     if (!c || !sets || !currentViewInfo || !nextViewInfo) return;
 
+    // Ensure that currentViewInfo and nextViewInfo are initialized from the component's baseViewInfo
     currentViewInfo->ImageHeight = c->baseViewInfo.ImageHeight;
     currentViewInfo->ImageWidth = c->baseViewInfo.ImageWidth;
     nextViewInfo->ImageHeight = c->baseViewInfo.ImageHeight;
     nextViewInfo->ImageWidth = c->baseViewInfo.ImageWidth;
     nextViewInfo->BackgroundAlpha = c->baseViewInfo.BackgroundAlpha;
 
+    // Prepare the component to handle tweens
     c->setTweens(sets);
 
+    // Get the scroll animation
     std::shared_ptr<Animation> scrollTween = sets->getAnimation("menuScroll");
-    scrollTween->Clear();
-    c->baseViewInfo = *currentViewInfo;
 
-    auto set = std::make_unique<TweenSet>();
-    if (currentViewInfo->Restart && scrollPeriod_ > minScrollTime_) {
-        set->push(std::make_unique<Tween>(TWEEN_PROPERTY_RESTART, LINEAR, currentViewInfo->Restart, nextViewInfo->Restart, 0));
+    // Try to retrieve the first TweenSet, if it exists
+    std::shared_ptr<TweenSet> set = scrollTween->tweenSet(0);  // Assuming you're dealing with a single TweenSet
+
+    if (!set) {
+        // If no TweenSet exists, create a new one and push it into the Animation
+        set = std::make_shared<TweenSet>();
+        scrollTween->Push(set);
+    } else {
+        // Clear the existing TweenSet for reuse
+        set->clear();  // This clears the tweens but keeps the TweenSet object intact
     }
 
-    set->push(std::make_unique<Tween>(TWEEN_PROPERTY_HEIGHT, LINEAR, currentViewInfo->Height, nextViewInfo->Height, scrollTime));
-    set->push(std::make_unique<Tween>(TWEEN_PROPERTY_WIDTH, LINEAR, currentViewInfo->Width, nextViewInfo->Width, scrollTime));
-    set->push(std::make_unique<Tween>(TWEEN_PROPERTY_ANGLE, LINEAR, currentViewInfo->Angle, nextViewInfo->Angle, scrollTime));
-    set->push(std::make_unique<Tween>(TWEEN_PROPERTY_ALPHA, LINEAR, currentViewInfo->Alpha, nextViewInfo->Alpha, scrollTime));
-    set->push(std::make_unique<Tween>(TWEEN_PROPERTY_X, LINEAR, currentViewInfo->X, nextViewInfo->X, scrollTime));
-    set->push(std::make_unique<Tween>(TWEEN_PROPERTY_Y, LINEAR, currentViewInfo->Y, nextViewInfo->Y, scrollTime));
-    set->push(std::make_unique<Tween>(TWEEN_PROPERTY_X_ORIGIN, LINEAR, currentViewInfo->XOrigin, nextViewInfo->XOrigin, scrollTime));
-    set->push(std::make_unique<Tween>(TWEEN_PROPERTY_Y_ORIGIN, LINEAR, currentViewInfo->YOrigin, nextViewInfo->YOrigin, scrollTime));
-    set->push(std::make_unique<Tween>(TWEEN_PROPERTY_X_OFFSET, LINEAR, currentViewInfo->XOffset, nextViewInfo->XOffset, scrollTime));
-    set->push(std::make_unique<Tween>(TWEEN_PROPERTY_Y_OFFSET, LINEAR, currentViewInfo->YOffset, nextViewInfo->YOffset, scrollTime));
-    set->push(std::make_unique<Tween>(TWEEN_PROPERTY_FONT_SIZE, LINEAR, currentViewInfo->FontSize, nextViewInfo->FontSize, scrollTime));
-    set->push(std::make_unique<Tween>(TWEEN_PROPERTY_BACKGROUND_ALPHA, LINEAR, currentViewInfo->BackgroundAlpha, nextViewInfo->BackgroundAlpha, scrollTime));
-    set->push(std::make_unique<Tween>(TWEEN_PROPERTY_MAX_WIDTH, LINEAR, currentViewInfo->MaxWidth, nextViewInfo->MaxWidth, scrollTime));
-    set->push(std::make_unique<Tween>(TWEEN_PROPERTY_MAX_HEIGHT, LINEAR, currentViewInfo->MaxHeight, nextViewInfo->MaxHeight, scrollTime));
-    set->push(std::make_unique<Tween>(TWEEN_PROPERTY_LAYER, LINEAR, currentViewInfo->Layer, nextViewInfo->Layer, scrollTime));
-    set->push(std::make_unique<Tween>(TWEEN_PROPERTY_VOLUME, LINEAR, currentViewInfo->Volume, nextViewInfo->Volume, scrollTime));
-    set->push(std::make_unique<Tween>(TWEEN_PROPERTY_MONITOR, LINEAR, currentViewInfo->Monitor, nextViewInfo->Monitor, scrollTime));
+    // Update the component's base view info
+    c->baseViewInfo = *currentViewInfo;
 
-    scrollTween->Push(std::move(set));
+    // Lambda to add a tween whether the property has changed or not (to ensure a full set)
+    auto addTween = [&](double currentProperty, double nextProperty, TweenProperty propertyType) {
+        set->push(std::make_unique<Tween>(propertyType, LINEAR, currentProperty, nextProperty, scrollTime));
+        };
+
+    // Add tweens for all properties
+    addTween(currentViewInfo->Height, nextViewInfo->Height, TWEEN_PROPERTY_HEIGHT);
+    addTween(currentViewInfo->Width, nextViewInfo->Width, TWEEN_PROPERTY_WIDTH);
+    addTween(currentViewInfo->Angle, nextViewInfo->Angle, TWEEN_PROPERTY_ANGLE);
+    addTween(currentViewInfo->Alpha, nextViewInfo->Alpha, TWEEN_PROPERTY_ALPHA);
+    addTween(currentViewInfo->X, nextViewInfo->X, TWEEN_PROPERTY_X);
+    addTween(currentViewInfo->Y, nextViewInfo->Y, TWEEN_PROPERTY_Y);
+    addTween(currentViewInfo->XOrigin, nextViewInfo->XOrigin, TWEEN_PROPERTY_X_ORIGIN);
+    addTween(currentViewInfo->YOrigin, nextViewInfo->YOrigin, TWEEN_PROPERTY_Y_ORIGIN);
+    addTween(currentViewInfo->XOffset, nextViewInfo->XOffset, TWEEN_PROPERTY_X_OFFSET);
+    addTween(currentViewInfo->YOffset, nextViewInfo->YOffset, TWEEN_PROPERTY_Y_OFFSET);
+    addTween(currentViewInfo->FontSize, nextViewInfo->FontSize, TWEEN_PROPERTY_FONT_SIZE);
+    addTween(currentViewInfo->BackgroundAlpha, nextViewInfo->BackgroundAlpha, TWEEN_PROPERTY_BACKGROUND_ALPHA);
+    addTween(currentViewInfo->MaxWidth, nextViewInfo->MaxWidth, TWEEN_PROPERTY_MAX_WIDTH);
+    addTween(currentViewInfo->MaxHeight, nextViewInfo->MaxHeight, TWEEN_PROPERTY_MAX_HEIGHT);
+    addTween(currentViewInfo->Layer, nextViewInfo->Layer, TWEEN_PROPERTY_LAYER);
+    addTween(currentViewInfo->Volume, nextViewInfo->Volume, TWEEN_PROPERTY_VOLUME);
+    addTween(currentViewInfo->Monitor, nextViewInfo->Monitor, TWEEN_PROPERTY_MONITOR);
+
+    // Special case for 'Restart' property, only set if scrollPeriod_ > minScrollTime_
+    if (scrollPeriod_ > minScrollTime_) {
+        addTween(currentViewInfo->Restart, nextViewInfo->Restart, TWEEN_PROPERTY_RESTART);
+    }
 }
 
 bool ScrollingList::allocateTexture( size_t index, const Item *item )
