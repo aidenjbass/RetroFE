@@ -2722,7 +2722,7 @@ RetroFE::RETROFE_STATE RetroFE::processUserInput(Page *page)
             }
         }
 
-        else if (input_.keystate(UserInput::KeyCodeToggleGameInfo))
+        else if (input_.keystate(UserInput::KeyCodeToggleGameInfo) || (input_.keystate(UserInput::KeyCodeGameInfoCombo1) && input_.keystate(UserInput::KeyCodeGameInfoCombo2)))
         {
             attract_.reset();
             input_.resetStates();
@@ -2745,7 +2745,7 @@ RetroFE::RETROFE_STATE RetroFE::processUserInput(Page *page)
             gameInfo_ = !gameInfo_;
         }
 
-        else if (input_.keystate(UserInput::KeyCodeToggleCollectionInfo))
+        else if (input_.keystate(UserInput::KeyCodeToggleCollectionInfo) || (input_.keystate(UserInput::KeyCodeCollectionInfoCombo1) && input_.keystate(UserInput::KeyCodeCollectionInfoCombo2)))
         {
             attract_.reset();
             input_.resetStates();
@@ -2767,7 +2767,7 @@ RetroFE::RETROFE_STATE RetroFE::processUserInput(Page *page)
             }
             collectionInfo_ = !collectionInfo_;
         }
-        else if (input_.keystate(UserInput::KeyCodeToggleBuildInfo))
+        else if (input_.keystate(UserInput::KeyCodeToggleBuildInfo) || (input_.keystate(UserInput::KeyCodeBuildInfoCombo1) && input_.keystate(UserInput::KeyCodeBuildInfoCombo2)))
         {
             attract_.reset();
             input_.resetStates();
