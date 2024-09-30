@@ -129,12 +129,12 @@ std::string ScrollingList::getSelectedItemName()
     return (*items_)[(itemIndex_ + selectedOffsetIndex_) % static_cast<int>(size)]->name;
 }
 
-static size_t loopIncrement(size_t offset, size_t i, size_t size) {
+size_t loopIncrement(size_t offset, size_t i, size_t size) {
     if (size == 0) return 0;
     return (offset + i) % size;
 }
 
-static size_t loopDecrement(size_t offset, size_t i, size_t size) {
+size_t loopDecrement(size_t offset, size_t i, size_t size) {
     if (size == 0) return 0;
     return (offset + size - i) % size; // Adjusted to use size_t and ensure no underflow
 }
@@ -655,62 +655,42 @@ size_t ScrollingList::getSize() const
 void ScrollingList::resetTweens(Component* c, std::shared_ptr<AnimationEvents> sets, ViewInfo* currentViewInfo, ViewInfo* nextViewInfo, double scrollTime) const {
     if (!c || !sets || !currentViewInfo || !nextViewInfo) return;
 
-    // Ensure that currentViewInfo and nextViewInfo are initialized from the component's baseViewInfo
     currentViewInfo->ImageHeight = c->baseViewInfo.ImageHeight;
     currentViewInfo->ImageWidth = c->baseViewInfo.ImageWidth;
     nextViewInfo->ImageHeight = c->baseViewInfo.ImageHeight;
     nextViewInfo->ImageWidth = c->baseViewInfo.ImageWidth;
     nextViewInfo->BackgroundAlpha = c->baseViewInfo.BackgroundAlpha;
 
-    // Prepare the component to handle tweens
     c->setTweens(sets);
 
-    // Get the scroll animation
     std::shared_ptr<Animation> scrollTween = sets->getAnimation("menuScroll");
-
-    // Try to retrieve the first TweenSet, if it exists
-    std::shared_ptr<TweenSet> set = scrollTween->tweenSet(0);  // Assuming you're dealing with a single TweenSet
-
-    if (!set) {
-        // If no TweenSet exists, create a new one and push it into the Animation
-        set = std::make_shared<TweenSet>();
-        scrollTween->Push(set);
-    } else {
-        // Clear the existing TweenSet for reuse
-        set->clear();  // This clears the tweens but keeps the TweenSet object intact
-    }
-
-    // Update the component's base view info
+    scrollTween->Clear();
     c->baseViewInfo = *currentViewInfo;
 
-    // Lambda to add a tween whether the property has changed or not (to ensure a full set)
-    auto addTween = [&](double currentProperty, double nextProperty, TweenProperty propertyType) {
-        set->push(std::make_unique<Tween>(propertyType, LINEAR, currentProperty, nextProperty, scrollTime));
-        };
-
-    // Add tweens for all properties
-    addTween(currentViewInfo->Height, nextViewInfo->Height, TWEEN_PROPERTY_HEIGHT);
-    addTween(currentViewInfo->Width, nextViewInfo->Width, TWEEN_PROPERTY_WIDTH);
-    addTween(currentViewInfo->Angle, nextViewInfo->Angle, TWEEN_PROPERTY_ANGLE);
-    addTween(currentViewInfo->Alpha, nextViewInfo->Alpha, TWEEN_PROPERTY_ALPHA);
-    addTween(currentViewInfo->X, nextViewInfo->X, TWEEN_PROPERTY_X);
-    addTween(currentViewInfo->Y, nextViewInfo->Y, TWEEN_PROPERTY_Y);
-    addTween(currentViewInfo->XOrigin, nextViewInfo->XOrigin, TWEEN_PROPERTY_X_ORIGIN);
-    addTween(currentViewInfo->YOrigin, nextViewInfo->YOrigin, TWEEN_PROPERTY_Y_ORIGIN);
-    addTween(currentViewInfo->XOffset, nextViewInfo->XOffset, TWEEN_PROPERTY_X_OFFSET);
-    addTween(currentViewInfo->YOffset, nextViewInfo->YOffset, TWEEN_PROPERTY_Y_OFFSET);
-    addTween(currentViewInfo->FontSize, nextViewInfo->FontSize, TWEEN_PROPERTY_FONT_SIZE);
-    addTween(currentViewInfo->BackgroundAlpha, nextViewInfo->BackgroundAlpha, TWEEN_PROPERTY_BACKGROUND_ALPHA);
-    addTween(currentViewInfo->MaxWidth, nextViewInfo->MaxWidth, TWEEN_PROPERTY_MAX_WIDTH);
-    addTween(currentViewInfo->MaxHeight, nextViewInfo->MaxHeight, TWEEN_PROPERTY_MAX_HEIGHT);
-    addTween(currentViewInfo->Layer, nextViewInfo->Layer, TWEEN_PROPERTY_LAYER);
-    addTween(currentViewInfo->Volume, nextViewInfo->Volume, TWEEN_PROPERTY_VOLUME);
-    addTween(currentViewInfo->Monitor, nextViewInfo->Monitor, TWEEN_PROPERTY_MONITOR);
-
-    // Special case for 'Restart' property, only set if scrollPeriod_ > minScrollTime_
-    if (scrollPeriod_ > minScrollTime_) {
-        addTween(currentViewInfo->Restart, nextViewInfo->Restart, TWEEN_PROPERTY_RESTART);
+    auto set = std::make_unique<TweenSet>();
+    if (currentViewInfo->Restart && scrollPeriod_ > minScrollTime_) {
+        set->push(std::make_unique<Tween>(TWEEN_PROPERTY_RESTART, LINEAR, currentViewInfo->Restart, nextViewInfo->Restart, 0));
     }
+
+    set->push(std::make_unique<Tween>(TWEEN_PROPERTY_HEIGHT, LINEAR, currentViewInfo->Height, nextViewInfo->Height, scrollTime));
+    set->push(std::make_unique<Tween>(TWEEN_PROPERTY_WIDTH, LINEAR, currentViewInfo->Width, nextViewInfo->Width, scrollTime));
+    set->push(std::make_unique<Tween>(TWEEN_PROPERTY_ANGLE, LINEAR, currentViewInfo->Angle, nextViewInfo->Angle, scrollTime));
+    set->push(std::make_unique<Tween>(TWEEN_PROPERTY_ALPHA, LINEAR, currentViewInfo->Alpha, nextViewInfo->Alpha, scrollTime));
+    set->push(std::make_unique<Tween>(TWEEN_PROPERTY_X, LINEAR, currentViewInfo->X, nextViewInfo->X, scrollTime));
+    set->push(std::make_unique<Tween>(TWEEN_PROPERTY_Y, LINEAR, currentViewInfo->Y, nextViewInfo->Y, scrollTime));
+    set->push(std::make_unique<Tween>(TWEEN_PROPERTY_X_ORIGIN, LINEAR, currentViewInfo->XOrigin, nextViewInfo->XOrigin, scrollTime));
+    set->push(std::make_unique<Tween>(TWEEN_PROPERTY_Y_ORIGIN, LINEAR, currentViewInfo->YOrigin, nextViewInfo->YOrigin, scrollTime));
+    set->push(std::make_unique<Tween>(TWEEN_PROPERTY_X_OFFSET, LINEAR, currentViewInfo->XOffset, nextViewInfo->XOffset, scrollTime));
+    set->push(std::make_unique<Tween>(TWEEN_PROPERTY_Y_OFFSET, LINEAR, currentViewInfo->YOffset, nextViewInfo->YOffset, scrollTime));
+    set->push(std::make_unique<Tween>(TWEEN_PROPERTY_FONT_SIZE, LINEAR, currentViewInfo->FontSize, nextViewInfo->FontSize, scrollTime));
+    set->push(std::make_unique<Tween>(TWEEN_PROPERTY_BACKGROUND_ALPHA, LINEAR, currentViewInfo->BackgroundAlpha, nextViewInfo->BackgroundAlpha, scrollTime));
+    set->push(std::make_unique<Tween>(TWEEN_PROPERTY_MAX_WIDTH, LINEAR, currentViewInfo->MaxWidth, nextViewInfo->MaxWidth, scrollTime));
+    set->push(std::make_unique<Tween>(TWEEN_PROPERTY_MAX_HEIGHT, LINEAR, currentViewInfo->MaxHeight, nextViewInfo->MaxHeight, scrollTime));
+    set->push(std::make_unique<Tween>(TWEEN_PROPERTY_LAYER, LINEAR, currentViewInfo->Layer, nextViewInfo->Layer, scrollTime));
+    set->push(std::make_unique<Tween>(TWEEN_PROPERTY_VOLUME, LINEAR, currentViewInfo->Volume, nextViewInfo->Volume, scrollTime));
+    set->push(std::make_unique<Tween>(TWEEN_PROPERTY_MONITOR, LINEAR, currentViewInfo->Monitor, nextViewInfo->Monitor, scrollTime));
+
+    scrollTween->Push(std::move(set));
 }
 
 bool ScrollingList::allocateTexture( size_t index, const Item *item )
@@ -768,10 +748,9 @@ bool ScrollingList::allocateTexture( size_t index, const Item *item )
         names.push_back(item->name);
     names.emplace_back("default");
 
-    std::string name;  // Declare `name` here for use outside the loop
+    std::string name;
     std::string selectedItemName = getSelectedItemName();
-    
-    for (const auto& currentName : names) {  // Use `currentName` to avoid shadowing
+    for (const auto& name : names) {
         std::string imagePath;
         std::string videoPath;
 
@@ -780,10 +759,12 @@ bool ScrollingList::allocateTexture( size_t index, const Item *item )
             std::string base = Utils::combinePath(Configuration::absolutePath, "layouts", layoutName, "collections");
             std::string subPath = commonMode_ ? "_common" : collectionName;
             buildPaths(imagePath, videoPath, base, subPath, imageType_, videoType_);
-        } else {
+        }
+        else {
             if (commonMode_) {
                 buildPaths(imagePath, videoPath, Configuration::absolutePath, "collections/_common", imageType_, videoType_);
-            } else {
+            }
+            else {
                 config_.getMediaPropertyAbsolutePath(collectionName, imageType_, false, imagePath);
                 config_.getMediaPropertyAbsolutePath(collectionName, videoType_, false, videoPath);
             }
@@ -792,44 +773,41 @@ bool ScrollingList::allocateTexture( size_t index, const Item *item )
         // Create video or image
         if (!t) {
             if (videoType_ != "null") {
-                t = videoBuild.createVideo(videoPath, page, currentName, baseViewInfo.Monitor);
-            } else {
-                std::string imageName = selectedImage_ && item->name == selectedItemName ? currentName + "-selected" : currentName;
+                t = videoBuild.createVideo(videoPath, page, name, baseViewInfo.Monitor);
+            }
+            else {
+                std::string imageName = selectedImage_ && item->name == selectedItemName ? name + "-selected" : name;
                 t = imageBuild.CreateImage(imagePath, page, imageName, baseViewInfo.Monitor, baseViewInfo.Additive);
             }
         }
 
         // Check for early exit
-        if (t) {
-            name = currentName;  // Keep track of the last `currentName` used
-            break;
-        }
+        if (t) break;
 
         // Check sub-collection path for art
         if (!commonMode_) {
             if (layoutMode_) {
                 std::string base = Utils::combinePath(Configuration::absolutePath, "layouts", layoutName, "collections", item->collectionInfo->name);
                 buildPaths(imagePath, videoPath, base, "", imageType_, videoType_);
-            } else {
+            }
+            else {
                 config_.getMediaPropertyAbsolutePath(item->collectionInfo->name, imageType_, false, imagePath);
                 config_.getMediaPropertyAbsolutePath(item->collectionInfo->name, videoType_, false, videoPath);
             }
 
             if (!t) {
                 if (videoType_ != "null") {
-                    t = videoBuild.createVideo(videoPath, page, currentName, baseViewInfo.Monitor);
-                } else {
-                    std::string imageName = selectedImage_ && item->name == selectedItemName ? currentName + "-selected" : currentName;
+                    t = videoBuild.createVideo(videoPath, page, name, baseViewInfo.Monitor);
+                }
+                else {
+                    std::string imageName = selectedImage_ && item->name == selectedItemName ? name + "-selected" : name;
                     t = imageBuild.CreateImage(imagePath, page, imageName, baseViewInfo.Monitor, baseViewInfo.Additive);
                 }
             }
         }
 
         // Check for early exit again
-        if (t) {
-            name = currentName;  // Keep track of the last `currentName` used
-            break;
-        }
+        if (t) break;
     }
 
     // check collection path for art based on system name
@@ -1087,7 +1065,7 @@ void ScrollingList::scroll(bool forward)
 
         Component* component = components_[index];  // Use the current component in the list
         if (component) {
-            auto const& nextTweenPoint = (*tweenPoints_)[nextIndex];
+            auto& nextTweenPoint = (*tweenPoints_)[nextIndex];
             auto& currentScrollPoint = (*scrollPoints_)[index];
             auto& nextScrollPoint = (*scrollPoints_)[nextIndex];
 
@@ -1106,6 +1084,7 @@ void ScrollingList::scroll(bool forward)
         std::rotate(components_.rbegin(), components_.rbegin() + 1, components_.rend());
     }
 }
+
 bool ScrollingList::isPlaylist() const
 {
     return playlistType_;
