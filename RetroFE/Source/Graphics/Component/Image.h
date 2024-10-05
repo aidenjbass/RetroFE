@@ -26,35 +26,101 @@
 
 class Image : public Component {
 public:
+    /**
+     * @brief Constructs an Image instance.
+     *
+     * @param file      The primary file path of the image.
+     * @param altFile   The alternative file path if the primary fails.
+     * @param p         Reference to the current Page.
+     * @param monitor   Monitor index where the image will be displayed.
+     * @param additive  Flag indicating whether additive blending should be used.
+     */
     Image(const std::string& file, const std::string& altFile, Page& p, int monitor, bool additive);
+
+    /**
+     * @brief Destructor. Ensures that graphics memory is freed.
+     */
     ~Image() override;
 
+    /**
+     * @brief Allocates graphics memory for the image, utilizing the texture cache.
+     */
     void allocateGraphicsMemory() override;
+
+    /**
+     * @brief Frees graphics memory associated with the image.
+     *        Does not destroy cached textures or animations.
+     */
     void freeGraphicsMemory() override;
+
+    /**
+     * @brief Renders the image onto the screen.
+     *        Handles both static and animated images.
+     */
     void draw() override;
 
+    /**
+     * @brief Retrieves the primary file path of the image.
+     *
+     * @return std::string_view The primary file path.
+     */
     std::string_view filePath() override;
 
-    // Static method to clean up the texture cache
+    /**
+     * @brief Cleans up the entire texture cache by destroying all cached resources.
+     *        Should be called once during application shutdown.
+     */
     static void cleanupTextureCache();
 
 private:
-    // Texture Cache Implementation
-    static std::unordered_map<std::string, SDL_Texture*> textureCache_;
-    static std::mutex textureCacheMutex_;
+    /**
+     * @brief Structure to hold cached image data.
+     *        Can represent either a static texture or an animated image.
+     */
+    struct CachedImage {
+        SDL_Texture* texture = nullptr;                    // For static images
+        std::vector<SDL_Texture*> frameTextures;           // Frame textures for animations
+        int frameDelay = 0;                                // Single delay time for all frames
+    };
 
-    // Helper functions
-    static bool loadFileToBuffer(const std::string& filePath, std::vector<char>& buffer);
-    static bool isGIF(const std::vector<char>& buffer);
-    static bool isWebP(const std::vector<char>& buffer);
+    // Texture Cache: Maps file paths to their cached resources
+    static std::unordered_map<std::string, CachedImage> textureCache_;
+    static std::mutex textureCacheMutex_;                   // Mutex for thread-safe access to the cache
+
+    /**
+     * @brief Loads the contents of a file into a buffer.
+     *
+     * @param filePath The path to the file.
+     * @param buffer   The buffer to store the file contents.
+     * @return true    If the file was loaded successfully.
+     * @return false   If the file could not be loaded.
+     */
+    static bool loadFileToBuffer(const std::string& filePath, std::vector<uint8_t>& buffer);
+
+    /**
+     * @brief Checks if a buffer contains GIF data based on magic numbers.
+     *
+     * @param buffer The buffer containing file data.
+     * @return true  If the buffer represents a GIF image.
+     * @return false Otherwise.
+     */
+    static bool isGIF(const std::vector<uint8_t>& buffer);
+
+    /**
+     * @brief Checks if a buffer contains WebP data based on magic numbers.
+     *
+     * @param buffer The buffer containing file data.
+     * @return true  If the buffer represents a WebP image.
+     * @return false Otherwise.
+     */
+    static bool isWebP(const std::vector<uint8_t>& buffer);
 
     // Member variables
-    std::string file_;
-    std::string altFile_;
-    SDL_Texture* texture_ = nullptr;
-
-    IMG_Animation* animation_ = nullptr;           // Holds the animation data
-    std::vector<SDL_Texture*> frameTextures_;       // Store textures for each frame
-    int currentFrame_ = 0;                          // Current frame in the animation
-    Uint32 lastFrameTime_ = 0;                      // Time when the last frame was updated
+    std::string file_;                                      // Primary file path
+    std::string altFile_;                                   // Alternative file path
+    SDL_Texture* texture_ = nullptr;                        // Static texture
+    const std::vector<SDL_Texture*>* frameTextures_ = nullptr; // Pointer to cached frame textures
+    int currentFrame_ = 0;                                  // Current frame index for animations
+    Uint32 lastFrameTime_ = 0;                              // Timestamp of the last frame update
+	int frameDelay_ = 0;                                    // Delay time for the current frame 
 };
