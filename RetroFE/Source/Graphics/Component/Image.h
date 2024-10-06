@@ -21,7 +21,7 @@
 #include <SDL2/SDL.h>
 #include <SDL2/SDL_image.h>
 #include <unordered_map>
-#include <mutex>
+#include <shared_mutex>
 #include <vector>
 
 class Image : public Component {
@@ -85,7 +85,7 @@ private:
 
     // Texture Cache: Maps file paths to their cached resources
     static std::unordered_map<std::string, CachedImage> textureCache_;
-    static std::mutex textureCacheMutex_;                   // Mutex for thread-safe access to the cache
+    static std::shared_mutex textureCacheMutex_;                   // Mutex for thread-safe access to the cache
 
     /**
      * @brief Loads the contents of a file into a buffer.
@@ -104,7 +104,7 @@ private:
      * @return true  If the buffer represents a GIF image.
      * @return false Otherwise.
      */
-    static bool isGIF(const std::vector<uint8_t>& buffer);
+    static bool isAnimatedGIF(const std::vector<uint8_t>& buffer);
 
     /**
      * @brief Checks if a buffer contains WebP data based on magic numbers.
@@ -113,7 +113,7 @@ private:
      * @return true  If the buffer represents a WebP image.
      * @return false Otherwise.
      */
-    static bool isWebP(const std::vector<uint8_t>& buffer);
+    static bool isAnimatedWebP(const std::vector<uint8_t>& buffer);
 
     // Member variables
     std::string file_;                                      // Primary file path
