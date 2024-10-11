@@ -24,7 +24,7 @@ Image * ImageBuilder::CreateImage(const std::string& path, Page &p, const std::s
 #ifdef WIN32
          "gif", "webp", "png", "jpg", "jpeg"
 #else
-        "png", "PNG", "jpg", "JPG", "jpeg", "JPEG", "gif", "GIF", "webp", "WEBP"
+        "gif", "GIF", "webp", "WEBP", "png", "PNG", "jpg", "JPG", "jpeg", "JPEG"
 #endif
     };
 
