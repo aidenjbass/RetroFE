@@ -118,6 +118,10 @@ Image::~Image() {
 
 void Image::freeGraphicsMemory() {
     Component::freeGraphicsMemory();
+    if (textureIsUncached_ && texture_) {
+        SDL_DestroyTexture(texture_);
+        textureIsUncached_ = false;
+    }
 
     // Reset instance-specific pointers
     texture_ = nullptr;
@@ -136,11 +140,14 @@ void Image::allocateGraphicsMemory() {
         // Attempt to retrieve CachedImage from cache
         bool foundInCache = false;
         CachedImage* cachedImagePtr = nullptr;
-        auto it = textureCache_.find(filePath);
-        if (it != textureCache_.end()) {
+
+        {
             std::shared_lock<std::shared_mutex> lock(textureCacheMutex_);
-            cachedImagePtr = &it->second;
-            foundInCache = true;
+            auto it = textureCache_.find(filePath);
+            if (it != textureCache_.end()) {
+                cachedImagePtr = &it->second;
+                foundInCache = true;
+            }
         }
 
         if (foundInCache && cachedImagePtr) {
@@ -154,6 +161,7 @@ void Image::allocateGraphicsMemory() {
                     // Remove the invalid cache entry
                     {
                         std::unique_lock<std::shared_mutex> lock(textureCacheMutex_);
+                        SDL_DestroyTexture(texture_);
                         textureCache_.erase(filePath);
                     }
                     LOG_ERROR("Image", "Failed to query texture: " + std::string(SDL_GetError()));
@@ -373,6 +381,10 @@ void Image::allocateGraphicsMemory() {
                 int width, height;
                 if (SDL_QueryTexture(newCachedImage.texture, nullptr, nullptr, &width, &height) != 0) {
                     LOG_ERROR("Image", "Failed to query texture: " + std::string(SDL_GetError()));
+                    SDL_DestroyTexture(newCachedImage.texture);
+                    newCachedImage.texture = nullptr;
+                    SDL_UnlockMutex(SDL::getMutex());
+                    return false; // Indicate failure
                 }
                 else {
                     baseViewInfo.ImageWidth = static_cast<float>(width);
@@ -388,8 +400,16 @@ void Image::allocateGraphicsMemory() {
             }
 
             SDL_UnlockMutex(SDL::getMutex());
+            
+            if (baseViewInfo.ImageHeight > 700) {
+                texture_ = newCachedImage.texture;
+                textureIsUncached_ = true;
+                return true;
+            }
         }
 
+
+        
         // Update the cache
         {
             std::unique_lock<std::shared_mutex> lock(textureCacheMutex_);

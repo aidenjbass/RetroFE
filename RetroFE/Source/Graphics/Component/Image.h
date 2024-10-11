@@ -123,4 +123,5 @@ private:
     int currentFrame_ = 0;                                  // Current frame index for animations
     Uint32 lastFrameTime_ = 0;                              // Timestamp of the last frame update
 	int frameDelay_ = 0;                                    // Delay time for the current frame 
+    bool textureIsUncached_ = false;
 };
