@@ -950,6 +950,12 @@ void PageBuilder::loadReloadableImages(const xml_node<> *layout, const std::stri
             else {
                 static_cast<ReloadableMedia *>(c)->enableTextFallback_(false);
             }
+            xml_attribute<> const* useTextureCacheXml = componentXml->first_attribute("useTextureCache");
+            if (useTextureCacheXml && 
+                (Utils::toLower(useTextureCacheXml->value()) == "true" || 
+                    Utils::toLower(useTextureCacheXml->value()) == "yes")) {
+				static_cast<ReloadableMedia*>(c)->enableTextureCache_(true);
+            }
         }
 
         if(c) {
@@ -1143,6 +1149,7 @@ ScrollingList * PageBuilder::buildMenu(xml_node<> *menuXml, Page &page, int moni
     xml_attribute<> const *selectedImage         = menuXml->first_attribute("selectedImage");
     xml_attribute<> const *textFallback          = menuXml->first_attribute("textFallback");
     xml_attribute<> const *monitorXml = menuXml->first_attribute("monitor");
+	xml_attribute<> const* useTextureCacheXml = menuXml->first_attribute("useTextureCache");
 
     if(menuTypeXml) {
         menuType = menuTypeXml->value();
@@ -1189,7 +1196,13 @@ ScrollingList * PageBuilder::buildMenu(xml_node<> *menuXml, Page &page, int moni
     // on default, text will be rendered to the menu. Preload it into cache.
     Font *font = addFont(itemDefaults, NULL, cMonitor);
 
-    menu = new ScrollingList(config_, page, layoutMode, commonMode, playlistType, selectedImage, font, layoutKey, imageType, videoType);
+    bool useTextureCache = false;
+    if (useTextureCacheXml && (Utils::toLower(useTextureCacheXml->value()) == "true" ||
+        Utils::toLower(useTextureCacheXml->value()) == "yes")){
+		useTextureCache = true;
+    }
+
+    menu = new ScrollingList(config_, page, layoutMode, commonMode, playlistType, selectedImage, font, layoutKey, imageType, videoType, useTextureCache);
     menu->baseViewInfo.Monitor = cMonitor;
     menu->baseViewInfo.Layout = page.getCurrentLayout();
 

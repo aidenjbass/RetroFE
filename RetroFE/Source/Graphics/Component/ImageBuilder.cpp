@@ -17,7 +17,7 @@
 #include "../../Utility/Utils.h"
 #include "../../Utility/Log.h"
 
-Image * ImageBuilder::CreateImage(const std::string& path, Page &p, const std::string& name, int monitor, bool additive)
+Image * ImageBuilder::CreateImage(const std::string& path, Page &p, const std::string& name, int monitor, bool additive, bool useTextureCaching)
 {
     Image *image = nullptr;
     static std::vector<std::string> extensions = {
@@ -31,7 +31,7 @@ Image * ImageBuilder::CreateImage(const std::string& path, Page &p, const std::s
     std::string prefix = Utils::combinePath(path, name);
 
     if(std::string file; Utils::findMatchingFile(prefix, extensions, file)) {
-        image = new Image(file, "", p, monitor, additive);
+        image = new Image(file, "", p, monitor, additive, useTextureCaching);
     }
 
     return image;

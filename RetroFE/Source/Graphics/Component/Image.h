@@ -35,7 +35,7 @@ public:
      * @param monitor   Monitor index where the image will be displayed.
      * @param additive  Flag indicating whether additive blending should be used.
      */
-    Image(const std::string& file, const std::string& altFile, Page& p, int monitor, bool additive);
+    Image(const std::string& file, const std::string& altFile, Page& p, int monitor, bool additive, bool useTextureCaching = false);
 
     /**
      * @brief Destructor. Ensures that graphics memory is freed.
@@ -124,4 +124,5 @@ private:
     Uint32 lastFrameTime_ = 0;                              // Timestamp of the last frame update
 	int frameDelay_ = 0;                                    // Delay time for the current frame 
     bool textureIsUncached_ = false;
+	bool useTextureCaching_ = false;
 };

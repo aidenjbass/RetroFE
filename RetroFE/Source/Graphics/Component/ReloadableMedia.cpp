@@ -57,6 +57,10 @@ ReloadableMedia::~ReloadableMedia()
     }
 }
 
+void ReloadableMedia::enableTextureCache_(bool value) {
+    useTextureCache_ = value;
+}
+
 void ReloadableMedia::enableTextFallback_(bool value)
 {
     textFallback_ = value;
@@ -490,7 +494,7 @@ Component* ReloadableMedia::findComponent(
             component = videoBuild.createVideo(imagePath, page, basename, baseViewInfo.Monitor);
     }
     else {
-        component = imageBuild.CreateImage(imagePath, page, basename, baseViewInfo.Monitor, baseViewInfo.Additive);
+        component = imageBuild.CreateImage(imagePath, page, basename, baseViewInfo.Monitor, baseViewInfo.Additive, useTextureCache_);
     }
 
     return component;

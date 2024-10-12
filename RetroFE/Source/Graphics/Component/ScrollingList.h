@@ -42,7 +42,8 @@ public:
         Font* font,
         const std::string& layoutKey,
         const std::string& imageType,
-        const std::string& videoType);
+        const std::string& videoType,
+        bool useTextureCaching);
 
     ~ScrollingList() override;
     const std::vector<Item*>& getItems() const;
@@ -155,5 +156,7 @@ private:
 
     std::vector<Item*>* items_{ nullptr };
     std::vector<Component*> components_;
+
+    bool useTextureCaching_{ false };
 
 };

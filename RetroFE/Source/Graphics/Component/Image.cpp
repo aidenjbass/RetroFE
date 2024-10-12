@@ -104,8 +104,8 @@ bool Image::isAnimatedWebP(const std::vector<uint8_t>& buffer) {
 }
 
 
-Image::Image(const std::string& file, const std::string& altFile, Page& p, int monitor, bool additive)
-    : Component(p), file_(file), altFile_(altFile)
+Image::Image(const std::string& file, const std::string& altFile, Page& p, int monitor, bool additive, bool useTextureCaching)
+	: Component(p), file_(file), altFile_(altFile), useTextureCaching_(useTextureCaching)
 {
     baseViewInfo.Monitor = monitor;
     baseViewInfo.Additive = additive;
@@ -401,7 +401,7 @@ void Image::allocateGraphicsMemory() {
 
             SDL_UnlockMutex(SDL::getMutex());
             
-            if (baseViewInfo.ImageHeight > 700) {
+            if (!useTextureCaching_) {
                 texture_ = newCachedImage.texture;
                 textureIsUncached_ = true;
                 return true;
