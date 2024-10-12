@@ -23,8 +23,8 @@
 #include <SDL2_image/SDL_image.h>
 #else
 #include <SDL2/SDL_image.h>
-#include <SDL2/webp/decode.h>
-#include <SDL2/webp/demux.h>
+#include <decode.h>
+#include <demux.h>
 
 #endif
 
