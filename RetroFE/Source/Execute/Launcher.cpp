@@ -314,18 +314,6 @@ bool Launcher::simpleExecute(std::string executable, std::string args, std::stri
     LOG_INFO("Launcher", "Attempting to launch: " + executionString);
     LOG_INFO("Launcher", "     from within folder: " + currentDirectory);
 
-    std::atomic<bool> stop_thread = true;
-    std::thread proc_thread;
-    bool multiple_display = SDL::getScreenCount() > 1;
-    bool animateDuringGame = true;
-    config_.getProperty(OPTION_ANIMATEDURINGGAME, animateDuringGame);
-    if (animateDuringGame && multiple_display && currentPage != nullptr) {
-        stop_thread = false;
-        proc_thread = std::thread([this, &stop_thread, &currentPage]() {
-            this->keepRendering(std::ref(stop_thread), *currentPage);
-            });
-    }
-
 #ifdef WIN32
     STARTUPINFO startupInfo;
     PROCESS_INFORMATION processInfo;
@@ -358,9 +346,6 @@ bool Launcher::simpleExecute(std::string executable, std::string args, std::stri
     else
     {
 #ifdef WIN32
-        // lower priority
-        SetPriorityClass(GetCurrentProcess(), BELOW_NORMAL_PRIORITY_CLASS);
-
         if (wait) {
             while (WAIT_OBJECT_0 != MsgWaitForMultipleObjects(1, &processInfo.hProcess, FALSE, INFINITE, QS_ALLINPUT)) {
                 MSG msg;
@@ -370,26 +355,11 @@ bool Launcher::simpleExecute(std::string executable, std::string args, std::stri
             }
         }
 
-        //resume priority
-        bool highPriority = false;
-        config_.getProperty(OPTION_HIGHPRIORITY, highPriority);
-        if (highPriority) {
-            SetPriorityClass(GetCurrentProcess(), ABOVE_NORMAL_PRIORITY_CLASS);
-        }
-        else {
-            SetPriorityClass(GetCurrentProcess(), NORMAL_PRIORITY_CLASS);
-        }
-
         // result = GetExitCodeProcess(processInfo.hProcess, &exitCode);
         CloseHandle(processInfo.hProcess);
         CloseHandle(processInfo.hThread);
 #endif
         retVal = true;
-    }
-
-    if (multiple_display && stop_thread == false) {
-        stop_thread = true;
-        proc_thread.join();
     }
 
     LOG_INFO("Launcher", "Completed");
