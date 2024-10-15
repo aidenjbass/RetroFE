@@ -83,6 +83,7 @@ else()
     pkg_search_module(SDL2_TTF REQUIRED SDL2_ttf)
     pkg_search_module(ZLIB REQUIRED zlib)
     pkg_search_module(WEBP REQUIRED libwebp)
+    pkg_check_modules(WEBP_DEMUX REQUIRED libwebpdemux)
     pkg_check_modules(GSTREAMER REQUIRED gstreamer-1.0 gstreamer-video-1.0 gstreamer-audio-1.0 gstreamer-app-1.0)
     pkg_check_modules(Glib2 REQUIRED glib-2.0 gobject-2.0 gthread-2.0 gmodule-2.0)
     find_package(Threads REQUIRED)
@@ -120,6 +121,7 @@ else()
         ${SDL2_TTF_LIBRARIES}
         ${ZLIB_LIBRARIES}
         ${WEBP_LIBRARIES}
+        ${WEBP_DEMUX_LIBRARIES}
         ${GSTREAMER_LIBRARIES}
         ${GLIB2_LIBRARIES}
         ${CMAKE_DL_LIBS}
@@ -282,8 +284,13 @@ include_directories(${RETROFE_INCLUDE_DIRS})
 add_executable(retrofe  ${RETROFE_SOURCES} ${RETROFE_HEADERS})
 
 if(NOT APPLE)
-    target_link_libraries(retrofe ${RETROFE_LIBRARIES})
+    target_link_libraries(retrofe 
+        ${RETROFE_LIBRARIES}
+        webpdemux
+	webp
+    )
 endif()
+
 
 if(APPLE)
     # Set up macOS-specific properties

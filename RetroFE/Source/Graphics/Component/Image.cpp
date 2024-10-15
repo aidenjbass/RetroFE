@@ -31,6 +31,7 @@
 #include <string_view>
 #include <fstream>
 #include <vector>
+#include <cstring>
 
  // Definition of static members
 std::unordered_map<std::string, Image::CachedImage> Image::textureCache_;
