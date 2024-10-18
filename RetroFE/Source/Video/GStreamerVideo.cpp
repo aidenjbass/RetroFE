@@ -41,6 +41,15 @@ typedef enum
     GST_PLAY_FLAG_AUDIO = (1 << 1),
 } GstPlayFlags;
 
+static SDL_BlendMode softOverlayBlendMode = SDL_ComposeCustomBlendMode(
+    SDL_BLENDFACTOR_SRC_ALPHA,           // Source color factor: modulates source color by the alpha value set dynamically
+    SDL_BLENDFACTOR_ONE,                 // Destination color factor: keep the destination as is
+    SDL_BLENDOPERATION_ADD,              // Color operation: add source and destination colors based on alpha
+    SDL_BLENDFACTOR_ONE,                 // Source alpha factor
+    SDL_BLENDFACTOR_ONE_MINUS_SRC_ALPHA, // Destination alpha factor: inverse of source alpha
+    SDL_BLENDOPERATION_ADD               // Alpha operation: add alpha values
+);
+
 GStreamerVideo::GStreamerVideo(int monitor)
 
     : monitor_(monitor)
@@ -401,6 +410,7 @@ GstPadProbeReturn GStreamerVideo::padProbeCallback(GstPad *pad, GstPadProbeInfo 
     }
     return GST_PAD_PROBE_OK;
 }
+
 void GStreamerVideo::createSdlTexture()
 {
     texture_ = SDL_CreateTexture(SDL::getRenderer(monitor_), sdlFormat_, SDL_TEXTUREACCESS_STREAMING, width_, height_);
@@ -411,7 +421,10 @@ void GStreamerVideo::createSdlTexture()
         return;
     }
 
-    if (SDL_SetTextureBlendMode(texture_, SDL_BLENDMODE_BLEND) != 0)
+    // Check if softOverlay_ is true and set the blend mode accordingly
+    SDL_BlendMode blendMode = softOverlay_ ? softOverlayBlendMode : SDL_BLENDMODE_BLEND;
+
+    if (SDL_SetTextureBlendMode(texture_, blendMode) != 0)
     {
         LOG_ERROR("GStreamerVideo", "SDL_SetTextureBlendMode failed: " + std::string(SDL_GetError()));
         SDL_DestroyTexture(texture_);
@@ -790,4 +803,9 @@ void GStreamerVideo::disablePlugin(const std::string &pluginName)
         gst_plugin_feature_set_rank(GST_PLUGIN_FEATURE(factory), GST_RANK_NONE);
         gst_object_unref(factory);
     }
+}
+
+void GStreamerVideo::setSoftOverlay(bool value)
+{
+    softOverlay_ = value;
 }

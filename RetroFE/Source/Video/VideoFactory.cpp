@@ -22,7 +22,7 @@
 bool VideoFactory::enabled_ = true;
 int VideoFactory::numLoops_ = 0;
 
-IVideo* VideoFactory::createVideo(int monitor, int numLoops)
+IVideo* VideoFactory::createVideo(int monitor, int numLoops, bool softOverlay)
 {
     if (!enabled_) {
         return nullptr; // Early return if not enabled
@@ -37,6 +37,7 @@ IVideo* VideoFactory::createVideo(int monitor, int numLoops)
 
     int loopsToSet = (numLoops > 0) ? numLoops : numLoops_;
     instance->setNumLoops(loopsToSet);
+    instance->setSoftOverlay(softOverlay);
 
     return instance;
 }

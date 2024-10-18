@@ -169,6 +169,8 @@ public:
     static void enablePlugin(const std::string& pluginName);
     static void disablePlugin(const std::string& pluginName);
 
+    void setSoftOverlay(bool value);
+
 private:
     static void processNewBuffer(GstElement const* /* fakesink */, GstBuffer* buf, GstPad* new_pad,
         gpointer userdata);
@@ -213,6 +215,7 @@ private:
     GstClockTime lastPTS_;
     GstClockTime expectedTime_;
     bool newFrameAvailable_ = false;
+    bool softOverlay_;
 
     std::string generateDotFileName(const std::string& prefix, const std::string& videoFilePath) const;
 };

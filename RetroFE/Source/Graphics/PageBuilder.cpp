@@ -548,6 +548,7 @@ bool PageBuilder::buildComponents(xml_node<>* layout, Page* page, const std::str
         xml_attribute<> const *numLoopsXml = componentXml->first_attribute("numLoops");
         xml_attribute<> const *idXml = componentXml->first_attribute("id");
         xml_attribute<> const *monitorXml = componentXml->first_attribute("monitor");
+        xml_attribute<> const *softOverlayXml = componentXml->first_attribute("softOverlay"); // New attribute
 
         int id = -1;
         if (idXml) {
@@ -567,9 +568,14 @@ bool PageBuilder::buildComponents(xml_node<>* layout, Page* page, const std::str
             if (layoutName.empty()) {
                 config_.getProperty(OPTION_LAYOUT, layoutName);
             }
+            
+            bool softOverlay = false;
+            if (softOverlayXml && (Utils::toLower(softOverlayXml->value()) == "true" || Utils::toLower(softOverlayXml->value()) == "yes")) {
+                softOverlay = true;
+            }
+            
             std::string altVideoPath = Utils::combinePath(Configuration::absolutePath, "layouts", layoutName, std::string(srcXml->value()));
             int numLoops = numLoopsXml ? Utils::convertInt(numLoopsXml->value()) : 1;
-            
 
             int videoMonitor = monitorXml ? Utils::convertInt(monitorXml->value()) : layoutMonitor; // Use layout's monitor if not specified at the menu level
 
@@ -584,11 +590,11 @@ bool PageBuilder::buildComponents(xml_node<>* layout, Page* page, const std::str
                 std::filesystem::path primaryPath(videoPath);
                 std::filesystem::path altPath(altVideoPath);
 
-                VideoComponent* c = videoBuild.createVideo(primaryPath.parent_path().string(), *page, primaryPath.stem().string(), videoMonitor, numLoops);
+                VideoComponent* c = videoBuild.createVideo(primaryPath.parent_path().string(), *page, primaryPath.stem().string(), videoMonitor, numLoops, softOverlay);
 
                 if (!c) {
                     // Try alternative video path if the primary path did not yield a VideoComponent
-                    c = videoBuild.createVideo(altPath.parent_path().string(), *page, altPath.stem().string(), videoMonitor, numLoops);
+                    c = videoBuild.createVideo(altPath.parent_path().string(), *page, altPath.stem().string(), videoMonitor, numLoops, softOverlay);
                 }
 
                 if (c) {

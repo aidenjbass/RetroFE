@@ -34,8 +34,8 @@
 #include <gst/video/video.h>
 
 
-VideoComponent::VideoComponent(Page &p, const std::string &videoFile, int monitor, int numLoops)
-    : Component(p), videoFile_(videoFile), numLoops_(numLoops), monitor_(monitor), currentPage_(&p)
+VideoComponent::VideoComponent(Page &p, const std::string &videoFile, int monitor, int numLoops, bool softOverlay)
+    : Component(p), videoFile_(videoFile), numLoops_(numLoops), monitor_(monitor), currentPage_(&p), softOverlay_(softOverlay)
 {
 }
 
@@ -120,7 +120,7 @@ void VideoComponent::allocateGraphicsMemory()
 
     if (!isPlaying_) {
         if (!videoInst_ && videoFile_ != "") {
-            videoInst_ = VideoFactory::createVideo(monitor_, numLoops_);
+            videoInst_ = VideoFactory::createVideo(monitor_, numLoops_, softOverlay_);
             isPlaying_ = videoInst_->play(videoFile_);
         }
     }
