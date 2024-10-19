@@ -283,12 +283,15 @@ set(LIBRARY_OUTPUT_PATH "${RETROFE_DIR}/Build" CACHE PATH "Build directory" FORC
 include_directories(${RETROFE_INCLUDE_DIRS})
 add_executable(retrofe  ${RETROFE_SOURCES} ${RETROFE_HEADERS})
 
-if(NOT APPLE)
+if(NOT WIN32)
     target_link_libraries(retrofe 
         ${RETROFE_LIBRARIES}
         webpdemux
 	webp
     )
+else()
+target_link_libraries(retrofe 
+        ${RETROFE_LIBRARIES})
 endif()
 
 
@@ -310,8 +313,9 @@ if(MSVC)
     set(CMAKE_DEBUG_POSTFIX "d")
     add_definitions(-D_CRT_SECURE_NO_DEPRECATE)
     add_definitions(-D_CRT_NONSTDC_NO_DEPRECATE)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP /WX /MT")
-    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /MP /WX /MT")
+    # Change /MT to /MD for dynamic runtime linking
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP /WX /MD")
+    set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /MP /WX /MD")
     set_target_properties(retrofe PROPERTIES LINK_FLAGS "/SUBSYSTEM:WINDOWS")
 else()
     set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -ggdb")
