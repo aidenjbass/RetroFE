@@ -67,7 +67,7 @@ void GStreamerVideo::initializePlugins()
         pluginsInitialized_ = true;
 
 #if defined(WIN32)
-        //enablePlugin("directsoundsink");
+        enablePlugin("directsoundsink");
         disablePlugin("mfdeviceprovider");
         if (!Configuration::HardwareVideoAccel)
         {
@@ -543,7 +543,7 @@ int GStreamerVideo::getWidth()
 }
 
 GstClockTime GStreamerVideo::getLastPTS() const {
-    return lastPTS_;
+    return lastPTS_.load(std::memory_order_acquire);
 }
 
 GstClockTime GStreamerVideo::getExpectedTime() const {
@@ -551,7 +551,7 @@ GstClockTime GStreamerVideo::getExpectedTime() const {
 }
 
 bool GStreamerVideo::isNewFrameAvailable() const {
-    return newFrameAvailable_;
+    return newFrameAvailable_.load(std::memory_order_acquire);  // Load the atomic value
 }
 
 void GStreamerVideo::resetNewFrameFlag() {
@@ -631,10 +631,9 @@ void GStreamerVideo::draw() {
             }
 
             // Store the PTS for later use
-            lastPTS_ = pts;
-
+            lastPTS_.store(pts, std::memory_order_release);
             // Mark the new frame as available
-            newFrameAvailable_ = true;
+            newFrameAvailable_.store(true, std::memory_order_release);
         }
     }
     gst_buffer_unref(buffer);  // Release the buffer after use
@@ -744,7 +743,17 @@ void GStreamerVideo::restart()
     if (!isPlaying_)
         return;
 
-    gst_element_seek_simple(playbin_, GST_FORMAT_TIME, GstSeekFlags(GST_SEEK_FLAG_FLUSH), 0);
+    // Clear the buffer queue to avoid old buffers being processed after the restart
+    bufferQueue_.clear();
+
+    // Reset flags related to new frames or QoS state
+    newFrameAvailable_.store(false, std::memory_order_release);
+
+    // Perform the seek operation to restart playback
+    gst_element_seek_simple(playbin_, GST_FORMAT_TIME, GstSeekFlags(GST_SEEK_FLAG_FLUSH | GST_SEEK_FLAG_KEY_UNIT), 0);
+
+    // Reset the internal timing for QoS calculation (e.g., PTS tracking)
+    lastPTS_.store(GST_CLOCK_TIME_NONE, std::memory_order_release);
 }
 
 unsigned long long GStreamerVideo::getCurrent()

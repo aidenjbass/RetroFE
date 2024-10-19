@@ -100,14 +100,16 @@ bool VideoComponent::update(float dt)
             }
         }
 
-        if (baseViewInfo.Restart && hasBeenOnScreen_)
-        {
+        if (baseViewInfo.Restart && hasBeenOnScreen_) {
             if (videoInst_->isPaused())
                 videoInst_->pause();
-            videoInst_->restart();
-            baseViewInfo.Restart = false;
-            if (Logger::isLevelEnabled("DEBUG"))
+
+            // Wait until the current frame is processed before restarting (if needed)
+            if (!videoInst_->isNewFrameAvailable()) {
+                videoInst_->restart();
+                baseViewInfo.Restart = false;
                 LOG_DEBUG("VideoComponent", "Seeking to beginning of " + Utils::getFileName(videoFile_));
+            }
         }
     }
 

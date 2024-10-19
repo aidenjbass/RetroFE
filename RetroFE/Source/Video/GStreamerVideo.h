@@ -212,9 +212,9 @@ private:
     std::shared_mutex stopMutex_;
     static bool pluginsInitialized_;
     bool bufferDisconnected_{ true };
-    GstClockTime lastPTS_;
+    std::atomic<GstClockTime> lastPTS_{GST_CLOCK_TIME_NONE};
     GstClockTime expectedTime_;
-    bool newFrameAvailable_ = false;
+    std::atomic<bool> newFrameAvailable_{false};  // Define newFrameAvailable_ as atomic
     bool softOverlay_;
 
     std::string generateDotFileName(const std::string& prefix, const std::string& videoFilePath) const;
