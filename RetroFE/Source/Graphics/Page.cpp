@@ -209,7 +209,6 @@ void Page::returnToRememberSelectedItem()
     if (std::string name = getPlaylistName(); name != "" && lastPlaylistOffsets_[name]) {
         setScrollOffsetIndex(lastPlaylistOffsets_[name]);
     }
-    onNewItemSelected();
 }
 
 void Page::rememberSelectedItem()

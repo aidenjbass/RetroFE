@@ -869,6 +869,12 @@ bool RetroFE::run()
                         currentPage_->playlistNextExit();
                     }
                 }
+                bool rememberMenu = false;
+                config_.getProperty(OPTION_REMEMBERMENU, rememberMenu);
+                if (rememberMenu && currentPage_->getPlaylistName() != "lastplayed")
+                {
+                    currentPage_->returnToRememberSelectedItem();
+                }               
                 state = RETROFE_PLAYLIST_LOAD_ART;
             }
             break;
@@ -877,16 +883,7 @@ bool RetroFE::run()
         case RETROFE_PLAYLIST_LOAD_ART:
             if (currentPage_->isIdle())
             {
-                bool rememberMenu = false;
-                config_.getProperty(OPTION_REMEMBERMENU, rememberMenu);
-                if (rememberMenu && currentPage_->getPlaylistName() != "lastplayed")
-                {
-                    currentPage_->returnToRememberSelectedItem();
-                }
-                else
-                {
-                    currentPage_->onNewItemSelected();
-                }
+                currentPage_->onNewItemSelected();
                 currentPage_->reallocateMenuSpritePoints(); // update playlist menu
                 currentPage_->playlistEnter();
                 state = RETROFE_PLAYLIST_ENTER;
