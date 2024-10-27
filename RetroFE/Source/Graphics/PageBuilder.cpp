@@ -1153,7 +1153,7 @@ ScrollingList * PageBuilder::buildMenu(xml_node<> *menuXml, Page &page, int moni
     xml_attribute<> const *minScrollTimeXml      = menuXml->first_attribute("minScrollTime");
     xml_attribute<> const *scrollOrientationXml  = menuXml->first_attribute("orientation");
     xml_attribute<> const *selectedImage         = menuXml->first_attribute("selectedImage");
-    xml_attribute<> const *textFallback          = menuXml->first_attribute("textFallback");
+    xml_attribute<> const *textFallbackXml          = menuXml->first_attribute("textFallback");
     xml_attribute<> const *monitorXml = menuXml->first_attribute("monitor");
 	xml_attribute<> const* useTextureCacheXml = menuXml->first_attribute("useTextureCache");
 
@@ -1234,7 +1234,10 @@ ScrollingList * PageBuilder::buildMenu(xml_node<> *menuXml, Page &page, int moni
         }
     }
 
-    menu->enableTextFallback(textFallback && Utils::toLower(textFallback->value()) == "true");
+    if (textFallbackXml && (Utils::toLower(textFallbackXml->value()) == "true" ||
+        Utils::toLower(textFallbackXml->value()) == "yes")) {
+        menu->enableTextFallback(true);
+    }
 
     buildViewInfo(menuXml, menu->baseViewInfo);
 

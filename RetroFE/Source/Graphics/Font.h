@@ -39,6 +39,7 @@ public:
     SDL_Texture *getTexture();
     bool getRect(unsigned int charCode, GlyphInfo &glyph);
     int getHeight();
+    int getFontSize();
     int getAscent();
 
 private:

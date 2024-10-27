@@ -59,7 +59,11 @@ void Text::draw( )
     if ( baseViewInfo.font ) // Use font of this specific item if available
       font = baseViewInfo.font;
     else                     // If not, use the general font settings
-      font = fontInst_;
+    {
+        font = fontInst_;
+        baseViewInfo.FontSize = static_cast<float>(font->getFontSize());
+    }
+
 
     SDL_Texture *t = font->getTexture( );
 

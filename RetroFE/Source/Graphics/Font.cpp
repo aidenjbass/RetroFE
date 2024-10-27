@@ -48,6 +48,10 @@ int Font::getHeight()
 {
     return height;
 }
+int Font::getFontSize()
+{
+    return fontSize_;
+}
 int Font::getAscent()
 {
     return ascent;
