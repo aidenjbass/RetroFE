@@ -482,14 +482,10 @@ void Image::draw() {
 
         // Update the frame if enough time has passed based on frameDelay_
         if (currentTime - lastFrameTime_ >= static_cast<Uint32>(frameDelay_)) {
-            currentFrame_ = (currentFrame_ + 1) % frameTextures_->size();  // Use the size of frameTextures_ vector
             lastFrameTime_ = currentTime;
-        }
 
-        // Safety Check: Ensure currentFrame_ is within bounds
-        if (currentFrame_ >= frameTextures_->size()) {
-            LOG_ERROR("Image", "Current frame index out of bounds: " + std::to_string(currentFrame_));
-            currentFrame_ = 0;  // Reset to first frame to prevent further out-of-bounds access
+            // Increment current frame using modular arithmetic
+            currentFrame_ = (currentFrame_ + 1) % frameTextures_->size();
         }
 
         // Render the current animation frame if valid

@@ -120,7 +120,7 @@ private:
     std::string altFile_;                                   // Alternative file path
     SDL_Texture* texture_ = nullptr;                        // Static texture
     const std::vector<SDL_Texture*>* frameTextures_ = nullptr; // Pointer to cached frame textures
-    int currentFrame_ = 0;                                  // Current frame index for animations
+    size_t currentFrame_ = 0;                                  // Current frame index for animations
     Uint32 lastFrameTime_ = 0;                              // Timestamp of the last frame update
 	int frameDelay_ = 0;                                    // Delay time for the current frame 
     bool textureIsUncached_ = false;
