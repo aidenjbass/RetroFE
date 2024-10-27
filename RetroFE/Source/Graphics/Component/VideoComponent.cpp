@@ -58,8 +58,8 @@ bool VideoComponent::update(float dt)
         if (!currentPage_->isMenuScrolling())
         {
             videoInst_->volumeUpdate();
-            videoInst_->loopHandler();
         }
+        videoInst_->loopHandler();
 
         if (baseViewInfo.ImageHeight == 0 && baseViewInfo.ImageWidth == 0)
         {
