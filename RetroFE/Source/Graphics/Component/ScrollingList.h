@@ -134,7 +134,7 @@ private:
     bool commonMode_;
     bool playlistType_;
     bool selectedImage_;
-    bool textFallback_{ true };
+    bool textFallback_{ false };
 
     std::vector<Component*>* spriteList_{ nullptr };
     std::vector<ViewInfo*>* scrollPoints_{ nullptr };
