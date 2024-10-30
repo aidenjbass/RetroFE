@@ -83,7 +83,7 @@ void Text::draw() {
     float oldImageWidth = baseViewInfo.ImageWidth;
     float oldImageHeight = baseViewInfo.ImageHeight;
 
-    baseViewInfo.Width = cachedWidth_ * scale;
+    baseViewInfo.Width = cachedWidth_;  // Use unscaled cachedWidth_
     baseViewInfo.Height = baseViewInfo.FontSize;
     baseViewInfo.ImageWidth = cachedWidth_;
     baseViewInfo.ImageHeight = imageHeight;
@@ -91,6 +91,7 @@ void Text::draw() {
     float xOrigin = baseViewInfo.XRelativeToOrigin();
     float yOrigin = baseViewInfo.YRelativeToOrigin();
 
+    // Restore old baseViewInfo values
     baseViewInfo.Width = oldWidth;
     baseViewInfo.Height = oldHeight;
     baseViewInfo.ImageWidth = oldImageWidth;
@@ -100,8 +101,8 @@ void Text::draw() {
 
     // Render each cached glyph position
     for (const auto& pos : cachedPositions_) {
-        destRect.x = static_cast<int>(xOrigin + pos.xOffset);  // Truncate instead of round
-        destRect.y = static_cast<int>(yOrigin + pos.yOffset);  // Truncate instead of round
+        destRect.x = static_cast<int>(xOrigin + pos.xOffset);
+        destRect.y = static_cast<int>(yOrigin + pos.yOffset);
         destRect.w = static_cast<int>(pos.sourceRect.w * scale);
         destRect.h = static_cast<int>(pos.sourceRect.h * scale);
 
@@ -121,19 +122,28 @@ void Text::updateGlyphPositions(Font* font, float scale, float maxWidth) {
     cachedPositions_.clear();
     cachedPositions_.reserve(textData_.size());
 
-    float currentWidth = 0;
+    float currentWidth = 0.0f;
     int baseAscent = font->getAscent();
 
     for (char c : textData_) {
         Font::GlyphInfo glyph;
         if (!font->getRect(c, glyph) || glyph.rect.h <= 0) continue;
 
-        float scaledAdvance = glyph.advance * scale;
-        if ((currentWidth + scaledAdvance) > maxWidth) break;
-
-        int xOffset = static_cast<int>(currentWidth);  // Truncate here
+        // Adjust currentWidth by glyph.minX if minX < 0, unscaled
         if (glyph.minX < 0) {
-            xOffset += static_cast<int>(glyph.minX * scale);  // Truncate here
+            currentWidth += glyph.minX;
+        }
+
+        // Check if adding the glyph exceeds maxWidth
+        float scaledCurrentWidth = currentWidth * scale;
+        float scaledAdvance = glyph.advance * scale;
+
+        if ((scaledCurrentWidth + scaledAdvance) > maxWidth) break;
+
+        // Calculate xOffset
+        int xOffset = static_cast<int>(scaledCurrentWidth);
+        if (glyph.minX < 0) {
+            xOffset += static_cast<int>(glyph.minX * scale);
         }
 
         int yOffset = baseAscent < glyph.maxY ? static_cast<int>((baseAscent - glyph.maxY) * scale) : 0;
@@ -145,9 +155,10 @@ void Text::updateGlyphPositions(Font* font, float scale, float maxWidth) {
             scaledAdvance
             });
 
-        currentWidth += scaledAdvance;
+        // Increment currentWidth by glyph.advance, unscaled
+        currentWidth += glyph.advance;
     }
 
-    cachedWidth_ = currentWidth;
+    cachedWidth_ = currentWidth * scale;
     cachedHeight_ = baseViewInfo.FontSize;
 }
