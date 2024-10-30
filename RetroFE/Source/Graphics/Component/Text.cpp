@@ -78,7 +78,6 @@ void Text::draw() {
         lastMaxWidth_ = imageMaxWidth;
     }
 
-    // Temporarily set baseViewInfo.Width and Height
     float oldWidth = baseViewInfo.Width;
     float oldHeight = baseViewInfo.Height;
     float oldImageWidth = baseViewInfo.ImageWidth;
@@ -89,11 +88,9 @@ void Text::draw() {
     baseViewInfo.ImageWidth = cachedWidth_;
     baseViewInfo.ImageHeight = imageHeight;
 
-    // Calculate origin positions
     float xOrigin = baseViewInfo.XRelativeToOrigin();
     float yOrigin = baseViewInfo.YRelativeToOrigin();
 
-    // Restore old baseViewInfo values after calculating origin
     baseViewInfo.Width = oldWidth;
     baseViewInfo.Height = oldHeight;
     baseViewInfo.ImageWidth = oldImageWidth;
@@ -103,10 +100,10 @@ void Text::draw() {
 
     // Render each cached glyph position
     for (const auto& pos : cachedPositions_) {
-        destRect.x = static_cast<int>(xOrigin + pos.xOffset);
-        destRect.y = static_cast<int>(yOrigin + pos.yOffset);
-        destRect.w = static_cast<int>(std::round(pos.sourceRect.w * scale));
-        destRect.h = static_cast<int>(std::round(pos.sourceRect.h * scale));
+        destRect.x = static_cast<int>(xOrigin + pos.xOffset);  // Truncate instead of round
+        destRect.y = static_cast<int>(yOrigin + pos.yOffset);  // Truncate instead of round
+        destRect.w = static_cast<int>(pos.sourceRect.w * scale);
+        destRect.h = static_cast<int>(pos.sourceRect.h * scale);
 
         SDL::renderCopy(
             texture,
@@ -134,12 +131,12 @@ void Text::updateGlyphPositions(Font* font, float scale, float maxWidth) {
         float scaledAdvance = glyph.advance * scale;
         if ((currentWidth + scaledAdvance) > maxWidth) break;
 
-        int xOffset = static_cast<int>(std::round(currentWidth));
+        int xOffset = static_cast<int>(currentWidth);  // Truncate here
         if (glyph.minX < 0) {
-            xOffset += static_cast<int>(std::round(glyph.minX * scale));
+            xOffset += static_cast<int>(glyph.minX * scale);  // Truncate here
         }
 
-        int yOffset = baseAscent < glyph.maxY ? static_cast<int>(std::round((baseAscent - glyph.maxY) * scale)) : 0;
+        int yOffset = baseAscent < glyph.maxY ? static_cast<int>((baseAscent - glyph.maxY) * scale) : 0;
 
         cachedPositions_.push_back({
             glyph.rect,
