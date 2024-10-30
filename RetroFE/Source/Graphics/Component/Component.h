@@ -70,8 +70,8 @@ public:
     bool getAnimationDoneRemove() const;
     void setPauseOnScroll(bool value);
     bool getPauseOnScroll() const;
-    virtual void setText(const std::string& text, int id = -1) {};
-    virtual void setImage(const std::string& filePath, int id = -1) {};
+    virtual void setText(const std::string&, int = -1) {};
+    virtual void setImage(const std::string&, int = -1) {};
     int getId( ) const;
     std::string playlistName;
     

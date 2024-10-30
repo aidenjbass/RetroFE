@@ -28,10 +28,17 @@ class Font;
 class Text : public Component
 {
 
+    struct CachedGlyphPosition {
+        SDL_Rect sourceRect;  // Source rectangle in the texture atlas
+        int xOffset;          // Pre-calculated x offset
+        int yOffset;         // Pre-calculated y offset
+        float advance;       // Pre-calculated advance
+    };
+
 public:
     Text( const std::string& text, Page &p, Font *font, int monitor );
     ~Text( ) override;
-    void     setText( const std::string& text, int id = -1 ) override;
+    void     setText(const std::string& text, int id = -1) override;
     void     deInitializeFonts( ) override;
     void     initializeFonts( ) override;
     void     draw( ) override;
@@ -39,4 +46,14 @@ public:
 private:
     std::string textData_;
     Font       *fontInst_;
+    void updateGlyphPositions(Font* font, float scale, float maxWidth);
+
+
+    std::vector<CachedGlyphPosition> cachedPositions_;
+    float cachedWidth_ = 0;
+    float cachedHeight_ = 0;
+    float lastScale_ = 0;
+    float lastMaxWidth_ = 0;
+    bool needsUpdate_ = true;
 };
+

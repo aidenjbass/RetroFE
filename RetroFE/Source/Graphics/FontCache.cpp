@@ -24,8 +24,8 @@
 #include <SDL2/SDL_ttf.h>
 #endif
 #include <sstream>
+#include <memory>
 
-// todo: memory leak when launching games
 FontCache::FontCache() = default;
 
 FontCache::~FontCache()
@@ -33,13 +33,8 @@ FontCache::~FontCache()
     deInitialize();
 }
 
-void FontCache::deInitialize()
-{
-    for (auto it = fontFaceMap_.begin(); it != fontFaceMap_.end(); /* no increment */)
-    {
-        delete it->second;
-        it = fontFaceMap_.erase(it);
-    }
+void FontCache::deInitialize() {
+    fontFaceMap_.clear(); // With smart pointers, no need for explicit delete calls
     SDL_LockMutex(SDL::getMutex());
     TTF_Quit();
     SDL_UnlockMutex(SDL::getMutex());
@@ -58,18 +53,17 @@ bool FontCache::initialize() const
     }
 }
 
-Font *FontCache::getFont(std::string fontPath, int fontSize, SDL_Color color)
-{
+Font* FontCache::getFont(const std::string& fontPath, int fontSize, SDL_Color color) {
     std::string key = buildFontKey(fontPath, fontSize, color);
     auto it = fontFaceMap_.find(key);
 
-    if (it != fontFaceMap_.end())
-    {
-        return it->second;
+    if (it != fontFaceMap_.end()) {
+        return it->second.get(); // Access the raw pointer from unique_ptr
     }
 
     return nullptr;
 }
+
 
 std::string FontCache::buildFontKey(std::string font, int fontSize, SDL_Color color)
 {
@@ -79,24 +73,15 @@ std::string FontCache::buildFontKey(std::string font, int fontSize, SDL_Color co
     return ss.str();
 }
 
-bool FontCache::loadFont(std::string fontPath, int fontSize, SDL_Color color, int monitor)
-{
+bool FontCache::loadFont(std::string fontPath, int fontSize, SDL_Color color, int monitor) {
     std::string key = buildFontKey(fontPath, fontSize, color);
-    auto it = fontFaceMap_.find(key);
-
-    if (it == fontFaceMap_.end())
-    {
-        Font *f = new Font(fontPath, fontSize, color, monitor);
-        if (f->initialize())
-        {
-            fontFaceMap_[key] = f;
-        }
-        else
-        {
-            delete f;
+    if (fontFaceMap_.find(key) == fontFaceMap_.end()) {
+        auto font = std::make_unique<Font>(fontPath, fontSize, color, monitor);
+        if (font->initialize()) {
+            fontFaceMap_[key] = std::move(font);
+        } else {
             return false;
         }
     }
-
     return true;
 }
