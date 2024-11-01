@@ -21,6 +21,12 @@
 #include <string>
 #include <filesystem>
 
+struct CachedGlyph {
+    SDL_Rect sourceRect;  // Source rectangle on the font texture
+    SDL_Rect destRect;    // Destination rectangle on the screen
+    float advance;        // Advance value for the glyph
+};
+
 
 class ReloadableScrollingText : public Component
 {
@@ -39,6 +45,7 @@ private:
     bool loadFileText(const std::string& filePath);
     void reloadTexture(bool resetScroll = true);
     void loadText( std::string collection, std::string type, std::string basename, std::string filepath, bool systemMode );
+    void updateGlyphCache();
     Configuration           &config_;
     bool                     systemMode_;
     bool                     layoutMode_;
@@ -62,6 +69,12 @@ private:
     float                    waitEndTime_;
     std::string              currentCollection_;
     int                      displayOffset_;
-    int                      textWidth_;
+    std::vector<CachedGlyph> cachedGlyphs_;
+    bool needsUpdate_;
+    float textWidth_;
+    float textHeight_;
+    float lastScale_;
+    float lastImageMaxWidth_;
+    float lastImageMaxHeight_;
     std::filesystem::file_time_type lastWriteTime_;
 };

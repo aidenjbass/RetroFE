@@ -28,8 +28,7 @@
 #include <iostream>
 #include <algorithm>
 
-
-ReloadableScrollingText::ReloadableScrollingText(Configuration &config, bool systemMode, bool layoutMode, bool menuMode, std::string type, std::string textFormat, std::string singlePrefix, std::string singlePostfix, std::string pluralPrefix, std::string pluralPostfix, std::string alignment, Page &p, int displayOffset, Font *font, std::string direction, float scrollingSpeed, float startPosition, float startTime, float endTime, std::string location)
+ReloadableScrollingText::ReloadableScrollingText(Configuration& config, bool systemMode, bool layoutMode, bool menuMode, std::string type, std::string textFormat, std::string singlePrefix, std::string singlePostfix, std::string pluralPrefix, std::string pluralPostfix, std::string alignment, Page& p, int displayOffset, Font* font, std::string direction, float scrollingSpeed, float startPosition, float startTime, float endTime, std::string location)
     : Component(p)
     , config_(config)
     , systemMode_(systemMode)
@@ -43,6 +42,7 @@ ReloadableScrollingText::ReloadableScrollingText(Configuration &config, bool sys
     , pluralPostfix_(pluralPostfix)
     , alignment_(alignment)
     , direction_(direction)
+    , location_(location)
     , scrollingSpeed_(scrollingSpeed)
     , startPosition_(startPosition)
     , currentPosition_(-startPosition)
@@ -52,17 +52,19 @@ ReloadableScrollingText::ReloadableScrollingText(Configuration &config, bool sys
     , waitEndTime_(0.0f)
     , currentCollection_("")
     , displayOffset_(displayOffset)
-    , textWidth_(0)
-    , location_(location)
+    , needsUpdate_(true)
+    , textWidth_(0.0f)
+    , textHeight_(0.0f)
+    , lastScale_(0.0f)
+    , lastImageMaxWidth_(0.0f)
+    , lastImageMaxHeight_(0.0f)
+    , lastWriteTime_(std::filesystem::file_time_type::min())
 {
-    text_.clear( );
-    lastWriteTime_ = std::filesystem::file_time_type::min();  // Initialize to the earliest possible time
 }
 
 
-ReloadableScrollingText::~ReloadableScrollingText( )
-{
-}
+
+ReloadableScrollingText::~ReloadableScrollingText( ) = default;
 
 bool ReloadableScrollingText::loadFileText(const std::string& filePath) {
     std::string absolutePath = Utils::combinePath(Configuration::absolutePath, filePath);
@@ -122,6 +124,8 @@ bool ReloadableScrollingText::loadFileText(const std::string& filePath) {
     }
 
     fileStream.close();
+
+    needsUpdate_ = true;
 
     return true;  // File was modified, return true
 }
@@ -413,7 +417,7 @@ void ReloadableScrollingText::reloadTexture(bool resetScroll) {
             text_.push_back(ss.str());
         }
     }
-
+    needsUpdate_ = true;
 }
 
 
@@ -477,295 +481,306 @@ void ReloadableScrollingText::loadText( std::string collection, std::string type
 
 }
 
-void ReloadableScrollingText::draw( )
-{
-    Component::draw( );
+void ReloadableScrollingText::draw() {
+    Component::draw();
 
-    if (!text_.empty( ) && waitEndTime_ <= 0.0f && baseViewInfo.Alpha > 0.0f) {
+    if (text_.empty() || waitEndTime_ > 0.0f || baseViewInfo.Alpha <= 0.0f) {
+        return;
+    }
 
-        Font *font;
-        if (baseViewInfo.font) // Use font of this specific item if available
-          font = baseViewInfo.font;
-        else                   // If not, use the general font settings
-          font = fontInst_;
+    Font* font = baseViewInfo.font ? baseViewInfo.font : fontInst_;
+    SDL_Texture* texture = font ? font->getTexture() : nullptr;
 
-        SDL_Texture *t = font->getTexture( );
+    if (!texture) {
+        return;
+    }
 
-        float imageWidth     = 0;
-        float imageMaxWidth  = 0;
-        float imageMaxHeight = 0;
-        if (baseViewInfo.Width < baseViewInfo.MaxWidth && baseViewInfo.Width > 0) {
-            imageMaxWidth = baseViewInfo.Width;
+    float scale = baseViewInfo.FontSize / font->getHeight();
+    float imageMaxWidth = (baseViewInfo.Width < baseViewInfo.MaxWidth && baseViewInfo.Width > 0)
+        ? baseViewInfo.Width : baseViewInfo.MaxWidth;
+    float imageMaxHeight = (baseViewInfo.Height < baseViewInfo.MaxHeight && baseViewInfo.Height > 0)
+        ? baseViewInfo.Height : baseViewInfo.MaxHeight;
+
+    float xOrigin = baseViewInfo.XRelativeToOrigin();
+    float yOrigin = baseViewInfo.YRelativeToOrigin();
+
+    // Update glyph cache if needed
+    if (needsUpdate_ || lastScale_ != scale || lastImageMaxWidth_ != imageMaxWidth || lastImageMaxHeight_ != imageMaxHeight) {
+        updateGlyphCache();
+    }
+
+    SDL_Rect destRect;
+    destRect.y = static_cast<int>(yOrigin);
+
+    if (direction_ == "horizontal") {
+        float scrollPosition = currentPosition_;
+
+        // Adjust for negative scroll position
+        if (scrollPosition < 0.0f) {
+            destRect.x = static_cast<int>(xOrigin - scrollPosition);
         }
         else {
-            imageMaxWidth = baseViewInfo.MaxWidth;
-        }
-        if (baseViewInfo.Height < baseViewInfo.MaxHeight && baseViewInfo.Height > 0) {
-            imageMaxHeight = baseViewInfo.Height;
-        }
-        else {
-            imageMaxHeight = baseViewInfo.MaxHeight;
+            destRect.x = static_cast<int>(xOrigin);
         }
 
-        float scale = (float)baseViewInfo.FontSize / (float)font->getHeight( );
-
-        float xOrigin = baseViewInfo.XRelativeToOrigin( );
-        float yOrigin = baseViewInfo.YRelativeToOrigin( );
-
-        SDL_Rect rect = { 0, 0, 0, 0 };
-
-        float position = 0.0f;
-
-        if (direction_ == "horizontal") {
-
-            rect.x = static_cast<int>( xOrigin );
-
-            if (currentPosition_ < 0) {
-                rect.x -= static_cast<int>( currentPosition_ );
-            }
-
-            textWidth_ = 0;
-
-            for (unsigned int l = 0; l < text_.size( ); ++l) {
-                for (unsigned int i = 0; i < text_[l].size( ); ++i) {
-                    Font::GlyphInfo glyph;
-                    if (font->getRect( text_[l][i], glyph) && glyph.rect.h > 0) {
-                        textWidth_ += static_cast<int>(glyph.advance * scale);
-
-                        // Do not print outside the box
-                        if (rect.x >= (static_cast<int>( xOrigin ) + imageMaxWidth)) {
-                            break;
-                        }
-
-                        SDL_Rect charRect = glyph.rect;
-                        rect.h  = static_cast<int>( charRect.h * scale );
-                        rect.w  = static_cast<int>( charRect.w * scale );
-                        rect.y  = static_cast<int>( yOrigin );
-
-                        if (font->getAscent( ) < glyph.maxY) {
-                            rect.y += static_cast<int>( (font->getAscent( ) - glyph.maxY) * scale );
-                        }
-
-                        // Check if glyph falls partially outside the box at the back end
-                        if ((rect.x + static_cast<int>( glyph.advance * scale )) >= (static_cast<int>( xOrigin ) + imageMaxWidth)) {
-                            rect.w     = static_cast<int>( xOrigin ) + static_cast<int>( imageMaxWidth ) - rect.x;
-                            charRect.w = static_cast<int>( rect.w / scale );
-                        }
-
-                        // Print the glyph if it falls (partially) within the box
-                        if ( position + glyph.advance * scale > currentPosition_ ) {
-                            // Check if glyph falls partially outside the box at the front end
-                            if ( position < currentPosition_ ) {
-                                rect.w     = static_cast<int>( glyph.advance * scale + position - currentPosition_ );
-                                charRect.x = static_cast<int>( charRect.x + charRect.w - rect.w / scale );
-                                charRect.w = static_cast<int>( rect.w / scale );
-                            }
-                            if (rect.w > 0) {
-                                SDL::renderCopy(t, baseViewInfo.Alpha, &charRect, &rect, baseViewInfo, page.getLayoutWidthByMonitor(baseViewInfo.Monitor), page.getLayoutHeightByMonitor(baseViewInfo.Monitor));
-                                rect.x += rect.w;
-                            }
-                            else if ((rect.x + static_cast<int>( glyph.advance * scale )) >= (static_cast<int>( xOrigin ) + imageMaxWidth)) {
-                                rect.x = static_cast<int>( xOrigin ) + static_cast<int>( imageMaxWidth ) + 10; // Stop handling the rest of the string
-                            }
-                        }
-                        position += glyph.advance * scale;
-                    }
-                }
-            }
-
-            // Determine image width
-            for (unsigned int l = 0; l < text_.size( ); ++l) {
-                for (unsigned int i = 0; i < text_[l].size( ); ++i) {
-                    Font::GlyphInfo glyph;
-                    if (font->getRect( text_[l][i], glyph )) {
-                        imageWidth += glyph.advance;
-                    }
-                }
-            }
-
-            // Reset scrolling position when we're done
-            if (currentPosition_ > imageWidth * scale) {
-                waitStartTime_   = startTime_;
-                waitEndTime_     = endTime_;
-                currentPosition_ = -startPosition_;
-            }
-
+        // Do not scroll if the text fits within the available width
+        if (textWidth_ <= imageMaxWidth && startPosition_ == 0.0f) {
+            currentPosition_ = 0.0f;
+            waitStartTime_ = 0.0f;
+            waitEndTime_ = 0.0f;
         }
-        else if (direction_ == "vertical") {
 
-            unsigned int spaceWidth = 0; {
-                Font::GlyphInfo glyph;
-                if (font->getRect( ' ', glyph) ) {
-                    spaceWidth = static_cast<int>( glyph.advance * scale);
-                }
+        for (const auto& glyph : cachedGlyphs_) {
+            // Calculate the glyph's position with scrolling
+            destRect.x = static_cast<int>(xOrigin + glyph.destRect.x - scrollPosition);
+            destRect.y = static_cast<int>(yOrigin + glyph.destRect.y);
+            destRect.w = glyph.destRect.w;
+            destRect.h = glyph.destRect.h;
+
+            // Skip glyphs outside the visible area
+            if ((destRect.x + destRect.w) <= xOrigin || destRect.x >= (xOrigin + imageMaxWidth)) {
+                continue;
             }
 
-            // Reformat the text based on the image width
-            std::vector<std::string>  text;
-            std::vector<unsigned int> textWords;
-            std::vector<unsigned int> textWidth;
-            std::vector<bool>         textLast;
-            for (unsigned int l = 0; l < text_.size( ); ++l) {
-                std::string        line = "";
-                std::istringstream iss(text_[l]);
-                std::string        word;
-                unsigned int       width     = 0;
-                unsigned int       lineWidth = 0;
-                unsigned int       wordCount = 0;
-                while (iss >> word) {
+            // Adjust destRect and srcRect for clipping at edges
+            SDL_Rect srcRect = glyph.sourceRect;
 
-                    // Determine word image width
-                    unsigned int wordWidth = 0;
-                    for (unsigned int i = 0; i < word.size( ); ++i) {
-                        Font::GlyphInfo glyph;
-                        if (font->getRect( word[i], glyph) ) {
-                            wordWidth += static_cast<int>( glyph.advance * scale );
-                        }
-                    }
-                    // Determine if the word will fit on the line
-                    if (width > 0 && (width + spaceWidth + wordWidth > imageMaxWidth)) {
-                        text.push_back( line );
-                        textWords.push_back( wordCount );
-                        textWidth.push_back( lineWidth );
-                        textLast.push_back( false );
-                        line      = word;
-                        width     = wordWidth;
-                        lineWidth = wordWidth;
-                        wordCount = 1;
-                    }
-                    else {
-                        if (width == 0) {
-                            line  += word;
-                            width += wordWidth;
-                        }
-                        else {
-                            line  += " " + word;
-                            width += spaceWidth + wordWidth;
-                        }
-                        lineWidth += wordWidth;
-                        wordCount += 1;
-                    }
-                }
-                if (text_[l] == "" || line != "") {
-                    text.push_back( line );
-                    textWords.push_back( wordCount );
-                    textWidth.push_back( lineWidth );
-                    textLast.push_back( true );
-                    width     = 0;
-                    lineWidth = 0;
-                    wordCount = 0;
-                }
+            // Left clipping
+            if (destRect.x < xOrigin) {
+                int clipAmount = static_cast<int>(xOrigin - destRect.x);
+                destRect.x = static_cast<int>(xOrigin);
+                destRect.w -= clipAmount;
+                srcRect.x += static_cast<int>(clipAmount / scale);
+                srcRect.w -= static_cast<int>(clipAmount / scale);
             }
 
-
-            // Print reformatted text
-            rect.y = static_cast<int>( yOrigin );
-
-            if (currentPosition_ < 0) {
-                rect.y -= static_cast<int>( currentPosition_ );
+            // Right clipping
+            if ((destRect.x + destRect.w) > (xOrigin + imageMaxWidth)) {
+                int clipAmount = static_cast<int>((destRect.x + destRect.w) - (xOrigin + imageMaxWidth));
+                destRect.w -= clipAmount;
+                srcRect.w -= static_cast<int>(clipAmount / scale);
             }
 
-            // Do not scroll if the text fits fully inside the box, and start position is 0
-            if (text.size() * font->getHeight( ) * scale <= imageMaxHeight && startPosition_ == 0.0f) {
-                currentPosition_ = 0.0f;
-                waitStartTime_   = 0.0f;
-                waitEndTime_     = 0.0f;
+            if (destRect.w <= 0) {
+                continue;
             }
 
-            for (unsigned int l = 0; l < text.size( ); ++l) {
-                // Do not print outside the box
-                if (rect.y >= (static_cast<int>( yOrigin ) + imageMaxHeight)) {
-                    break;
-                }
+            SDL::renderCopy(texture, baseViewInfo.Alpha, &srcRect, &destRect, baseViewInfo,
+                page.getLayoutWidthByMonitor(baseViewInfo.Monitor),
+                page.getLayoutHeightByMonitor(baseViewInfo.Monitor));
+        }
 
-                // Define x coordinate
-                rect.x = static_cast<int>( xOrigin );
-                if (alignment_ == "right") {
-                    rect.x = static_cast<int>( xOrigin + imageMaxWidth - textWidth[l] - (textWords[l] - 1) * spaceWidth * scale );
-                }
-                if (alignment_ == "centered") {
-                    rect.x = static_cast<int>( xOrigin + imageMaxWidth / 2 - textWidth[l] / 2 - (textWords[l] - 1) * spaceWidth * scale / 2 );
-                }
-
-                std::istringstream iss(text[l]);
-                std::string        word;
-                unsigned int       wordCount = textWords[l];
-                unsigned int       spaceFill = static_cast<int>( imageMaxWidth ) - textWidth[l];
-                unsigned int       yAdvance  = static_cast<int>( font->getHeight( ) * scale );
-                while (iss >> word) {
-                    for (unsigned int i = 0; i < word.size( ); ++i) {
-                        Font::GlyphInfo glyph;
-
-                        if (font->getRect( word[i], glyph) && glyph.rect.h > 0) {
-                            SDL_Rect charRect = glyph.rect;
-                            rect.h   = static_cast<int>( charRect.h * scale );
-                            rect.w   = static_cast<int>( charRect.w * scale );
-                            yAdvance = static_cast<int>( font->getHeight( ) * scale );
-
-                            // Check if glyph falls partially outside the box at the bottom end
-                            if ((rect.y + rect.h) >= (static_cast<int>( yOrigin ) + imageMaxHeight)) {
-                                rect.h     = static_cast<int>( yOrigin ) + static_cast<int>( imageMaxHeight ) - rect.y;
-                                charRect.h = static_cast<int>( rect.h / scale );
-                            }
-
-                            // Print the glyph if it falls (partially) within the box
-                            if ( position + font->getHeight( ) * scale > currentPosition_ ) {
-                                // Check if glyph falls partially outside the box at the front end
-                                if ( position < currentPosition_ ) {
-                                    yAdvance  -= rect.h - static_cast<int>( font->getHeight( ) * scale + position - currentPosition_ );
-                                    rect.h     = static_cast<int>( font->getHeight( ) * scale + position - currentPosition_ );
-                                    charRect.y = static_cast<int>( charRect.y + charRect.h - rect.h / scale );
-                                    charRect.h = static_cast<int>( rect.h / scale );
-                                }
-                                if (rect.h > 0) {
-                                    SDL::renderCopy(t, baseViewInfo.Alpha, &charRect, &rect, baseViewInfo, page.getLayoutWidthByMonitor(baseViewInfo.Monitor), page.getLayoutHeightByMonitor(baseViewInfo.Monitor));
-                                }
-                            }
-                            rect.x += static_cast<int>( glyph.advance * scale );
-                        }
-                    }
-
-                    // Print justified
-                    wordCount -= 1;
-                    if (wordCount > 0 && !textLast[l] && alignment_ == "justified") {
-                        unsigned int advance = static_cast<int>( spaceFill / wordCount );
-                        spaceFill -= advance;
-                        rect.x    += advance;
-                    }
-                    else {
-                        rect.x += static_cast<int>( spaceWidth );
-                    }
-                }
-
-                // Handle scrolling of empty lines
-                if (text[l] == "") {
-                    Font::GlyphInfo glyph;
-
-                    if (font->getRect( ' ', glyph) && glyph.rect.h > 0) {
-                        rect.h   = static_cast<int>( glyph.rect.h * scale );
-
-                        // Check if the glyph falls (partially) within the box at the front end
-                        if ((position + font->getHeight( ) * scale > currentPosition_) &&
-                            (position < currentPosition_)) {
-                            yAdvance  -= rect.h - static_cast<int>( font->getHeight( ) * scale + position - currentPosition_ );
-                        }
-                    }
-                }
-
-                if ( position + font->getHeight( ) * scale > currentPosition_ ) {
-                    rect.y += yAdvance;
-                }
-                position += font->getHeight( ) * scale;
-
-            }
-
-            // Reset scrolling position when we're done
-            if (currentPosition_ > text.size( ) * font->getHeight( ) * scale) {
-                waitStartTime_   = startTime_;
-                waitEndTime_     = endTime_;
-                currentPosition_ = -startPosition_;
-            }
-
+        // Update scrolling position
+        if (currentPosition_ > textWidth_) {
+            waitStartTime_ = startTime_;
+            waitEndTime_ = endTime_;
+            currentPosition_ = -startPosition_;
         }
     }
+    else if (direction_ == "vertical") {
+        float scrollPosition = currentPosition_;
+
+        // Adjust for negative scroll position
+        if (scrollPosition < 0.0f) {
+            destRect.y = static_cast<int>(yOrigin - scrollPosition);
+        }
+        else {
+            destRect.y = static_cast<int>(yOrigin);
+        }
+
+        // Do not scroll if the text fits within the available height
+        if (textHeight_ <= imageMaxHeight && startPosition_ == 0.0f) {
+            currentPosition_ = 0.0f;
+            waitStartTime_ = 0.0f;
+            waitEndTime_ = 0.0f;
+        }
+
+        for (const auto& glyph : cachedGlyphs_) {
+            // Calculate the glyph's position with scrolling
+            destRect.x = static_cast<int>(xOrigin + glyph.destRect.x);
+            destRect.y = static_cast<int>(yOrigin + glyph.destRect.y - scrollPosition);
+            destRect.w = glyph.destRect.w;
+            destRect.h = glyph.destRect.h;
+
+            // Skip glyphs outside the visible area
+            if ((destRect.y + destRect.h) <= yOrigin || destRect.y >= (yOrigin + imageMaxHeight)) {
+                continue;
+            }
+
+            // Adjust destRect and srcRect for clipping at edges
+            SDL_Rect srcRect = glyph.sourceRect;
+
+            // Top clipping
+            if (destRect.y < yOrigin) {
+                int clipAmount = static_cast<int>(yOrigin - destRect.y);
+                destRect.y = static_cast<int>(yOrigin);
+                destRect.h -= clipAmount;
+                srcRect.y += static_cast<int>(clipAmount / scale);
+                srcRect.h -= static_cast<int>(clipAmount / scale);
+            }
+
+            // Bottom clipping
+            if ((destRect.y + destRect.h) > (yOrigin + imageMaxHeight)) {
+                int clipAmount = static_cast<int>((destRect.y + destRect.h) - (yOrigin + imageMaxHeight));
+                destRect.h -= clipAmount;
+                srcRect.h -= static_cast<int>(clipAmount / scale);
+            }
+
+            if (destRect.h <= 0) {
+                continue;
+            }
+
+            SDL::renderCopy(texture, baseViewInfo.Alpha, &srcRect, &destRect, baseViewInfo,
+                page.getLayoutWidthByMonitor(baseViewInfo.Monitor),
+                page.getLayoutHeightByMonitor(baseViewInfo.Monitor));
+        }
+
+        // Update scrolling position
+        if (currentPosition_ > textHeight_) {
+            waitStartTime_ = startTime_;
+            waitEndTime_ = endTime_;
+            currentPosition_ = -startPosition_;
+        }
+    }
+}
+
+void ReloadableScrollingText::updateGlyphCache() {
+    cachedGlyphs_.clear();
+    textWidth_ = 0.0f;
+    textHeight_ = 0.0f;
+
+    Font* font = baseViewInfo.font ? baseViewInfo.font : fontInst_;
+    if (!font) {
+        return;
+    }
+
+    float scale = baseViewInfo.FontSize / font->getHeight();
+    float imageMaxWidth = (baseViewInfo.Width < baseViewInfo.MaxWidth && baseViewInfo.Width > 0)
+        ? baseViewInfo.Width : baseViewInfo.MaxWidth;
+    float imageMaxHeight = (baseViewInfo.Height < baseViewInfo.MaxHeight && baseViewInfo.Height > 0)
+        ? baseViewInfo.Height : baseViewInfo.MaxHeight;
+
+    // Update last known values
+    lastScale_ = scale;
+    lastImageMaxWidth_ = imageMaxWidth;
+    lastImageMaxHeight_ = imageMaxHeight;
+
+    // Position trackers
+    float xPos = 0.0f;
+    float yPos = 0.0f;
+
+    if (direction_ == "horizontal") {
+        for (const auto& line : text_) {
+            for (char c : line) {
+                Font::GlyphInfo glyph;
+                if (font->getRect(c, glyph) && glyph.rect.h > 0) {
+                    CachedGlyph cachedGlyph;
+                    cachedGlyph.sourceRect = glyph.rect;
+                    cachedGlyph.destRect.x = static_cast<int>(xPos);
+                    cachedGlyph.destRect.y = 0;  // Adjusted later
+                    cachedGlyph.destRect.w = static_cast<int>(glyph.rect.w * scale);
+                    cachedGlyph.destRect.h = static_cast<int>(glyph.rect.h * scale);
+                    cachedGlyph.advance = glyph.advance * scale;
+
+                    cachedGlyphs_.push_back(cachedGlyph);
+
+                    xPos += glyph.advance * scale;
+                }
+            }
+        }
+        textWidth_ = xPos;
+    }
+    else if (direction_ == "vertical") {
+        // For vertical scrolling, we need to handle word wrapping based on imageMaxWidth
+        std::vector<std::string> wrappedLines;
+
+        // First, wrap the text to fit within imageMaxWidth
+        for (const auto& line : text_) {
+            std::istringstream iss(line);
+            std::string word;
+            std::string currentLine;
+            float currentLineWidth = 0.0f;
+
+            while (iss >> word) {
+                // Calculate the width of the word
+                float wordWidth = 0.0f;
+                for (char c : word) {
+                    Font::GlyphInfo glyph;
+                    if (font->getRect(c, glyph)) {
+                        wordWidth += glyph.advance * scale;
+                    }
+                }
+                // Add space width if this is not the first word on the line
+                if (!currentLine.empty()) {
+                    Font::GlyphInfo spaceGlyph;
+                    if (font->getRect(' ', spaceGlyph)) {
+                        wordWidth += spaceGlyph.advance * scale;
+                    }
+                }
+                // Check if the word fits on the current line
+                if (currentLineWidth + wordWidth > imageMaxWidth && !currentLine.empty()) {
+                    // Line is full, add it to wrappedLines
+                    wrappedLines.push_back(currentLine);
+                    currentLine = word;
+                    currentLineWidth = wordWidth;
+                }
+                else {
+                    // Add the word to the current line
+                    if (!currentLine.empty()) {
+                        currentLine += ' ';
+                    }
+                    currentLine += word;
+                    currentLineWidth += wordWidth;
+                }
+            }
+            // Add any remaining text in currentLine
+            if (!currentLine.empty()) {
+                wrappedLines.push_back(currentLine);
+            }
+        }
+
+        // Now, cache the glyphs for the wrapped lines
+        for (const auto& line : wrappedLines) {
+            xPos = 0.0f;
+
+            // Calculate line width for alignment
+            float lineWidth = 0.0f;
+            for (char c : line) {
+                Font::GlyphInfo glyph;
+                if (font->getRect(c, glyph)) {
+                    lineWidth += glyph.advance * scale;
+                }
+            }
+
+            // Adjust xPos based on alignment
+            if (alignment_ == "right") {
+                xPos = imageMaxWidth - lineWidth;
+            }
+            else if (alignment_ == "centered") {
+                xPos = (imageMaxWidth - lineWidth) / 2.0f;
+            }
+
+            for (char c : line) {
+                Font::GlyphInfo glyph;
+                if (font->getRect(c, glyph) && glyph.rect.h > 0) {
+                    CachedGlyph cachedGlyph;
+                    cachedGlyph.sourceRect = glyph.rect;
+                    cachedGlyph.destRect.x = static_cast<int>(xPos);
+                    cachedGlyph.destRect.y = static_cast<int>(yPos);
+                    cachedGlyph.destRect.w = static_cast<int>(glyph.rect.w * scale);
+                    cachedGlyph.destRect.h = static_cast<int>(glyph.rect.h * scale);
+                    cachedGlyph.advance = glyph.advance * scale;
+
+                    cachedGlyphs_.push_back(cachedGlyph);
+
+                    xPos += glyph.advance * scale;
+                }
+            }
+
+            yPos += font->getHeight() * scale;
+        }
+        textHeight_ = yPos;
+    }
+
+    needsUpdate_ = false;
 }
