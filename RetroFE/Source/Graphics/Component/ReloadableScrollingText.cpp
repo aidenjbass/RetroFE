@@ -108,11 +108,14 @@ bool ReloadableScrollingText::loadFileText(const std::string& filePath) {
         }
 
         // Apply text formatting (uppercase/lowercase)
-        if (textFormat_ == "uppercase") {
-            std::transform(line.begin(), line.end(), line.begin(), ::toupper);
-        }
-        else if (textFormat_ == "lowercase") {
-            std::transform(line.begin(), line.end(), line.begin(), ::tolower);
+        if (textFormat_ == "uppercase" || textFormat_ == "lowercase") {
+            // Only perform transformations, don't modify text_
+            if (textFormat_ == "uppercase") {
+                std::transform(line.begin(), line.end(), line.begin(), ::toupper);
+            }
+            else {
+                std::transform(line.begin(), line.end(), line.begin(), ::tolower);
+            }
         }
 
         text_.push_back(line);  // Add the line to the scrolling text vector
@@ -285,7 +288,7 @@ void ReloadableScrollingText::reloadTexture(bool resetScroll) {
         }
     }
 
-    // Check for thext in the roms directory
+    // Check for text in the roms directory
     if ( text_.empty( ))
         loadText( selectedItem->filepath, type_, type_, selectedItem->filepath, false );
 
@@ -396,12 +399,15 @@ void ReloadableScrollingText::reloadTexture(bool resetScroll) {
             text = pluralPrefix_ + text + pluralPostfix_;
         }
 
-        if (text != "") {
-            if (textFormat_ == "uppercase") {
-                std::transform(text.begin(), text.end(), text.begin(), ::toupper);
-            }
-            if (textFormat_ == "lowercase") {
-                std::transform(text.begin(), text.end(), text.begin(), ::tolower);
+        if (!text.empty()) {
+            // Apply text formatting (uppercase/lowercase) safely
+            if (textFormat_ == "uppercase" || textFormat_ == "lowercase") {
+                if (textFormat_ == "uppercase") {
+                    std::transform(text.begin(), text.end(), text.begin(), ::toupper);
+                }
+                else {
+                    std::transform(text.begin(), text.end(), text.begin(), ::tolower);
+                }
             }
             ss << text;
             text_.push_back(ss.str());

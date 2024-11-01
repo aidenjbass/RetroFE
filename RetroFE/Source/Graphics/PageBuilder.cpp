@@ -900,7 +900,28 @@ void PageBuilder::loadReloadableImages(const xml_node<> *layout, const std::stri
                 if (pluralPostfixXml) {
                     pluralPostfix = pluralPostfixXml->value();
                 }
-                c = new ReloadableScrollingText(config_, systemMode, layoutMode, menuMode, typeValue, singlePrefix, singlePostfix, pluralPrefix, pluralPostfix, textFormat, alignment, *page, selectedOffset, font, direction, scrollingSpeed, startPosition, startTime, endTime, location);
+                c = new ReloadableScrollingText(
+                    config_,
+                    systemMode,
+                    layoutMode,
+                    menuMode,
+                    typeValue,              // Matches `type` parameter in constructor
+                    textFormat,             // Matches `textFormat` parameter in constructor
+                    singlePrefix,
+                    singlePostfix,
+                    pluralPrefix,
+                    pluralPostfix,
+                    alignment,
+                    *page,
+                    selectedOffset,
+                    font,
+                    direction,
+                    scrollingSpeed,
+                    startPosition,
+                    startTime,
+                    endTime,
+                    location
+                );
                 c->setId( id );
                 c->baseViewInfo.Monitor = cMonitor;
                 c->baseViewInfo.Layout = page->getCurrentLayout();
