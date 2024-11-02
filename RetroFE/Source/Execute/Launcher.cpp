@@ -402,6 +402,9 @@ bool Launcher::execute(std::string executable, std::string args, std::string cur
     HANDLE hLaunchedProcess = nullptr;
     bool handleObtained = false;
 
+    // Lower priority before launching the process
+    SetPriorityClass(GetCurrentProcess(), BELOW_NORMAL_PRIORITY_CLASS);
+
     // Check if launching an executable
     if (exePath.extension() == ".exe") {
         STARTUPINFOA startupInfo{};
@@ -506,7 +509,141 @@ bool Launcher::execute(std::string executable, std::string args, std::string cur
 
     // Monitoring the process
     if (handleObtained) {
-        if (wait) {
+        bool is4waySet = false;
+        bool isServoStikEnabled = false;
+        config_.getProperty(OPTION_SERVOSTIKENABLED, isServoStikEnabled);
+        if (currentPage->getSelectedItem()->ctrlType.find("4") != std::string::npos && isServoStikEnabled) {
+            if (!PacSetServoStik4Way()) {
+                LOG_ERROR("RetroFE", "Failed to set ServoStik to 4-way mode");
+            }
+            else {
+                LOG_INFO("RetroFE", "Setting ServoStik to 4-way mode");
+                is4waySet = true;
+            }
+        }
+        if (isAttractMode) {
+            int attractModeLaunchRunTime = 30;
+            config_.getProperty(OPTION_ATTRACTMODELAUNCHRUNTIME, attractModeLaunchRunTime);
+            auto start = std::chrono::high_resolution_clock::now();
+            bool userInputDetected = false;
+
+            auto isAnyKeyPressed = []() -> auto {
+                // Common virtual key codes, adjust this list as necessary
+                std::vector<int> relevantKeys = {
+                    // Letters A-Z
+                    0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4A,
+                    0x4B, 0x4C, 0x4D, 0x4E, 0x4F, 0x50, 0x51, 0x52, 0x53, 0x54,
+                    0x55, 0x56, 0x57, 0x58, 0x59, 0x5A, // A-Z
+                    // Numbers 0-9
+                    0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, // 0-9
+                    // Arrow keys
+                    VK_UP, VK_DOWN, VK_LEFT, VK_RIGHT,
+                    // Other common keys
+                    VK_RETURN, VK_SPACE, VK_ESCAPE, VK_TAB, VK_BACK,
+                    // Modifier keys
+                    VK_SHIFT, VK_CONTROL, VK_MENU // Shift, Ctrl, Alt
+                };
+
+                for (int virtualKey : relevantKeys) {
+                    if (GetAsyncKeyState(virtualKey) & 0x8000) {
+                        LOG_INFO("Launcher", "Key press detected: " + std::to_string(virtualKey));
+                        return true;
+                    }
+                }
+                return false;
+                };
+
+            auto isAnyControllerButtonPressed = []() -> auto {
+                XINPUT_STATE state;
+                ZeroMemory(&state, sizeof(XINPUT_STATE));
+                if (XInputGetState(0, &state) == ERROR_SUCCESS) { // Check the first controller
+                    if (state.Gamepad.wButtons != 0) { // Any button is pressed
+                        return true;
+                    }
+                }
+                return false;
+                };
+
+            while (true) {
+
+                // Process window messages
+                MSG msg;
+                while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
+                    DispatchMessage(&msg);
+                }
+
+                // Check for keyboard/controller input
+                if (isAnyKeyPressed() || isAnyControllerButtonPressed()) {
+                    LOG_INFO("Launcher", "User input detected, waiting indefinitely.");
+                    userInputDetected = true;
+                    break;
+                }
+
+                // Check if the launched process has exited
+                DWORD exitCode;
+                if (GetExitCodeProcess(hLaunchedProcess, &exitCode)) {
+                    if (exitCode != STILL_ACTIVE) {
+                        // Process has terminated
+                        break;
+                    }
+                }
+
+                // Check if the timeout has been reached
+                auto now = std::chrono::high_resolution_clock::now();
+                auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - start).count();
+                if (elapsed >= attractModeLaunchRunTime) {
+                    break;
+                }
+
+                // Sleep to prevent high CPU usage
+                std::this_thread::sleep_for(std::chrono::milliseconds(100));
+            }
+
+            if (userInputDetected) {
+                while (WAIT_OBJECT_0 != MsgWaitForMultipleObjects(1, &hLaunchedProcess, FALSE, INFINITE, QS_ALLINPUT)) {
+                    MSG msg;
+                    while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
+                        DispatchMessage(&msg);
+                    }
+                    // Add to last played if user interrupted during attract mode
+                    CollectionInfoBuilder cib(config_, *retroFeInstance_.getMetaDb());
+                    std::string lastPlayedSkipCollection = "";
+                    int size = 0;
+                    config_.getProperty(OPTION_LASTPLAYEDSKIPCOLLECTION, lastPlayedSkipCollection);
+                    config_.getProperty(OPTION_LASTPLAYEDSIZE, size);
+
+                    if (lastPlayedSkipCollection != "")
+                    {
+                        // see if any of the comma seperated match current collection
+                        std::stringstream ss(lastPlayedSkipCollection);
+                        std::string collection = "";
+                        bool updateLastPlayed = true;
+                        while (ss.good())
+                        {
+                            getline(ss, collection, ',');
+                            // Check if the current collection matches any collection in lastPlayedSkipCollection
+                            if (collectionItem->collectionInfo->name == collection)
+                            {
+                                updateLastPlayed = false;
+                                break; // No need to check further, as we found a match
+                            }
+                        }
+                        // Update last played collection if not found in the skip collection
+                        if (updateLastPlayed)
+                        {
+                            cib.updateLastPlayedPlaylist(currentPage->getCollection(), collectionItem, size);
+                            //currentPage_->updateReloadables(0);
+                        }
+                    }
+                }
+            }
+            else {
+                LOG_INFO("Launcher", "Attract Mode timeout reached, terminating game.");
+                DWORD processId = GetProcessId(hLaunchedProcess);
+                TerminateProcessAndChildren(processId);  // Terminate the process and its children
+            }
+        }
+        else if (wait) {
             LOG_INFO("Launcher", "Waiting for launched process to complete.");
             while (WAIT_OBJECT_0 != MsgWaitForMultipleObjects(1, &hLaunchedProcess, FALSE, INFINITE, QS_ALLINPUT)) {
                 MSG msg;
@@ -516,12 +653,25 @@ bool Launcher::execute(std::string executable, std::string args, std::string cur
             }
             LOG_INFO("Launcher", "Process completed.");
         }
+        if (is4waySet)
+        {
+            if (!PacSetServoStik8Way()) { // return to 8-way if 4-way switch occurred
+                LOG_ERROR("RetroFE", "Failed to return ServoStik to 8-way mode");
+            }
+            else {
+                LOG_INFO("RetroFE", "Returned ServoStik to 8-way mode");
+            }
+        }
         CloseHandle(hLaunchedProcess);
         retVal = true;
     }
     else {
         LOG_WARNING("Launcher", "No handle was obtained; process monitoring will not occur.");
     }
+
+    bool highPriority = false;
+    config_.getProperty("OPTION_HIGHPRIORITY", highPriority);
+    SetPriorityClass(GetCurrentProcess(), highPriority ? ABOVE_NORMAL_PRIORITY_CLASS : NORMAL_PRIORITY_CLASS);
 
 #else
     // Unix/Linux process execution
