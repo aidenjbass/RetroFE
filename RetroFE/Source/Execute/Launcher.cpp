@@ -114,115 +114,90 @@ void TerminateProcessAndChildren(DWORD processId) {
 }
 #endif
 
-bool Launcher::run(std::string collection, Item* collectionItem, Page* currentPage, bool isAttractMode)
-{
-    // Initialize with the default launcher for the collection
+bool Launcher::run(std::string collection, Item* collectionItem, Page* currentPage, bool isAttractMode) {
+    // Step 1: Determine launcher name (with potential per-item override)
     std::string launcherName = collectionItem->collectionInfo->launcher;
-
-    // Check for per-item launcher override
     std::string launcherFile = Utils::combinePath(Configuration::absolutePath, "collections", collection, "launchers", collectionItem->name + ".conf");
+
     if (std::ifstream launcherStream(launcherFile); launcherStream.good()) {
         std::string line;
         if (std::getline(launcherStream, line)) {
-            // Construct localLauncher key
             std::string localLauncherKey = "localLaunchers." + collection + "." + line;
-            if (config_.propertyPrefixExists(localLauncherKey)) {
-                // Use localLauncher if exists
-                launcherName = collection + "." + line;
-            } else {
-                // Use specified launcher from conf file
-                launcherName = line;
-            }
+            launcherName = config_.propertyPrefixExists(localLauncherKey) ? (collection + "." + line) : line;
+            LOG_INFO("Launcher", "Using per-item launcher override: " + launcherName);
         }
     }
 
-    // If no per-item launcher override, check for a collection-specific launcher
+    // Check for collection-specific launcher if no override
     if (launcherName == collectionItem->collectionInfo->launcher) {
-        std::string collectionSpecificLauncherKey = "collectionLaunchers." + collection;
-        if (config_.propertyPrefixExists(collectionSpecificLauncherKey)) {
-            launcherName = collectionItem->collectionInfo->name; // Use the collection-specific launcher
+        std::string collectionLauncherKey = "collectionLaunchers." + collection;
+        if (config_.propertyPrefixExists(collectionLauncherKey)) {
+            launcherName = collectionItem->collectionInfo->name;
+            LOG_INFO("Launcher", "Using collection-specific launcher: " + launcherName);
         }
     }
 
-    std::string executablePath;
-    std::string selectedItemsDirectory;
-    std::string selectedItemsPath;
-    std::string extensionstr;
-    std::string matchedExtension;
-    std::string args;
+    // Step 2: Retrieve executable, extensions, and directory
+    std::string executablePath, selectedItemsDirectory, selectedItemsPath, extensionstr, matchedExtension, args;
 
     if (!launcherExecutable(executablePath, launcherName)) {
-        LOG_ERROR("Launcher", "Failed to find launcher executable (launcher: " + launcherName + " executable: " + executablePath + " collection: " + collectionItem->collectionInfo->name + " item: " + collectionItem->name + ")");
+        LOG_ERROR("Launcher", "Launcher executable not found for: " + launcherName);
         return false;
     }
     if (!extensions(extensionstr, collection)) {
-        LOG_ERROR("Launcher", "No file extensions configured for collection \"" + collection + "\"");
+        LOG_ERROR("Launcher", "No file extensions configured for collection: " + collection);
         return false;
     }
     if (!collectionDirectory(selectedItemsDirectory, collection)) {
-        LOG_ERROR("Launcher", "Could not find files in directory \"" + selectedItemsDirectory + "\" for collection \"" + collection + "\"");
+        LOG_ERROR("Launcher", "No valid directory found for collection: " + collection);
         return false;
     }
-    launcherArgs(args, launcherName); // Ok if no args
 
-    // Overwrite selectedItemsDirectory if already set in the file
+    launcherArgs(args, launcherName);
+
+    // Override directory if filepath is provided in the item
     if (!collectionItem->filepath.empty()) {
         selectedItemsDirectory = collectionItem->filepath;
+        LOG_DEBUG("LauncherDebug", "Using filepath from item: " + selectedItemsDirectory);
     }
 
-    LOG_DEBUG("LauncherDebug", "selectedItemsPath pre-find file: " + selectedItemsPath);
-    LOG_DEBUG("LauncherDebug", "selectedItemsDirectory pre - find file : " + selectedItemsDirectory);
-    LOG_DEBUG("LauncherDebug", "matchedExtension pre - find file : " + matchedExtension);
-    LOG_DEBUG("LauncherDebug", "extensionstr pre - find file : " + extensionstr);
-    LOG_DEBUG("LauncherDebug", "collectionItem->name pre - find file: " + collectionItem->name);
-    LOG_DEBUG("LauncherDebug", "collectionItem->file pre - find file: " + collectionItem->file);
-
-    // It is ok to continue if the file could not be found. We could be launching a merged romset
+    // Step 3: Find the item file based on provided or derived names
     if (collectionItem->file.empty()) {
         findFile(selectedItemsPath, matchedExtension, selectedItemsDirectory, collectionItem->name, extensionstr);
-    } else {
+    }
+    else {
         findFile(selectedItemsPath, matchedExtension, selectedItemsDirectory, collectionItem->file, extensionstr);
     }
 
-    LOG_DEBUG("LauncherDebug", "args: " + args);
-    LOG_DEBUG("LauncherDebug", "selectedItemsPath: " + selectedItemsPath);
+    LOG_DEBUG("LauncherDebug", "File selected: " + selectedItemsPath);
+    LOG_DEBUG("LauncherDebug", "Arguments before replacement: " + args);
 
-    args = replaceVariables(args,
-        selectedItemsPath,
-        collectionItem->name,
-        Utils::getFileName(selectedItemsPath),
-        selectedItemsDirectory,
-        collection);
+    // Step 4: Substitute variables in args and executable path
+    args = replaceVariables(args, selectedItemsPath, collectionItem->name, Utils::getFileName(selectedItemsPath), selectedItemsDirectory, collection);
+    executablePath = replaceVariables(executablePath, selectedItemsPath, collectionItem->name, Utils::getFileName(selectedItemsPath), selectedItemsDirectory, collection);
 
-    LOG_DEBUG("LauncherDebug", "executablePath: " + executablePath);
+    LOG_INFO("Launcher", "Final executable path: " + executablePath);
+    LOG_INFO("Launcher", "Arguments after replacement: " + args);
 
-    executablePath = replaceVariables(executablePath,
-        selectedItemsPath,
-        collectionItem->name,
-        Utils::getFileName(selectedItemsPath),
-        selectedItemsDirectory,
-        collection);
-
+    // Step 5: Determine the current working directory
     std::string currentDirectoryKey = "launchers." + launcherName + ".currentDirectory";
     std::string currentDirectory = Utils::getDirectory(executablePath);
-
     config_.getProperty(currentDirectoryKey, currentDirectory);
 
-    currentDirectory = replaceVariables(currentDirectory,
-        selectedItemsPath,
-        collectionItem->name,
-        Utils::getFileName(selectedItemsPath),
-        selectedItemsDirectory,
-        collection);
+    currentDirectory = replaceVariables(currentDirectory, selectedItemsPath, collectionItem->name, Utils::getFileName(selectedItemsPath), selectedItemsDirectory, collection);
+    LOG_DEBUG("LauncherDebug", "Final working directory: " + currentDirectory);
 
+    // Step 6: Execute the command
     if (!execute(executablePath, args, currentDirectory, true, currentPage, isAttractMode, collectionItem)) {
-        LOG_ERROR("Launcher", "Failed to launch.");
+        LOG_ERROR("Launcher", "Execution failed for: " + executablePath);
         return false;
     }
 
+    // Step 7: Check for reboot configuration
     bool reboot = false;
     config_.getProperty("launchers." + launcherName + ".reboot", reboot);
 
+    LOG_INFO("Launcher", "Execution completed for: " + executablePath + " with reboot flag: " + std::to_string(reboot));
     return reboot;
 }
 
@@ -367,8 +342,7 @@ bool Launcher::simpleExecute(std::string executable, std::string args, std::stri
     return retVal;
 }
 
-bool Launcher::execute(std::string executable, std::string args, std::string currentDirectory, bool wait, Page* currentPage, bool isAttractMode, Item* collectionItem)
-{
+bool Launcher::execute(std::string executable, std::string args, std::string currentDirectory, bool wait, Page* currentPage, bool isAttractMode, Item* collectionItem) {
     bool retVal = false;
     std::string executionString = "\"" + executable + "\" " + args;
 
@@ -380,7 +354,7 @@ bool Launcher::execute(std::string executable, std::string args, std::string cur
     bool multiple_display = SDL_GetNumVideoDisplays() > 1;
     bool animateDuringGame = true;
     config_.getProperty("OPTION_ANIMATEDURINGGAME", animateDuringGame);
-    
+
     if (animateDuringGame && multiple_display && currentPage != nullptr) {
         stop_thread = false;
         proc_thread = std::thread([this, &stop_thread, currentPage]() {
@@ -402,55 +376,36 @@ bool Launcher::execute(std::string executable, std::string args, std::string cur
         currDir = std::filesystem::absolute(currDir);
     }
 
-    LOG_DEBUG("LauncherDebug", "Final executablePath: " + exePath.string());
-    LOG_DEBUG("LauncherDebug", "Final currentDirectory: " + currDir.string());
+    std::string exePathStr = exePath.string();
+    std::string currDirStr = currDir.string();
 
-    std::wstring exePathW = exePath.wstring();
-    std::wstring argsW = std::wstring(args.begin(), args.end());
-    std::wstring currDirW = currDir.wstring();
+    // Log final paths after any necessary conversions to absolute paths
+    LOG_INFO("Launcher", "Final absolute executable path: " + exePathStr);
+    LOG_INFO("Launcher", "Final absolute current directory: " + currDirStr);
 
-    // Lambda function to check if a window is fullscreen
-    auto isFullscreenWindow = [](HWND hwnd) -> auto {
+    // Lambda to check if a window is in fullscreen mode
+    auto isFullscreenWindow = [](HWND hwnd) {
         RECT appBounds;
-        if (!GetWindowRect(hwnd, &appBounds))
-            return false;
+        if (!GetWindowRect(hwnd, &appBounds)) return false;
 
         HMONITOR hMonitor = MonitorFromWindow(hwnd, MONITOR_DEFAULTTONEAREST);
-        if (hMonitor == nullptr)
-            return false;
+        if (!hMonitor) return false;
 
         MONITORINFO monitorInfo{};
         monitorInfo.cbSize = sizeof(MONITORINFO);
-        if (!GetMonitorInfo(hMonitor, &monitorInfo))
-            return false;
+        if (!GetMonitorInfo(hMonitor, &monitorInfo)) return false;
 
-        return (appBounds.bottom - appBounds.top) == (monitorInfo.rcMonitor.bottom - monitorInfo.rcMonitor.top)
-            && (appBounds.right - appBounds.left) == (monitorInfo.rcMonitor.right - appBounds.left);
+        return (appBounds.bottom - appBounds.top) == (monitorInfo.rcMonitor.bottom - monitorInfo.rcMonitor.top) &&
+            (appBounds.right - appBounds.left) == (monitorInfo.rcMonitor.right - monitorInfo.rcMonitor.left);
         };
-
-    std::wstring executionStringW = exePathW + L" " + argsW;
-    PWSTR pszApplication = nullptr;
-    PWSTR pszCommandLine = nullptr;
-
-    HRESULT hr = SHEvaluateSystemCommandTemplate(executionStringW.c_str(), &pszApplication, &pszCommandLine, nullptr);
-    if (FAILED(hr)) {
-        LOG_ERROR("Launcher", "Invalid execution string error: " + std::to_string(hr));
-        return false;
-    }
-
-    LOG_INFO("Launcher", "Launching: " + Utils::wstringToString(executionStringW));
-
-    // Lower priority before launching the process
-    SetPriorityClass(GetCurrentProcess(), BELOW_NORMAL_PRIORITY_CLASS);
 
     HANDLE hLaunchedProcess = nullptr;
     bool handleObtained = false;
 
-    if (exePath.extension() == L".exe") {
-        STARTUPINFOW startupInfo;
-        PROCESS_INFORMATION processInfo;
-        memset(&startupInfo, 0, sizeof(startupInfo));
-        memset(&processInfo, 0, sizeof(processInfo));
+    // Check if launching an executable
+    if (exePath.extension() == ".exe") {
+        STARTUPINFOA startupInfo{};
+        PROCESS_INFORMATION processInfo{};
         startupInfo.cb = sizeof(startupInfo);
         startupInfo.dwFlags = STARTF_USESHOWWINDOW;
         startupInfo.hStdError = GetStdHandle(STD_ERROR_HANDLE);
@@ -458,37 +413,65 @@ bool Launcher::execute(std::string executable, std::string args, std::string cur
         startupInfo.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
         startupInfo.wShowWindow = SW_SHOWDEFAULT;
 
-        if (CreateProcessW(pszApplication, pszCommandLine, nullptr, nullptr, FALSE, CREATE_NO_WINDOW, nullptr, currDirW.c_str(), &startupInfo, &processInfo)) {
+        // Construct command line
+        std::string commandLine = "\"" + exePathStr + "\"";
+        if (!args.empty()) {
+            commandLine += " " + args;
+        }
+
+        LOG_INFO("Launcher", "Command line to be executed: " + commandLine);
+
+        if (CreateProcessA(
+            nullptr,
+            &commandLine[0],          // Mutable command line
+            nullptr,                  // Process security attributes
+            nullptr,                  // Thread security attributes
+            FALSE,                    // Inherit handles
+            CREATE_NO_WINDOW,         // Creation flags
+            nullptr,                  // Use parent's environment block
+            currDirStr.c_str(),       // Current directory
+            &startupInfo,             // Startup information
+            &processInfo)) {          // Process information
             hLaunchedProcess = processInfo.hProcess;
             handleObtained = true;
             CloseHandle(processInfo.hThread);
-        } else {
-            LOG_WARNING("Launcher", "Failed to run: " + executable + " with error code: " + std::to_string(GetLastError()));
+            LOG_INFO("Launcher", "Process launched successfully with handle obtained.");
         }
-    } else {
-        SHELLEXECUTEINFOW shExInfo = {0};
-        shExInfo.cbSize = sizeof(SHELLEXECUTEINFOW);
+        else {
+            LOG_ERROR("Launcher", "Failed to launch executable: " + exePathStr + " with error code: " + std::to_string(GetLastError()));
+        }
+    }
+    // Use ShellExecuteEx for non-executable files
+    else {
+        SHELLEXECUTEINFOA shExInfo = { 0 };
+        shExInfo.cbSize = sizeof(SHELLEXECUTEINFOA);
         shExInfo.fMask = SEE_MASK_NOCLOSEPROCESS | SEE_MASK_NO_CONSOLE;
         shExInfo.hwnd = nullptr;
-        shExInfo.lpVerb = L"open";
-        shExInfo.lpFile = pszApplication;
-        shExInfo.lpParameters = pszCommandLine;
-        shExInfo.lpDirectory = currDirW.c_str();
+        shExInfo.lpVerb = "open";
+        shExInfo.lpFile = exePathStr.c_str();
+        shExInfo.lpParameters = args.empty() ? nullptr : args.c_str();
+        shExInfo.lpDirectory = currDirStr.c_str();
         shExInfo.nShow = SW_SHOWNORMAL;
         shExInfo.hInstApp = nullptr;
 
-        if (ShellExecuteExW(&shExInfo)) {
+        if (ShellExecuteExA(&shExInfo)) {
             hLaunchedProcess = shExInfo.hProcess;
-            if (hLaunchedProcess)
+            if (hLaunchedProcess) {
                 handleObtained = true;
-        } else {
-            LOG_WARNING("Launcher", "ShellExecuteEx failed to run: " + executable + " with error code: " + std::to_string(GetLastError()));
+                LOG_INFO("Launcher", "ShellExecuteEx successfully launched: " + exePathStr);
+            }
+        }
+        else {
+            LOG_WARNING("Launcher", "ShellExecuteEx failed to launch: " + executable + " with error code: " + std::to_string(GetLastError()));
         }
     }
 
+    // Fullscreen detection if process handle was not obtained
     if (!handleObtained) {
         auto start = std::chrono::high_resolution_clock::now();
         HWND hwndFullscreen = nullptr;
+
+        LOG_INFO("Launcher", "Entering fullscreen detection phase.");
 
         while (true) {
             HWND hwnd = GetForegroundWindow();
@@ -503,12 +486,10 @@ bool Launcher::execute(std::string executable, std::string args, std::string cur
 
             auto now = std::chrono::high_resolution_clock::now();
             auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - start).count();
-
             if (elapsed > 40000) {
-                LOG_WARNING("Launcher", "Timeout while waiting for fullscreen state.");
+                LOG_WARNING("Launcher", "Timeout while waiting for fullscreen window detection.");
                 break;
             }
-
             Sleep(500);
         }
 
@@ -518,178 +499,32 @@ bool Launcher::execute(std::string executable, std::string args, std::string cur
             hLaunchedProcess = OpenProcess(SYNCHRONIZE, FALSE, gameProcessId);
             if (hLaunchedProcess) {
                 handleObtained = true;
+                LOG_INFO("Launcher", "Fullscreen process detected and handle obtained.");
             }
         }
     }
 
+    // Monitoring the process
     if (handleObtained) {
-        bool is4waySet = false;
-        bool isServoStikEnabled = false;
-        config_.getProperty(OPTION_SERVOSTIKENABLED, isServoStikEnabled);
-        if (currentPage->getSelectedItem()->ctrlType.find("4") != std::string::npos && isServoStikEnabled) {
-            if (!PacSetServoStik4Way()) {
-                LOG_ERROR("RetroFE", "Failed to set ServoStik to 4-way mode");
-            }
-            else {
-                LOG_INFO("RetroFE", "Setting ServoStik to 4-way mode");
-                is4waySet = true;
-            }
-        }
-        if (isAttractMode) {
-            int attractModeLaunchRunTime = 30;
-            config_.getProperty(OPTION_ATTRACTMODELAUNCHRUNTIME, attractModeLaunchRunTime);
-            auto start = std::chrono::high_resolution_clock::now();
-            bool userInputDetected = false;
-
-            auto isAnyKeyPressed = []() -> auto {
-                // Common virtual key codes, adjust this list as necessary
-                std::vector<int> relevantKeys = {
-                    // Letters A-Z
-                    0x41, 0x42, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4A,
-                    0x4B, 0x4C, 0x4D, 0x4E, 0x4F, 0x50, 0x51, 0x52, 0x53, 0x54,
-                    0x55, 0x56, 0x57, 0x58, 0x59, 0x5A, // A-Z
-                    // Numbers 0-9
-                    0x30, 0x31, 0x32, 0x33, 0x34, 0x35, 0x36, 0x37, 0x38, 0x39, // 0-9
-                    // Arrow keys
-                    VK_UP, VK_DOWN, VK_LEFT, VK_RIGHT,
-                    // Other common keys
-                    VK_RETURN, VK_SPACE, VK_ESCAPE, VK_TAB, VK_BACK,
-                    // Modifier keys
-                    VK_SHIFT, VK_CONTROL, VK_MENU // Shift, Ctrl, Alt
-                };
-
-                for (int virtualKey : relevantKeys) {
-                    if (GetAsyncKeyState(virtualKey) & 0x8000) {
-                        LOG_INFO("Launcher", "Key press detected: " + std::to_string(virtualKey));
-                        return true;
-                    }
-                }
-                return false;
-                };
-
-            auto isAnyControllerButtonPressed = []() -> auto {
-                XINPUT_STATE state;
-                ZeroMemory(&state, sizeof(XINPUT_STATE));
-                if (XInputGetState(0, &state) == ERROR_SUCCESS) { // Check the first controller
-                    if (state.Gamepad.wButtons != 0) { // Any button is pressed
-                        return true;
-                    }
-                }
-                return false;
-                };
-            
-            while (true) {
-             
-                // Process window messages
-                MSG msg;
-                while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
-                    DispatchMessage(&msg);
-                }
-
-                // Check for keyboard/controller input
-                if (isAnyKeyPressed() || isAnyControllerButtonPressed()) {
-                    LOG_INFO("Launcher", "User input detected, waiting indefinitely.");
-                    userInputDetected = true;
-                    break;
-                }
-
-                // Check if the launched process has exited
-                DWORD exitCode;
-                if (GetExitCodeProcess(hLaunchedProcess, &exitCode)) {
-                    if (exitCode != STILL_ACTIVE) {
-                        // Process has terminated
-                        break;
-                    }
-                }
-
-                // Check if the timeout has been reached
-                auto now = std::chrono::high_resolution_clock::now();
-                auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - start).count();
-                if (elapsed >= attractModeLaunchRunTime) {
-                    break;
-                }
-
-                // Sleep to prevent high CPU usage
-                std::this_thread::sleep_for(std::chrono::milliseconds(100));
-            }
-
-            if (userInputDetected) {
-                while(WAIT_OBJECT_0 != MsgWaitForMultipleObjects(1, &hLaunchedProcess, FALSE, INFINITE, QS_ALLINPUT)) {
-                    MSG msg;
-                    while(PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
-                        DispatchMessage(&msg);
-                    }
-                    // Add to last played if user interrupted during attract mode
-                    CollectionInfoBuilder cib(config_, *retroFeInstance_.getMetaDb());
-                    std::string lastPlayedSkipCollection = "";
-                    int size = 0;
-                    config_.getProperty(OPTION_LASTPLAYEDSKIPCOLLECTION, lastPlayedSkipCollection);
-                    config_.getProperty(OPTION_LASTPLAYEDSIZE, size);
-
-                    if (lastPlayedSkipCollection != "")
-                    {
-                        // see if any of the comma seperated match current collection
-                        std::stringstream ss(lastPlayedSkipCollection);
-                        std::string collection = "";
-                        bool updateLastPlayed = true;
-                        while (ss.good())
-                        {
-                            getline(ss, collection, ',');
-                            // Check if the current collection matches any collection in lastPlayedSkipCollection
-                            if (collectionItem->collectionInfo->name == collection)
-                            {
-                                updateLastPlayed = false;
-                                break; // No need to check further, as we found a match
-                            }
-                        }
-                        // Update last played collection if not found in the skip collection
-                        if (updateLastPlayed)
-                        {
-                            cib.updateLastPlayedPlaylist(currentPage->getCollection(), collectionItem, size);
-                            //currentPage_->updateReloadables(0);
-                        }
-                    }
-                }
-            } else {
-                LOG_INFO("Launcher", "Attract Mode timeout reached, terminating game.");
-                DWORD processId = GetProcessId(hLaunchedProcess);
-                TerminateProcessAndChildren(processId);  // Terminate the process and its children
-            }
-        }
-        else if (wait) {
+        if (wait) {
+            LOG_INFO("Launcher", "Waiting for launched process to complete.");
             while (WAIT_OBJECT_0 != MsgWaitForMultipleObjects(1, &hLaunchedProcess, FALSE, INFINITE, QS_ALLINPUT)) {
                 MSG msg;
                 while (PeekMessage(&msg, nullptr, 0, 0, PM_REMOVE)) {
                     DispatchMessage(&msg);
                 }
             }
-
-        }
-        if (is4waySet)
-        {
-            if (!PacSetServoStik8Way()) { // return to 8-way if 4-way switch occurred
-                LOG_ERROR("RetroFE", "Failed to return ServoStik to 8-way mode");
-            }
-            else {
-                LOG_INFO("RetroFE", "Returned ServoStik to 8-way mode");
-            }
+            LOG_INFO("Launcher", "Process completed.");
         }
         CloseHandle(hLaunchedProcess);
         retVal = true;
     }
-
-    bool highPriority = false;
-    config_.getProperty("OPTION_HIGHPRIORITY", highPriority);
-    SetPriorityClass(GetCurrentProcess(), highPriority ? ABOVE_NORMAL_PRIORITY_CLASS : NORMAL_PRIORITY_CLASS);
-
-    if (pszApplication) {
-        CoTaskMemFree(pszApplication);
-    }
-    if (pszCommandLine) {
-        CoTaskMemFree(pszCommandLine);
+    else {
+        LOG_WARNING("Launcher", "No handle was obtained; process monitoring will not occur.");
     }
 
 #else
+    // Unix/Linux process execution
     const std::size_t last_slash_idx = executable.rfind(Utils::pathSeparator);
     if (last_slash_idx != std::string::npos) {
         std::string applicationName = executable.substr(last_slash_idx + 1);
@@ -697,28 +532,22 @@ bool Launcher::execute(std::string executable, std::string args, std::string cur
     }
     if (system(executionString.c_str()) != 0) {
         LOG_WARNING("Launcher", "Failed to run: " + executable);
-    } else {
-        retVal = true;
     }
-
-    if (isAttractMode) {
-        std::this_thread::sleep_for(std::chrono::seconds(30));
-        LOG_INFO("Launcher", "Attract Mode timeout reached.");
-        // Unix/Linux specific logic to terminate the process if needed
+    else {
+        retVal = true;
+        LOG_INFO("Launcher", "Unix/Linux command executed successfully.");
     }
 #endif
 
-    if (multiple_display && stop_thread == false) {
+    // Cleanup for animation thread if started
+    if (multiple_display && !stop_thread) {
         stop_thread = true;
         proc_thread.join();
     }
 
-    LOG_INFO("Launcher", "Completed");
-
+    LOG_INFO("Launcher", "Completed execution for: " + executionString);
     return retVal;
-    }
-
-
+}
 
 void Launcher::keepRendering(std::atomic<bool> &stop_thread, Page &currentPage) const
 {
@@ -799,8 +628,6 @@ bool Launcher::launcherName(std::string &launcherName, std::string collection)
     return true;
 }
 
-
-
 bool Launcher::launcherExecutable(std::string& executable, std::string launcherName) {
     // Try with the localLauncher prefix
     std::string executableKey = "localLaunchers." + launcherName + ".executable";
@@ -819,8 +646,6 @@ bool Launcher::launcherExecutable(std::string& executable, std::string launcherN
     return true;
 }
 
-
-
 bool Launcher::launcherArgs(std::string& args, std::string launcherName) {
     // Try with the localLauncher prefix
     std::string argsKey = "localLaunchers." + launcherName + ".arguments";
@@ -838,8 +663,6 @@ bool Launcher::launcherArgs(std::string& args, std::string launcherName) {
     }
     return true;
 }
-
-
 
 bool Launcher::extensions(std::string &extensions, std::string collection)
 {
@@ -871,22 +694,20 @@ bool Launcher::findFile(std::string& foundFilePath, std::string& foundFilename, 
     std::stringstream ss(extensions);
     std::string extension;
 
-    while (!fileFound && std::getline(ss, extension, ',')) {
+    while (std::getline(ss, extension, ',')) {
         fs::path filePath = fs::path(directory) / (filenameWithoutExtension + "." + extension);
 
         if (fs::exists(filePath)) {
             foundFilePath = fs::absolute(filePath).string();
             foundFilename = extension;
             fileFound = true;
-            LOG_INFO("Launcher", "File found: " + foundFilePath);
-        }
-        else {
-            LOG_WARNING("Launcher", "File not found: " + filePath.string());
+            LOG_INFO("Launcher", "File found: " + foundFilePath + " with extension: ." + extension);
+            break; // Exit the loop once the file is found
         }
     }
 
     if (!fileFound) {
-        LOG_WARNING("Launcher", "Could not find any files with the name \"" + filenameWithoutExtension + "\" in folder \"" + directory + "\"");
+        LOG_WARNING("Launcher", "No matching files found for \"" + filenameWithoutExtension + "\" in directory \"" + directory + "\" with extensions: " + extensions);
     }
 
     return fileFound;
