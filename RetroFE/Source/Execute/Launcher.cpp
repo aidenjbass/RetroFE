@@ -857,7 +857,7 @@ bool Launcher::findFile(std::string& foundFilePath, std::string& foundFilename, 
     }
 
     if (!fileFound) {
-        LOG_WARNING("Launcher", "No matching files found for \"" + filenameWithoutExtension + "\" in directory \"" + directory + "\" with extensions: " + extensions);
+        LOG_ERROR("Launcher", "No matching files found for \"" + filenameWithoutExtension + "\" in directory \"" + directory + "\" with extensions: " + extensions);
     }
 
     return fileFound;
