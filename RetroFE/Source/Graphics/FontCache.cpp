@@ -53,8 +53,8 @@ bool FontCache::initialize() const
     }
 }
 
-Font* FontCache::getFont(const std::string& fontPath, int fontSize, SDL_Color color) {
-    std::string key = buildFontKey(fontPath, fontSize, color);
+Font* FontCache::getFont(const std::string& fontPath, int fontSize, SDL_Color color, int monitor) {
+    std::string key = buildFontKey(fontPath, fontSize, color, monitor);
     auto it = fontFaceMap_.find(key);
 
     if (it != fontFaceMap_.end()) {
@@ -65,16 +65,16 @@ Font* FontCache::getFont(const std::string& fontPath, int fontSize, SDL_Color co
 }
 
 
-std::string FontCache::buildFontKey(std::string font, int fontSize, SDL_Color color)
+std::string FontCache::buildFontKey(std::string font, int fontSize, SDL_Color color, int monitor)
 {
     std::stringstream ss;
     ss << font << "_SIZE=" << fontSize << " RGB=" << color.r << "." << color.g << "." << color.b;
-
+    ss << "_MONITOR=" << monitor;
     return ss.str();
 }
 
 bool FontCache::loadFont(std::string fontPath, int fontSize, SDL_Color color, int monitor) {
-    std::string key = buildFontKey(fontPath, fontSize, color);
+    std::string key = buildFontKey(fontPath, fontSize, color, monitor);
     if (fontFaceMap_.find(key) == fontFaceMap_.end()) {
         auto font = std::make_unique<Font>(fontPath, fontSize, color, monitor);
         if (font->initialize()) {
