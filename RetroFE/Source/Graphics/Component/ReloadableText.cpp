@@ -60,13 +60,8 @@ bool ReloadableText::update(float dt)
     }
     else if (type_ == "file")
     {
-        static Uint32 lastFileReloadTime_ = 0; // Time of the last file reload in milliseconds
-        static const Uint32 fileDebounceDuration_ = 1000; // 1 second debounce for files
-
         Uint32 now = SDL_GetTicks();
-        // Apply debounce logic specifically for file type
-        if (now - lastFileReloadTime_ >= fileDebounceDuration_)
-        {
+        if (now - lastFileReloadTime_ >= fileDebounceDuration_) {
             ReloadTexture();
             lastFileReloadTime_ = now;
         }
