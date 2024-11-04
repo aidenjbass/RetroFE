@@ -105,7 +105,7 @@ Page* PageBuilder::buildPage(const std::string& collectionName, bool defaultToCu
         layouts.push_back("layout - " + std::to_string(i));
     }
     for (size_t layoutIndex = 0; layoutIndex < layouts.size(); layoutIndex++) {
-        rapidxml::xml_document<> doc;
+        auto doc = std::make_unique<rapidxml::xml_document<>>();
         std::ifstream fileStream;
 
         // Use a separate variable to avoid modifying localLayoutPath across iterations
@@ -178,9 +178,9 @@ Page* PageBuilder::buildPage(const std::string& collectionName, bool defaultToCu
         buffer.push_back('\0');
 
         try {
-            doc.parse<0>(&buffer[0]);
+            doc->parse<0>(&buffer[0]);
 
-            xml_node<>* root = doc.first_node("layout");
+            xml_node<>* root = doc->first_node("layout");
 
             if (!root) {
                 LOG_ERROR("Layout", "Missing <layout> tag");
