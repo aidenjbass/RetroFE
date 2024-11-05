@@ -138,13 +138,16 @@ void Image::allocateGraphicsMemory() {
 
     // Define a lambda to attempt loading a file with caching
     auto tryLoad = [&](const std::string& filePath) -> bool {
+        // Generate the cache key
+        std::string cacheKey = filePath + "#" + std::to_string(baseViewInfo.Monitor);
+        
         // Attempt to retrieve CachedImage from cache
         bool foundInCache = false;
         CachedImage* cachedImagePtr = nullptr;
 
         {
             std::shared_lock<std::shared_mutex> lock(textureCacheMutex_);
-            auto it = textureCache_.find(filePath);
+            auto it = textureCache_.find(cacheKey);
             if (it != textureCache_.end()) {
                 cachedImagePtr = &it->second;
                 foundInCache = true;
@@ -414,14 +417,14 @@ void Image::allocateGraphicsMemory() {
         // Update the cache
         {
             std::unique_lock<std::shared_mutex> lock(textureCacheMutex_);
-            textureCache_[filePath] = newCachedImage;
+            textureCache_[cacheKey] = newCachedImage;
         }
 
         // Assign to instance-specific pointers by referencing the cache entry
         const CachedImage* cacheEntry = nullptr;
         {
             std::shared_lock<std::shared_mutex> lock(textureCacheMutex_);
-            cacheEntry = &textureCache_.at(filePath); // Cache entry pointer acquired
+            cacheEntry = &textureCache_.at(cacheKey);
         }
 
         if (cacheEntry->texture) {
