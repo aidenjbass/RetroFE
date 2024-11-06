@@ -95,7 +95,7 @@ private:
      * @return true    If the file was loaded successfully.
      * @return false   If the file could not be loaded.
      */
-    static bool loadFileToBuffer(const std::string& filePath, std::vector<uint8_t>& buffer);
+    bool loadFileToBuffer(const std::string& filePath);
 
     /**
      * @brief Checks if a buffer contains GIF data based on magic numbers.

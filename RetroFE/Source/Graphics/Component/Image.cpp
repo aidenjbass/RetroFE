@@ -37,21 +37,38 @@
 std::unordered_map<std::string, Image::CachedImage> Image::textureCache_;
 std::shared_mutex Image::textureCacheMutex_;
 
-bool Image::loadFileToBuffer(const std::string& filePath, std::vector<uint8_t>& buffer) {
-    std::ifstream file(filePath, std::ios::binary);
+bool Image::loadFileToBuffer(const std::string& filePath) {
+    LOG_INFO("Image", "Attempting to load file into buffer: " + filePath);
+
+    // Open the file in binary mode and move the cursor to the end to determine the size
+    std::ifstream file(filePath, std::ios::binary | std::ios::ate);
     if (!file) {
+        LOG_ERROR("Image", "Failed to open file: " + filePath);
         return false;
     }
 
-    // Read the file into a buffer using iterator-based constructor
-    buffer.assign((std::istreambuf_iterator<char>(file)),
-        std::istreambuf_iterator<char>());
-
-    if (buffer.empty()) {
-        LOG_ERROR("Image", "Failed to read file or file is empty: " + filePath);
+    // Get the file size
+    std::streamsize size = file.tellg();
+    LOG_INFO("Image", "File size: " + std::to_string(size) + " bytes");
+    if (size <= 0) {
+        LOG_ERROR("Image", "File is empty or invalid: " + filePath);
         return false;
     }
 
+    // Seek back to the beginning of the file
+    file.seekg(0, std::ios::beg);
+
+    // Resize the buffer to fit the file data
+    buffer_.resize(static_cast<size_t>(size));
+
+    // Read the file data directly into the buffer
+    if (!file.read(reinterpret_cast<char*>(buffer_.data()), size)) {
+        LOG_ERROR("Image", "Failed to read file: " + filePath);
+        buffer_.clear(); // Ensure the buffer is empty on failure
+        return false;
+    }
+
+    LOG_INFO("Image", "Successfully loaded file into buffer: " + filePath);
     return true;
 }
 bool Image::isAnimatedGIF(const std::vector<uint8_t>& buffer) {
@@ -166,7 +183,7 @@ void Image::allocateGraphicsMemory() {
                     {
                         std::unique_lock<std::shared_mutex> lock(textureCacheMutex_);
                         SDL_DestroyTexture(texture_);
-                        textureCache_.erase(filePath);
+                        textureCache_.erase(cacheKey);
                     }
                     LOG_ERROR("Image", "Failed to query texture: " + std::string(SDL_GetError()));
                     return false;
@@ -210,7 +227,7 @@ void Image::allocateGraphicsMemory() {
 
 
         // If not found in cache, proceed to load from file
-        if (!loadFileToBuffer(filePath, buffer_)) {
+        if (!loadFileToBuffer(filePath)) {
             return false;
         }
 
