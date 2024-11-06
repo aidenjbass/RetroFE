@@ -210,17 +210,16 @@ void Image::allocateGraphicsMemory() {
 
 
         // If not found in cache, proceed to load from file
-        std::vector<uint8_t> buffer;
-        if (!loadFileToBuffer(filePath, buffer)) {
+        if (!loadFileToBuffer(filePath, buffer_)) {
             return false;
         }
 
         bool isAnimated = false;
-        bool animatedGif = isAnimatedGIF(buffer);
-        bool animatedWebP = isAnimatedWebP(buffer);
+        bool animatedGif = isAnimatedGIF(buffer_);
+        bool animatedWebP = isAnimatedWebP(buffer_);
 
         // Create SDL_RWops from the buffer
-        SDL_RWops* rw = SDL_RWFromConstMem(buffer.data(), static_cast<int>(buffer.size()));
+        SDL_RWops* rw = SDL_RWFromConstMem(buffer_.data(), static_cast<int>(buffer_.size()));
         if (!rw) {
             LOG_ERROR("Image", "Failed to create RWops from buffer: " + std::string(SDL_GetError()));
             return false;
@@ -236,7 +235,7 @@ void Image::allocateGraphicsMemory() {
                 return false;
             }
 
-            WebPData webpData = { buffer.data(), buffer.size() };
+            WebPData webpData = { buffer_.data(), buffer_.size() };
             WebPDemuxer* demux = WebPDemux(&webpData);
             if (!demux) {
                 LOG_ERROR("Image", "Failed to initialize WebP demuxer.");
@@ -337,7 +336,7 @@ void Image::allocateGraphicsMemory() {
             LOG_INFO("Image", "Loaded WebP animated texture.");
         }
         else if (animatedGif) {
-            IMG_Animation* animation = IMG_LoadAnimation_RW(rw, 1); // For GIFs
+            IMG_Animation* animation = IMG_LoadAnimation_RW(rw, 0); // For GIFs
             if (animation) {
                 SDL_LockMutex(SDL::getMutex());
 
@@ -378,7 +377,7 @@ void Image::allocateGraphicsMemory() {
         if (!isAnimated) {
             SDL_LockMutex(SDL::getMutex());
 
-            newCachedImage.texture = IMG_LoadTexture_RW(SDL::getRenderer(baseViewInfo.Monitor), rw, 1);
+            newCachedImage.texture = IMG_LoadTexture_RW(SDL::getRenderer(baseViewInfo.Monitor), rw, 0);
             if (newCachedImage.texture) {
                 SDL_SetTextureBlendMode(newCachedImage.texture, baseViewInfo.Additive ? SDL_BLENDMODE_ADD : SDL_BLENDMODE_BLEND);
 
@@ -435,6 +434,8 @@ void Image::allocateGraphicsMemory() {
             frameTextures_ = &cacheEntry->frameTextures;
         }
 
+        SDL_RWclose(rw);
+        buffer_.clear(); // Optional: Clear if you no longer need the buffer
         LOG_INFO("Image", "Loaded and cached texture: " + filePath);
         return true;
         };

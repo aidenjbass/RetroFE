@@ -125,4 +125,5 @@ private:
 	int frameDelay_ = 0;                                    // Delay time for the current frame 
     bool textureIsUncached_ = false;
 	bool useTextureCaching_ = false;
+    std::vector<uint8_t> buffer_; // Persistent buffer
 };
