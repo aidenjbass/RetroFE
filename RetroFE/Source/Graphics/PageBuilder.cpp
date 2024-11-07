@@ -69,31 +69,33 @@ PageBuilder::PageBuilder(const std::string& layoutKey, const std::string& layout
 
 PageBuilder::~PageBuilder() = default;
 
-Page* PageBuilder::buildPage(const std::string& collectionName, bool defaultToCurrentLayout)
+Page *PageBuilder::buildPage( const std::string& collectionName, bool defaultToCurrentLayout)
 {
-    Page* page = nullptr;
+    Page *page = nullptr;
 
     std::string layoutFile;
     std::string layoutFileAspect;
     std::string layoutName = layoutKey;
     std::string layoutPathDefault = Utils::combinePath(Configuration::absolutePath, "layouts", layoutName);
-    std::string localLayoutPath = layoutPathDefault;
     bool fixedResLayouts = false;
     config_.getProperty(OPTION_FIXEDRESLAYOUTS, fixedResLayouts);
     namespace fs = std::filesystem;
 
+    // These just prevented repeated logging
     bool splashInitialized = false;
     bool fixedResLayoutsInitialized = false;
 
-    if (isMenu_) {
-        localLayoutPath = Utils::combinePath(Configuration::absolutePath, "menu");
+    if ( isMenu_ ) {
+        layoutPath = Utils::combinePath(Configuration::absolutePath, "menu");
     }
-    else if (!collectionName.empty()) {
-        localLayoutPath = Utils::combinePath(layoutPathDefault, "collections", collectionName, "layout");
+    else if ( collectionName != "" ) {
+        layoutPath = Utils::combinePath(Configuration::absolutePath, "layouts", layoutName, "collections", collectionName);
+        layoutPath = Utils::combinePath(layoutPath, "layout");
 
         if (defaultToCurrentLayout) {
-            std::ifstream layoutFileCheck((localLayoutPath + ".xml").c_str());
-            if (!layoutFileCheck.good()) {
+            std::ifstream file((layoutPath + ".xml").c_str());
+            // check collection has layout otherwise it would have used default folder layout
+            if (!file.good()) {
                 return nullptr;
             }
         }
@@ -101,34 +103,34 @@ Page* PageBuilder::buildPage(const std::string& collectionName, bool defaultToCu
 
     std::vector<std::string> layouts;
     layouts.push_back(layoutPage);
+    // layout - #.xml
     for (int i = 0; i < Page::MAX_LAYOUTS; i++) {
         layouts.push_back("layout - " + std::to_string(i));
     }
-    for (size_t layoutIndex = 0; layoutIndex < layouts.size(); layoutIndex++) {
+    for ( unsigned int layout = 0; layout < layouts.size(); layout++ ) {
         auto doc = std::make_unique<rapidxml::xml_document<>>();
-        std::ifstream fileStream;
+        std::ifstream file;
 
-        // Use a separate variable to avoid modifying localLayoutPath across iterations
-        std::string currentLayoutPath = localLayoutPath;
-
-        // Override layout with layoutFromAnotherCollection
+        // Override layout with layoutFromAnotherCollection = <collection> in layouts/Arcades/collections/<collection>
         std::string layoutFromAnotherCollection;
         config_.getProperty("collections." + collectionName + ".layoutFromAnotherCollection", layoutFromAnotherCollection);
-        if (!layoutFromAnotherCollection.empty()) {
-            LOG_INFO("Layout", "Using layout from collection: " + layoutFromAnotherCollection + " " + layouts[layoutIndex] + ".xml");
-            currentLayoutPath = Utils::combinePath(layoutPathDefault, "collections", layoutFromAnotherCollection, "layout");
+        if (layoutFromAnotherCollection != "") {
+            LOG_INFO("Layout", "Using layout from collection: " + layoutFromAnotherCollection + " " + layouts[layout] + ".xml");
+            std::string layoutFileFromAnotherCollection = Utils::combinePath(layoutPathDefault, "collections", layoutFromAnotherCollection, "layout");
+            layoutPath = layoutFileFromAnotherCollection;
         }
 
-        layoutFile = Utils::combinePath(currentLayoutPath, layouts[layoutIndex] + ".xml");
+        layoutFile = Utils::combinePath(layoutPath, layouts[layout] + ".xml");
 
-        if (fixedResLayouts) {
+        if(fixedResLayouts) {
+            // Use fixed resolution layout ie layout1920x1080.xml
             if (!fixedResLayoutsInitialized) {
                 LOG_INFO("Layout", "Fixed resolution layouts have been enabled");
                 fixedResLayoutsInitialized = true;
             }
             layoutFileAspect = Utils::combinePath(layoutPathDefault,
                 std::to_string(screenWidth_ / Utils::gcd(screenWidth_, screenHeight_)) + "x" +
-                std::to_string(screenHeight_ / Utils::gcd(screenWidth_, screenHeight_)) + layouts[layoutIndex] +
+                std::to_string(screenHeight_ / Utils::gcd(screenWidth_, screenHeight_)) + layouts[layout] +
                 ".xml");
             if (fs::exists(layoutFileAspect)) {
                 layoutFile = layoutFileAspect;
@@ -140,61 +142,62 @@ Page* PageBuilder::buildPage(const std::string& collectionName, bool defaultToCu
         }
 
         if (fs::exists(layoutFile)) {
+            // Check for layouts/<layout>/collections/<collectionName>/layout
             LOG_INFO("Layout", "Attempting to initialize collection layout: " + layoutFile);
-            fileStream.open(layoutFile.c_str());
-            fileStream.close();
+            file.open( layoutFile.c_str() );
+            std::ifstream file(layoutFile.c_str());
+            file.close();
         }
         else {
-            if (currentLayoutPath != layoutPathDefault) {
-                if (layouts[layoutIndex] != "splash") {
-                    layoutFile = Utils::combinePath(layoutPathDefault, layouts[layoutIndex] + ".xml");
-                    if (fs::exists(layoutFile)) {
+            if (layoutPath != layoutPathDefault) {
+                if ( layouts[layout] != "splash") {
+                    if ( layoutFile = Utils::combinePath(layoutPathDefault, layouts[layout] + ".xml"); fs::exists(layoutFile) ) {
+                        // Check for layouts/<layout>/layout
                         LOG_INFO("Layout", "Attempting to initialize default layout: " + layoutFile);
-                        fileStream.open(layoutFile.c_str());
-                        fileStream.close();
+                        file.open( layoutFile.c_str() );
+                        std::ifstream file(layoutFile.c_str());
+                        file.close();
                     }
-                    else {
+                    else if(!fs::exists(layoutFile)) {
+                        // If layouts/<layout>/layout - x.xml doesn't exist log here but continue
                         LOG_WARNING("Layout", "Layout not found: " + layoutFile);
                         continue;
                     }
                 }
                 else if (!splashInitialized && fs::exists(Utils::combinePath(layoutPathDefault, "splash.xml"))) {
-                    std::string layoutSplashFile = Utils::combinePath(layoutPathDefault, "splash.xml");
+                    // Check for splash page then don't check again
+                    std::string layoutSplashFile;
+                    layoutSplashFile = Utils::combinePath(layoutPathDefault, "splash.xml");
                     LOG_INFO("Layout", "Attempting to initialize splash: " + layoutSplashFile);
-                    fileStream.open(layoutSplashFile.c_str());
-                    fileStream.close();
+                    file.open( layoutSplashFile.c_str() );
+                    std::ifstream file(layoutSplashFile.c_str());
+                    file.close();
                     splashInitialized = true;
                 }
             }
         }
 
-        std::ifstream file(layoutFile.c_str());
-        if (!file.good()) {
-            LOG_ERROR("Layout", "Could not open layout file: " + layoutFile);
-            continue;
-        }
-
         std::vector<char> buffer((std::istreambuf_iterator<char>(file)), std::istreambuf_iterator<char>());
-        buffer.push_back('\0');
 
         try {
+            buffer.push_back('\0');
+
             doc->parse<0>(&buffer[0]);
 
             xml_node<>* root = doc->first_node("layout");
 
             if (!root) {
                 LOG_ERROR("Layout", "Missing <layout> tag");
-                continue;
+                return nullptr;
             }
             else {
-                // Extract layout attributes
                 xml_attribute<> const* layoutWidthXml = root->first_attribute("width");
                 xml_attribute<> const* layoutHeightXml = root->first_attribute("height");
                 xml_attribute<> const* fontXml = root->first_attribute("font");
                 xml_attribute<> const* fontColorXml = root->first_attribute("fontColor");
                 xml_attribute<> const* fontSizeXml = root->first_attribute("loadFontSize");
                 xml_attribute<> const* minShowTimeXml = root->first_attribute("minShowTime");
-                xml_attribute<> const* controlsXml = root->first_attribute("controls");
+                xml_attribute<> const* controls = root->first_attribute("controls");
                 xml_attribute<> const* layoutMonitorXml = root->first_attribute("monitor");
 
                 if (fontXml) {
@@ -202,7 +205,9 @@ Page* PageBuilder::buildPage(const std::string& collectionName, bool defaultToCu
                         Utils::combinePath(config_.absolutePath, "layouts", layoutKey, ""),
                         fontXml->value());
 
-                    if (!fs::exists(fontName_)) {
+                    // Check if the font file exists
+                    if (!std::filesystem::exists(fontName_)) {
+                        // Fallback to a standard font if the file doesn't exist
                         LOG_ERROR("RetroFE", "Specified font at \n    " + fontName_ + "\n does not exist. Falling back to standard font.");
                         fontName_ = config_.convertToAbsolutePath(
                             Utils::combinePath(config_.absolutePath, "layouts", layoutKey, ""),
@@ -211,7 +216,7 @@ Page* PageBuilder::buildPage(const std::string& collectionName, bool defaultToCu
                 }
 
                 if (fontColorXml) {
-                    unsigned int intColor;
+                    int intColor = 0;
                     std::stringstream ss;
                     ss << std::hex << fontColorXml->value();
                     ss >> intColor;
@@ -231,19 +236,19 @@ Page* PageBuilder::buildPage(const std::string& collectionName, bool defaultToCu
                     std::string layoutWidthStr = layoutWidthXml->value();
                     std::string layoutHeightStr = layoutHeightXml->value();
 
+                    // Determine the monitor from the layout tag or use a default
                     int monitor = layoutMonitorXml ? Utils::convertInt(layoutMonitorXml->value()) : monitor_;
 
+                    // Get the width and height based on whether "stretch" is specified
                     if (layoutWidthStr == "stretch") {
                         layoutWidth_ = SDL::getWindowWidth(monitor);
-                    }
-                    else {
+                    } else {
                         layoutWidth_ = Utils::convertInt(layoutWidthStr);
                     }
 
                     if (layoutHeightStr == "stretch") {
                         layoutHeight_ = SDL::getWindowHeight(monitor);
-                    }
-                    else {
+                    } else {
                         layoutHeight_ = Utils::convertInt(layoutHeightStr);
                     }
 
@@ -252,12 +257,11 @@ Page* PageBuilder::buildPage(const std::string& collectionName, bool defaultToCu
                         ss << layoutWidth_ << "x" << layoutHeight_ << " (scale " << (float)SDL::getWindowWidth(monitor) / (float)layoutWidth_ << "x" << (float)SDL::getWindowHeight(monitor) / (float)layoutHeight_ << ")";
                         LOG_INFO("Layout", "Layout resolution " + ss.str());
 
-                        if (!page) {
+                        if (!page)
                             page = new Page(config_, layoutWidth_, layoutHeight_);
-                        }
                         else {
-                            page->setLayoutWidth(static_cast<int>(layoutIndex), layoutWidth_);
-                            page->setLayoutHeight(static_cast<int>(layoutIndex), layoutHeight_);
+                            page->setLayoutWidth(layout, layoutWidth_);
+                            page->setLayoutHeight(layout, layoutHeight_);
 
                             if (monitor) {
                                 page->setLayoutWidthByMonitor(monitor, layoutWidth_);
@@ -267,85 +271,77 @@ Page* PageBuilder::buildPage(const std::string& collectionName, bool defaultToCu
                     }
                 }
 
-                if (minShowTimeXml && page) {
+                if (minShowTimeXml) {
                     page->setMinShowTime(Utils::convertFloat(minShowTimeXml->value()));
                 }
 
-                if (controlsXml && controlsXml->value() && controlsXml->value()[0] != '\0' && page) {
-                    std::string controlLayout = controlsXml->value();
+                // add additional controls to replace others based on theme/layout
+                if (controls && controls->value() && controls->value()[0] != '\0'){
+                    std::string controlLayout = controls->value();
                     LOG_INFO("Layout", "Layout set custom control type " + controlLayout);
                     page->setControlsType(controlLayout);
                 }
 
-                // Load sounds
-                for (xml_node<> const* soundNode = root->first_node("sound"); soundNode; soundNode = soundNode->next_sibling("sound")) {
-                    xml_attribute<> const* srcAttr = soundNode->first_attribute("src");
-                    xml_attribute<> const* typeAttr = soundNode->first_attribute("type");
+                // load sounds
+                for (xml_node<> const* sound = root->first_node("sound"); sound; sound = sound->next_sibling("sound")) {
+                    xml_attribute<> const* src = sound->first_attribute("src");
+                    xml_attribute<> const* type = sound->first_attribute("type");
+                    std::string file = Configuration::convertToAbsolutePath(layoutPath, src->value());
 
-                    if (!srcAttr || !typeAttr) {
-                        LOG_ERROR("Layout", "Sound tag missing required attributes");
-                        continue;
+                    // check if collection's assets are in a different theme
+                    std::string layoutName;
+                    config_.getProperty("collections." + collectionName + ".layout", layoutName);
+                    if (layoutName == "") {
+                        config_.getProperty(OPTION_LAYOUT, layoutName);
                     }
-
-                    std::string soundFile = Configuration::convertToAbsolutePath(currentLayoutPath, srcAttr->value());
-
-                    // Check for alternative sound file in a different layout
-                    std::string altLayoutName;
-                    config_.getProperty("collections." + collectionName + ".layout", altLayoutName);
-                    if (altLayoutName.empty()) {
-                        config_.getProperty(OPTION_LAYOUT, altLayoutName);
+                    std::string altfile = Utils::combinePath(Configuration::absolutePath, "layouts", layoutName, std::string(src->value()));
+                    if (!type) {
+                        LOG_ERROR("Layout", "Sound tag missing type attribute");
                     }
-                    std::string altSoundFile = Utils::combinePath(Configuration::absolutePath, "layouts", altLayoutName, srcAttr->value());
+                    else {
+                        // TODO MuteSound key, also this is such a mess
+                        auto* sound = new Sound(file, altfile);
+                        std::string soundType = type->value();
 
-                    auto* sound = new Sound(soundFile, altSoundFile);
-                    std::string soundType = typeAttr->value();
-
-                    if (page) {
-                        if (soundType == "load") {
+                        if (!soundType.compare("load")) {
                             page->setLoadSound(sound);
                         }
-                        else if (soundType == "unload") {
+                        else if (!soundType.compare("unload")) {
                             page->setUnloadSound(sound);
                         }
-                        else if (soundType == "highlight") {
+                        else if (!soundType.compare("highlight")) {
                             page->setHighlightSound(sound);
                         }
-                        else if (soundType == "select") {
+                        else if (!soundType.compare("select")) {
                             page->setSelectSound(sound);
                         }
                         else {
                             LOG_WARNING("Layout", "Unsupported sound effect type \"" + soundType + "\"");
-                            delete sound;
                         }
-                    }
-                    else {
-                        delete sound;
                     }
                 }
 
-                if (page && !buildComponents(root, page, collectionName)) {
+                if (!buildComponents(root, page, collectionName)) {
                     delete page;
                     page = nullptr;
                 }
             }
         }
-        catch (rapidxml::parse_error& e) {
-            const char* bufferStart = buffer.data();
-            const char* errorPos = e.where<char>();
+        catch(rapidxml::parse_error &e) {
+            std::string what = e.what();
+            auto line = static_cast<long>(std::count(&buffer.front(), e.where<char>(), char('\n')) + 1);
+            std::stringstream ss;
+            ss << "Could not parse layout file. [Line: " << line << "] in " << layoutFile << " Reason: " << e.what();
 
-            long lineNumber = static_cast<long>(std::count(bufferStart, errorPos, '\n') + 1);
-
-            std::string errorMessage = "Could not parse layout file. [Line: " + std::to_string(lineNumber) +
-                "] in " + layoutFile + " Reason: " + e.what();
-
-            LOG_ERROR("Layout", errorMessage.c_str());
+            LOG_ERROR("Layout", ss.str());
         }
-        catch (std::exception& e) {
-            LOG_ERROR("Layout", "Could not parse layout file. Reason: " + std::string(e.what()));
+        catch(std::exception &e) {
+            std::string what = e.what();
+            LOG_ERROR("Layout", "Could not parse layout file. Reason: " + what);
         }
 
-        if (page) {
-            if (fixedResLayouts) {
+        if(page) {
+            if(fixedResLayouts) {
                 LOG_INFO("Layout", "Initialized " + layoutFileAspect);
             }
             else {
@@ -359,7 +355,6 @@ Page* PageBuilder::buildPage(const std::string& collectionName, bool defaultToCu
 
     return page;
 }
-
 float PageBuilder::getHorizontalAlignment(const xml_attribute<> *attribute, float valueIfNull) const
 {
     float value;
