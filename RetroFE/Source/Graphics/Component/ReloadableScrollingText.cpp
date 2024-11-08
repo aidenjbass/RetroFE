@@ -309,9 +309,9 @@ void ReloadableScrollingText::reloadTexture(bool resetScroll) {
                 highScoreTable_ = HiScores::getInstance().getHighScoreTable(selectedItem->name);
 
                 // If no high score table, show a default message
-                if (!highScoreTable_) {
-                    text_.push_back("No high scores available.");
-                }
+                //if (!highScoreTable_) {
+                //    text_.push_back("No high scores available.");
+                //}
             }
         }
         
