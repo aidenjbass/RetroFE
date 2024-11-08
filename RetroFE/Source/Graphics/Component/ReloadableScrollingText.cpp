@@ -18,6 +18,7 @@
 #include "../ViewInfo.h"
 #include "../../Database/Configuration.h"
 #include "../../Database/GlobalOpts.h"
+#include "../../Database/HiScores.h"
 #include "../../Utility/Log.h"
 #include "../../Utility/Utils.h"
 #include "../../SDL.h"
@@ -300,6 +301,20 @@ void ReloadableScrollingText::reloadTexture(bool resetScroll) {
     if (text_.empty( )) {
         std::stringstream ss;
         std::string text = "";
+        
+        if (type_ == "hiscores") {
+            Item* selectedItem = page.getSelectedItem(displayOffset_);
+            if (selectedItem) {
+                // Get high score table for the selected game
+                highScoreTable_ = HiScores::getInstance().getHighScoreTable(selectedItem->name);
+
+                // If no high score table, show a default message
+                if (!highScoreTable_) {
+                    text_.push_back("No high scores available.");
+                }
+            }
+        }
+        
         if (type_ == "numberButtons") {
             text = selectedItem->numberButtons;
         }
@@ -482,165 +497,420 @@ void ReloadableScrollingText::loadText( std::string collection, std::string type
 }
 
 void ReloadableScrollingText::draw() {
+    // Call the base component's draw method
     Component::draw();
 
-    if (text_.empty() || waitEndTime_ > 0.0f || baseViewInfo.Alpha <= 0.0f) {
+    // Define padding constants for tables and text
+    const int paddingBetweenColumns = 20;
+    const int rowPadding = 10;
+    const int paddingBetweenTextLines = 5; // Padding between text lines
+
+    // Early exit conditions:
+    // - No text and no table to render
+    // - Waiting time is active
+    // - Component is fully transparent
+    if ((text_.empty() && !(type_ == "hiscores" && highScoreTable_)) ||
+        waitEndTime_ > 0.0f ||
+        baseViewInfo.Alpha <= 0.0f) {
         return;
     }
 
+    // Retrieve the appropriate font and its texture
     Font* font = baseViewInfo.font ? baseViewInfo.font : fontInst_;
     SDL_Texture* texture = font ? font->getTexture() : nullptr;
 
     if (!texture) {
+        std::cerr << "Error: Font texture is null." << std::endl;
         return;
     }
 
-    float scale = baseViewInfo.FontSize / font->getHeight();
+    // Calculate scaling factor based on desired font size
+    float scale = baseViewInfo.FontSize / static_cast<float>(font->getHeight());
+
+    // Determine origin positions relative to the component's origin
+    float xOrigin = baseViewInfo.XRelativeToOrigin();
+    float yOrigin = baseViewInfo.YRelativeToOrigin();
+
+    // Determine maximum rendering dimensions
     float imageMaxWidth = (baseViewInfo.Width < baseViewInfo.MaxWidth && baseViewInfo.Width > 0)
         ? baseViewInfo.Width : baseViewInfo.MaxWidth;
     float imageMaxHeight = (baseViewInfo.Height < baseViewInfo.MaxHeight && baseViewInfo.Height > 0)
         ? baseViewInfo.Height : baseViewInfo.MaxHeight;
 
-    float xOrigin = baseViewInfo.XRelativeToOrigin();
-    float yOrigin = baseViewInfo.YRelativeToOrigin();
-
-    // Update glyph cache if needed
-    if (needsUpdate_ || lastScale_ != scale || lastImageMaxWidth_ != imageMaxWidth || lastImageMaxHeight_ != imageMaxHeight) {
+    // Update glyph cache if scaling or dimensions have changed
+    if (needsUpdate_ || lastScale_ != scale ||
+        lastImageMaxWidth_ != imageMaxWidth ||
+        lastImageMaxHeight_ != imageMaxHeight) {
         updateGlyphCache();
+        lastScale_ = scale;
+        lastImageMaxWidth_ = imageMaxWidth;
+        lastImageMaxHeight_ = imageMaxHeight;
+        needsUpdate_ = false;
     }
 
-    SDL_Rect destRect;
-    destRect.y = static_cast<int>(yOrigin);
+    // Determine scrolling offset based on direction
+    float scrollOffset = currentPosition_; // `update()` handles incrementing `currentPosition_`
 
-    if (direction_ == "horizontal") {
-        float scrollPosition = currentPosition_;
+    // Define clipping boundaries based on `baseViewInfo`
+    SDL_Rect clipRect = {
+        static_cast<int>(xOrigin),
+        static_cast<int>(yOrigin),
+        static_cast<int>(imageMaxWidth),
+        static_cast<int>(imageMaxHeight)
+    };
 
-        // Adjust for negative scroll position
-        if (scrollPosition < 0.0f) {
-            destRect.x = static_cast<int>(xOrigin - scrollPosition);
+    // Enable clipping to ensure content stays within bounds
+    SDL_Renderer* renderer = SDL::getRenderer(baseViewInfo.Monitor); // Adjust window ID as necessary
+    if (renderer) {
+        SDL_RenderSetClipRect(renderer, &clipRect);
+    } else {
+        std::cerr << "Error: Unable to retrieve SDL_Renderer." << std::endl;
+        return;
+    }
+
+    if (type_ == "hiscores" && highScoreTable_) {
+        // **Table Rendering with Conditional Scrolling**
+
+        // 1. Calculate column widths based on header and cell content
+        std::vector<int> columnWidths(highScoreTable_->columns.size(), 0);
+        for (size_t i = 0; i < highScoreTable_->columns.size(); ++i) {
+            // Width based on header
+            int headerWidth = static_cast<int>(font->getWidth(highScoreTable_->columns[i]) * scale);
+            columnWidths[i] = std::max(columnWidths[i], headerWidth);
+
+            // Width based on each cell in the column
+            for (const auto& row : highScoreTable_->rows) {
+                if (i < row.size()) {
+                    int cellWidth = static_cast<int>(font->getWidth(row[i]) * scale);
+                    columnWidths[i] = std::max(columnWidths[i], cellWidth);
+                }
+            }
         }
-        else {
-            destRect.x = static_cast<int>(xOrigin);
+
+        // 2. Calculate total table width and height
+        int totalTableWidth = 0;
+        for (size_t i = 0; i < columnWidths.size(); ++i) {
+            totalTableWidth += columnWidths[i];
+            if (i < columnWidths.size() - 1) {
+                totalTableWidth += paddingBetweenColumns;
+            }
         }
 
-        // Do not scroll if the text fits within the available width
-        if (textWidth_ <= imageMaxWidth && startPosition_ == 0.0f) {
+        int totalTableHeight = static_cast<int>((font->getHeight() * scale + rowPadding) * (highScoreTable_->rows.size() + 1));
+
+        // 3. Determine if scrolling is needed based on direction and content size
+        bool needsScrolling = false;
+        if (direction_ == "vertical") {
+            needsScrolling = (totalTableHeight > imageMaxHeight);
+        }
+        else if (direction_ == "horizontal") {
+            needsScrolling = (totalTableWidth > imageMaxWidth);
+        }
+
+        // 4. If scrolling is not needed, reset scroll position
+        if (!needsScrolling) {
             currentPosition_ = 0.0f;
             waitStartTime_ = 0.0f;
             waitEndTime_ = 0.0f;
         }
 
-        for (const auto& glyph : cachedGlyphs_) {
-            // Calculate the glyph's position with scrolling
-            destRect.x = static_cast<int>(xOrigin + glyph.destRect.x - scrollPosition);
-            destRect.y = static_cast<int>(yOrigin + glyph.destRect.y);
-            destRect.w = glyph.destRect.w;
-            destRect.h = glyph.destRect.h;
+        // 5. Apply scroll offset only if scrolling is needed
+        float adjustedXOrigin = xOrigin;
+        float adjustedYOrigin = yOrigin;
 
-            // Skip glyphs outside the visible area
-            if ((destRect.x + destRect.w) <= xOrigin || destRect.x >= (xOrigin + imageMaxWidth)) {
+        if (needsScrolling) {
+            if (direction_ == "vertical") {
+                adjustedYOrigin -= scrollOffset;
+            }
+            else if (direction_ == "horizontal") {
+                adjustedXOrigin -= scrollOffset;
+            }
+        }
+
+        // 6. Render Table Header
+        float currentY = adjustedYOrigin;
+        int xPos = static_cast<int>(adjustedXOrigin);
+        for (size_t col = 0; col < highScoreTable_->columns.size(); ++col) {
+            const std::string& header = highScoreTable_->columns[col];
+            int xAligned = xPos;
+
+            // Alignment logic
+            if (col == 0) { // Right-align first column
+                //xAligned += columnWidths[col] - static_cast<int>(font->getWidth(header) * scale);
+            }
+            else if (col == highScoreTable_->columns.size() - 1) { // Left-align last column
+                // No adjustment needed
+            }
+            else { // Center-align middle columns
+                //xAligned += (columnWidths[col] - static_cast<int>(font->getWidth(header) * scale)) / 2;
+            }
+
+            // Render each character in the header
+            float charX = static_cast<float>(xAligned);
+            float charY = currentY;
+            for (char c : header) {
+                Font::GlyphInfo glyph;
+                if (font->getRect(c, glyph)) {
+                    SDL_Rect srcRect = glyph.rect;
+                    SDL_Rect destRect = {
+                        static_cast<int>(charX),
+                        static_cast<int>(charY),
+                        static_cast<int>(glyph.rect.w * scale),
+                        static_cast<int>(glyph.rect.h * scale)
+                    };
+
+                    // Render the glyph
+                    SDL::renderCopy(texture, baseViewInfo.Alpha, &srcRect, &destRect, baseViewInfo,
+                        page.getLayoutWidthByMonitor(baseViewInfo.Monitor),
+                        page.getLayoutHeightByMonitor(baseViewInfo.Monitor));
+
+                    // Advance to next character
+                    charX += glyph.advance * scale;
+                }
+            }
+
+            // Move to the next column
+            xPos += columnWidths[col] + paddingBetweenColumns;
+        }
+
+        // Move to the next row position after header
+        currentY += font->getHeight() * scale + rowPadding;
+
+        // 7. Render Table Rows
+        for (const auto& row : highScoreTable_->rows) {
+            xPos = static_cast<int>(adjustedXOrigin);
+
+            // Define rectangle for the entire row
+            SDL_Rect rowRect = {
+                static_cast<int>(adjustedXOrigin),
+                static_cast<int>(currentY),
+                totalTableWidth,
+                static_cast<int>(font->getHeight() * scale)
+            };
+
+            // Clipping: Skip rendering the row if it's completely outside the visible area
+            bool skipRow = false;
+            if (needsScrolling) {
+                if (direction_ == "vertical") {
+                    if (rowRect.y + rowRect.h < yOrigin || rowRect.y > yOrigin + imageMaxHeight) {
+                        skipRow = true;
+                    }
+                }
+                else if (direction_ == "horizontal") {
+                    if (rowRect.x + rowRect.w < xOrigin || rowRect.x > xOrigin + imageMaxWidth) {
+                        skipRow = true;
+                    }
+                }
+            }
+
+            if (skipRow) {
+                currentY += font->getHeight() * scale + rowPadding;
                 continue;
             }
 
-            // Adjust destRect and srcRect for clipping at edges
-            SDL_Rect srcRect = glyph.sourceRect;
+            // Render each cell in the row
+            float currentRowX = static_cast<float>(xPos);
+            float currentRowY = currentY;
+            for (size_t col = 0; col < highScoreTable_->columns.size(); ++col) {
+                std::string cell = (col < row.size()) ? row[col] : ""; // Handle missing columns gracefully
+                int xAligned = xPos;
 
-            // Left clipping
-            if (destRect.x < xOrigin) {
-                int clipAmount = static_cast<int>(xOrigin - destRect.x);
-                destRect.x = static_cast<int>(xOrigin);
-                destRect.w -= clipAmount;
-                srcRect.x += static_cast<int>(clipAmount / scale);
-                srcRect.w -= static_cast<int>(clipAmount / scale);
+                // Alignment logic
+                if (col == 0) { // Right-align first column
+                    //xAligned += columnWidths[col] - static_cast<int>(font->getWidth(cell) * scale);
+                }
+                else if (col == highScoreTable_->columns.size() - 1) { // Left-align last column
+                    // No adjustment needed
+                }
+                else { // Center-align middle columns
+                    //xAligned += (columnWidths[col] - static_cast<int>(font->getWidth(cell) * scale)) / 2;
+                }
+
+                // Render each character in the cell
+                float charX = static_cast<float>(xAligned);
+                float charY = currentRowY;
+                for (char c : cell) {
+                    Font::GlyphInfo glyph;
+                    if (font->getRect(c, glyph)) {
+                        SDL_Rect srcRect = glyph.rect;
+                        SDL_Rect destRect = {
+                            static_cast<int>(charX),
+                            static_cast<int>(charY),
+                            static_cast<int>(glyph.rect.w * scale),
+                            static_cast<int>(glyph.rect.h * scale)
+                        };
+
+                        // Render the glyph
+                        SDL::renderCopy(texture, baseViewInfo.Alpha, &srcRect, &destRect, baseViewInfo,
+                            page.getLayoutWidthByMonitor(baseViewInfo.Monitor),
+                            page.getLayoutHeightByMonitor(baseViewInfo.Monitor));
+
+                        // Advance to next character
+                        charX += glyph.advance * scale;
+                    }
+                }
+
+                // Move to the next column
+                xPos += columnWidths[col] + paddingBetweenColumns;
             }
 
-            // Right clipping
-            if ((destRect.x + destRect.w) > (xOrigin + imageMaxWidth)) {
-                int clipAmount = static_cast<int>((destRect.x + destRect.w) - (xOrigin + imageMaxWidth));
-                destRect.w -= clipAmount;
-                srcRect.w -= static_cast<int>(clipAmount / scale);
-            }
-
-            if (destRect.w <= 0) {
-                continue;
-            }
-
-            SDL::renderCopy(texture, baseViewInfo.Alpha, &srcRect, &destRect, baseViewInfo,
-                page.getLayoutWidthByMonitor(baseViewInfo.Monitor),
-                page.getLayoutHeightByMonitor(baseViewInfo.Monitor));
+            // Move to the next row position
+            currentY += font->getHeight() * scale + rowPadding;
         }
 
-        // Update scrolling position
-        if (currentPosition_ > textWidth_) {
-            waitStartTime_ = startTime_;
-            waitEndTime_ = endTime_;
-            currentPosition_ = -startPosition_;
+        // 8. Reset Scrolling if the end is reached
+        if (needsScrolling) {
+            if (direction_ == "horizontal") {
+                if (currentPosition_ > totalTableWidth) {
+                    currentPosition_ = -startPosition_;
+                }
+            }
+            else if (direction_ == "vertical") {
+                if (currentPosition_ > totalTableHeight) {
+                    currentPosition_ = -startPosition_;
+                }
+            }
         }
+
+        // Disable clipping after rendering
+        SDL_RenderSetClipRect(renderer, nullptr);
     }
-    else if (direction_ == "vertical") {
-        float scrollPosition = currentPosition_;
+    else {
+        // **Normal Scrolling Text Rendering**
 
-        // Adjust for negative scroll position
-        if (scrollPosition < 0.0f) {
-            destRect.y = static_cast<int>(yOrigin - scrollPosition);
+        // Determine if scrolling is necessary
+        bool needsScrolling = false;
+        float totalTextHeight = 0.0f;
+        float totalTextWidth = 0.0f;
+
+        if (direction_ == "horizontal") {
+            for (const auto& line : text_) {
+                totalTextWidth += font->getWidth(line) * scale + paddingBetweenColumns;
+            }
+            if (!text_.empty()) {
+                totalTextWidth -= paddingBetweenColumns; // Remove last padding
+            }
+            needsScrolling = (totalTextWidth > imageMaxWidth);
         }
-        else {
-            destRect.y = static_cast<int>(yOrigin);
+        else if (direction_ == "vertical") {
+            for (const auto& line : text_) {
+                totalTextHeight += font->getHeight() * scale + paddingBetweenTextLines;
+            }
+            if (!text_.empty()) {
+                totalTextHeight -= paddingBetweenTextLines; // Remove last padding
+            }
+            needsScrolling = (totalTextHeight > imageMaxHeight);
         }
 
-        // Do not scroll if the text fits within the available height
-        if (textHeight_ <= imageMaxHeight && startPosition_ == 0.0f) {
+        // If scrolling is not needed, reset scroll position and render statically
+        if (!needsScrolling) {
             currentPosition_ = 0.0f;
             waitStartTime_ = 0.0f;
             waitEndTime_ = 0.0f;
         }
 
-        for (const auto& glyph : cachedGlyphs_) {
-            // Calculate the glyph's position with scrolling
-            destRect.x = static_cast<int>(xOrigin + glyph.destRect.x);
-            destRect.y = static_cast<int>(yOrigin + glyph.destRect.y - scrollPosition);
-            destRect.w = glyph.destRect.w;
-            destRect.h = glyph.destRect.h;
+        // Render each line of text
+        float currentOffset = needsScrolling ? scrollOffset : 0.0f;
+        float currentX = xOrigin;
+        float currentY = yOrigin;
 
-            // Skip glyphs outside the visible area
-            if ((destRect.y + destRect.h) <= yOrigin || destRect.y >= (yOrigin + imageMaxHeight)) {
+        for (const auto& line : text_) {
+            SDL_Rect destRect;
+
+            if (direction_ == "horizontal") {
+                // Calculate X position with scrolling
+                destRect.x = static_cast<int>(currentX - currentOffset);
+                destRect.y = static_cast<int>(currentY);
+                destRect.w = static_cast<int>(font->getWidth(line) * scale);
+                destRect.h = static_cast<int>(font->getHeight() * scale);
+            }
+            else { // "vertical"
+                // Calculate Y position with scrolling
+                destRect.x = static_cast<int>(currentX);
+                destRect.y = static_cast<int>(currentY + currentOffset);
+                destRect.w = static_cast<int>(font->getWidth(line) * scale);
+                destRect.h = static_cast<int>(font->getHeight() * scale);
+            }
+
+            // Clipping: Skip rendering if the entire line is outside the visible area
+            bool isOutside = false;
+            if (direction_ == "horizontal") {
+                if (destRect.x + destRect.w < xOrigin || destRect.x > xOrigin + imageMaxWidth) {
+                    isOutside = true;
+                }
+            }
+            else { // "vertical"
+                if (destRect.y + destRect.h < yOrigin || destRect.y > yOrigin + imageMaxHeight) {
+                    isOutside = true;
+                }
+            }
+
+            if (isOutside) {
+                // Advance offset based on direction
+                if (direction_ == "horizontal") {
+                    currentX += font->getWidth(line) * scale + paddingBetweenColumns;
+                }
+                else { // "vertical"
+                    currentY += font->getHeight() * scale + paddingBetweenTextLines;
+                }
                 continue;
             }
 
-            // Adjust destRect and srcRect for clipping at edges
-            SDL_Rect srcRect = glyph.sourceRect;
+            // Render each character in the line
+            float charX = (direction_ == "horizontal") ? static_cast<float>(destRect.x) : currentX;
+            float charY = (direction_ == "vertical") ? static_cast<float>(destRect.y) : currentY;
+            for (char c : line) {
+                Font::GlyphInfo glyph;
+                if (font->getRect(c, glyph)) {
+                    SDL_Rect srcRect = glyph.rect;
+                    SDL_Rect renderedRect = {
+                        static_cast<int>(charX),
+                        static_cast<int>(charY),
+                        static_cast<int>(glyph.rect.w * scale),
+                        static_cast<int>(glyph.rect.h * scale)
+                    };
 
-            // Top clipping
-            if (destRect.y < yOrigin) {
-                int clipAmount = static_cast<int>(yOrigin - destRect.y);
-                destRect.y = static_cast<int>(yOrigin);
-                destRect.h -= clipAmount;
-                srcRect.y += static_cast<int>(clipAmount / scale);
-                srcRect.h -= static_cast<int>(clipAmount / scale);
+                    // Render the glyph
+                    SDL::renderCopy(texture, baseViewInfo.Alpha, &srcRect, &renderedRect, baseViewInfo,
+                        page.getLayoutWidthByMonitor(baseViewInfo.Monitor),
+                        page.getLayoutHeightByMonitor(baseViewInfo.Monitor));
+
+                    // Advance the X or Y position based on direction
+                    if (direction_ == "horizontal") {
+                        charX += glyph.advance * scale;
+                    }
+                    else { // "vertical"
+                        // **Correction:** Advance X instead of Y to keep characters horizontally aligned
+                        charX += glyph.advance * scale;
+                    }
+                }
             }
 
-            // Bottom clipping
-            if ((destRect.y + destRect.h) > (yOrigin + imageMaxHeight)) {
-                int clipAmount = static_cast<int>((destRect.y + destRect.h) - (yOrigin + imageMaxHeight));
-                destRect.h -= clipAmount;
-                srcRect.h -= static_cast<int>(clipAmount / scale);
+            // Advance the position based on direction
+            if (direction_ == "horizontal") {
+                currentX += font->getWidth(line) * scale + paddingBetweenColumns;
             }
-
-            if (destRect.h <= 0) {
-                continue;
+            else { // "vertical"
+                currentY += font->getHeight() * scale + paddingBetweenTextLines;
             }
-
-            SDL::renderCopy(texture, baseViewInfo.Alpha, &srcRect, &destRect, baseViewInfo,
-                page.getLayoutWidthByMonitor(baseViewInfo.Monitor),
-                page.getLayoutHeightByMonitor(baseViewInfo.Monitor));
         }
 
-        // Update scrolling position
-        if (currentPosition_ > textHeight_) {
-            waitStartTime_ = startTime_;
-            waitEndTime_ = endTime_;
-            currentPosition_ = -startPosition_;
+        // **Reset Scrolling if the end is reached**
+        if (needsScrolling) {
+            if (direction_ == "horizontal") {
+                if (currentPosition_ > totalTextWidth) {
+                    currentPosition_ = -startPosition_;
+                }
+            }
+            else if (direction_ == "vertical") {
+                if (currentPosition_ > totalTextHeight) {
+                    currentPosition_ = -startPosition_;
+                }
+            }
         }
+
+        // Disable clipping after rendering
+        SDL_RenderSetClipRect(renderer, nullptr);
     }
 }
 
@@ -665,7 +935,6 @@ void ReloadableScrollingText::updateGlyphCache() {
     lastImageMaxWidth_ = imageMaxWidth;
     lastImageMaxHeight_ = imageMaxHeight;
 
-    // Position trackers
     float xPos = 0.0f;
     float yPos = 0.0f;
 
@@ -677,7 +946,7 @@ void ReloadableScrollingText::updateGlyphCache() {
                     CachedGlyph cachedGlyph;
                     cachedGlyph.sourceRect = glyph.rect;
                     cachedGlyph.destRect.x = static_cast<int>(xPos);
-                    cachedGlyph.destRect.y = 0;  // Adjusted later
+                    cachedGlyph.destRect.y = 0;
                     cachedGlyph.destRect.w = static_cast<int>(glyph.rect.w * scale);
                     cachedGlyph.destRect.h = static_cast<int>(glyph.rect.h * scale);
                     cachedGlyph.advance = glyph.advance * scale;
@@ -689,76 +958,9 @@ void ReloadableScrollingText::updateGlyphCache() {
             }
         }
         textWidth_ = xPos;
-    }
-    else if (direction_ == "vertical") {
-        // For vertical scrolling, we need to handle word wrapping based on imageMaxWidth
-        std::vector<std::string> wrappedLines;
-
-        // First, wrap the text to fit within imageMaxWidth
+    } else if (direction_ == "vertical") {
         for (const auto& line : text_) {
-            std::istringstream iss(line);
-            std::string word;
-            std::string currentLine;
-            float currentLineWidth = 0.0f;
-
-            while (iss >> word) {
-                // Calculate the width of the word
-                float wordWidth = 0.0f;
-                for (char c : word) {
-                    Font::GlyphInfo glyph;
-                    if (font->getRect(c, glyph)) {
-                        wordWidth += glyph.advance * scale;
-                    }
-                }
-                // Add space width if this is not the first word on the line
-                if (!currentLine.empty()) {
-                    Font::GlyphInfo spaceGlyph;
-                    if (font->getRect(' ', spaceGlyph)) {
-                        wordWidth += spaceGlyph.advance * scale;
-                    }
-                }
-                // Check if the word fits on the current line
-                if (currentLineWidth + wordWidth > imageMaxWidth && !currentLine.empty()) {
-                    // Line is full, add it to wrappedLines
-                    wrappedLines.push_back(currentLine);
-                    currentLine = word;
-                    currentLineWidth = wordWidth;
-                }
-                else {
-                    // Add the word to the current line
-                    if (!currentLine.empty()) {
-                        currentLine += ' ';
-                    }
-                    currentLine += word;
-                    currentLineWidth += wordWidth;
-                }
-            }
-            // Add any remaining text in currentLine
-            if (!currentLine.empty()) {
-                wrappedLines.push_back(currentLine);
-            }
-        }
-
-        // Now, cache the glyphs for the wrapped lines
-        for (const auto& line : wrappedLines) {
-            xPos = 0.0f;
-
-            // Calculate line width for alignment
-            float lineWidth = 0.0f;
-            for (char c : line) {
-                Font::GlyphInfo glyph;
-                if (font->getRect(c, glyph)) {
-                    lineWidth += glyph.advance * scale;
-                }
-            }
-
-            // Adjust xPos based on alignment
-            if (alignment_ == "right") {
-                xPos = imageMaxWidth - lineWidth;
-            }
-            else if (alignment_ == "centered") {
-                xPos = (imageMaxWidth - lineWidth) / 2.0f;
-            }
+            xPos = (alignment_ == "centered") ? (imageMaxWidth - font->getWidth(line) * scale) / 2 : 0.0f;
 
             for (char c : line) {
                 Font::GlyphInfo glyph;
@@ -776,7 +978,6 @@ void ReloadableScrollingText::updateGlyphCache() {
                     xPos += glyph.advance * scale;
                 }
             }
-
             yPos += font->getHeight() * scale;
         }
         textHeight_ = yPos;

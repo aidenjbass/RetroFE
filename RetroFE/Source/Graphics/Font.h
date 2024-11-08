@@ -39,6 +39,7 @@ public:
     SDL_Texture *getTexture();
     bool getRect(unsigned int charCode, GlyphInfo &glyph);
     int getHeight() const;
+    int getWidth(const std::string& text);
     int getFontSize() const;
     int getAscent() const;
 

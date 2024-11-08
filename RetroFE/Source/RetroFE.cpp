@@ -22,6 +22,7 @@
 #include "Control/UserInput.h"
 #include "Database/Configuration.h"
 #include "Database/GlobalOpts.h"
+#include "Database/HiScores.h"
 #include "Execute/Launcher.h"
 #include "Graphics/Component/ScrollingList.h"
 #include "Graphics/Page.h"
@@ -147,6 +148,13 @@ int RetroFE::initialize(void *context)
         instance->initializeError = true;
         return -1;
     }
+    
+    // Initialize HiScores (use appropriate paths for your setup)
+    std::string zipPath = Utils::combinePath(Configuration::absolutePath, "hi2txt_defaults.zip");
+    std::string overridePath = Utils::combinePath(Configuration::absolutePath, "hi2txt_overrides");
+
+    HiScores::getInstance().loadHighScores(zipPath, overridePath);
+    
     instance->initialized = true;
     return 0;
 }
@@ -266,6 +274,7 @@ void RetroFE::allocateGraphicsMemory()
     {
         currentPage_->allocateGraphicsMemory();
     }
+
 }
 
 // Deinitialize RetroFE

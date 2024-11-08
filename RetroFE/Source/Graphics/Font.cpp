@@ -50,6 +50,18 @@ int Font::getHeight() const
 {
     return height;
 }
+
+int Font::getWidth(const std::string& text) {
+    int width = 0;
+    for (char c : text) {
+        GlyphInfo glyph;
+        if (getRect(c, glyph)) {  // If glyph is found in the atlas
+            width += glyph.advance;  // Accumulate advance width for each character
+        }
+    }
+    return width;
+}
+
 int Font::getFontSize() const
 {
     return fontSize_;
