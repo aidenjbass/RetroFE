@@ -197,4 +197,5 @@ private:
     std::map<std::string, size_t> lastMenuOffsets_;
     std::map<std::string, std::string>  lastMenuPlaylists_;
     std::vector<std::string> cycleVector_;
+    std::filesystem::file_time_type lastHiFileModifiedTime_;
 };

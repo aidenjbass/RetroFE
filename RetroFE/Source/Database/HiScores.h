@@ -18,6 +18,8 @@
 #include <unordered_map>
 #include <string>
 #include <vector>
+#include "../Utility/Utils.h"
+#include "../Database/Configuration.h"
 
 struct HighScoreTable {
     std::vector<std::string> columns; // Column names
@@ -36,9 +38,18 @@ public:
 
     const HighScoreTable* getHighScoreTable(const std::string& gameName) const;
 
+    bool hasHiFile(const std::string& gameName) const;
+
+    bool runHi2Txt(const std::string& gameName);
+
+    bool loadFileToBuffer(const std::string& filePath, std::vector<char>& buffer);
+
 
 private:
     HiScores() = default;
+
+    std::string hiFilesDirectory_ = Utils::combinePath(Configuration::absolutePath, "emulators", "mame", "hi");
+    std::string scoresDirectory_ = Utils::combinePath(Configuration::absolutePath, "hi2txt", "scores");
 
     std::unordered_map<std::string, HighScoreTable> scoresCache_;
 

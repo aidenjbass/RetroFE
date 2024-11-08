@@ -149,9 +149,9 @@ int RetroFE::initialize(void *context)
         return -1;
     }
     
-    // Initialize HiScores (use appropriate paths for your setup)
-    std::string zipPath = Utils::combinePath(Configuration::absolutePath, "hi2txt_defaults.zip");
-    std::string overridePath = Utils::combinePath(Configuration::absolutePath, "hi2txt_overrides");
+    // Initialize HiScores
+    std::string zipPath = Utils::combinePath(Configuration::absolutePath, "hi2txt", "hi2txt_defaults.zip");
+    std::string overridePath = Utils::combinePath(Configuration::absolutePath, "hi2txt", "scores");
 
     HiScores::getInstance().loadHighScores(zipPath, overridePath);
     
@@ -1722,7 +1722,7 @@ bool RetroFE::run()
             }
             break;
 
-        // Wait for onGameEnter animation to finish; launch game; start onGameExit animation
+            // Wait for onGameEnter animation to finish; launch game; start onGameExit animation
         case RETROFE_LAUNCH_REQUEST:
             if (currentPage_->isIdle())
             {
@@ -1734,23 +1734,27 @@ bool RetroFE::run()
                 config_.getProperty(OPTION_LASTPLAYEDSKIPCOLLECTION, lastPlayedSkipCollection);
                 config_.getProperty(OPTION_LASTPLAYEDSIZE, size);
 
+                // Check if .hi file exists and record last modified time if it does
+                if (HiScores::getInstance().hasHiFile(nextPageItem_->name)) {
+                    std::string mameHiPath = Utils::combinePath(Configuration::absolutePath, "emulators", "mame", "hi", nextPageItem_->name + ".hi");
+                    lastHiFileModifiedTime_ = std::filesystem::last_write_time(mameHiPath);
+                }
+
                 if (lastPlayedSkipCollection != "")
                 {
-                    // see if any of the comma seperated match current collection
+                    // Check if current collection is in the skip list
                     std::stringstream ss(lastPlayedSkipCollection);
                     std::string collection = "";
                     bool updateLastPlayed = true;
                     while (ss.good())
                     {
                         getline(ss, collection, ',');
-                        // Check if the current collection matches any collection in lastPlayedSkipCollection
                         if (nextPageItem_->collectionInfo->name == collection)
                         {
                             updateLastPlayed = false;
-                            break; // No need to check further, as we found a match
+                            break;
                         }
                     }
-                    // Update last played collection if not found in the skip collection
                     if (updateLastPlayed)
                     {
                         cib.updateLastPlayedPlaylist(currentPage_->getCollection(), nextPageItem_, size);
@@ -1763,7 +1767,6 @@ bool RetroFE::run()
                 if (l.run(nextPageItem_->collectionInfo->name, nextPageItem_, currentPage_))
                 {
                     attract_.reset();
-                    // Run launchExit function when unloadSDL flag is set
                     bool unloadSDL = false;
                     config_.getProperty(OPTION_UNLOADSDL, unloadSDL);
                     if (unloadSDL)
@@ -1779,7 +1782,6 @@ bool RetroFE::run()
                     launchExit();
                     l.LEDBlinky(4);
                     currentPage_->exitGame();
-                    // with new sort by last played return to first
                     if (currentPage_->getPlaylistName() == "lastplayed")
                     {
                         currentPage_->setScrollOffsetIndex(0);
@@ -1791,13 +1793,40 @@ bool RetroFE::run()
             }
             break;
 
-        // Wait for onGameExit animation to finish
+            // Wait for onGameExit animation to finish
         case RETROFE_LAUNCH_EXIT:
             if (currentPage_->isIdle())
             {
+                std::string scoreFilePath = Utils::combinePath(Configuration::absolutePath, "hi2txt", "scores", nextPageItem_->name + ".xml");
+                bool xmlExists = std::filesystem::exists(scoreFilePath);
+
+                // If XML doesn't exist, run hi2txt to generate it
+                if (!xmlExists) {
+                    if (HiScores::getInstance().runHi2Txt(nextPageItem_->name)) {
+                        std::cout << "Initial high scores XML created for game: " << nextPageItem_->name << std::endl;
+                    } else {
+                        std::cerr << "Failed to create high scores XML for game: " << nextPageItem_->name << std::endl;
+                    }
+                }
+                else if (HiScores::getInstance().hasHiFile(nextPageItem_->name)) {
+                    // Check if .hi file exists and has been updated
+                    std::string mameHiPath = Utils::combinePath(Configuration::absolutePath, "emulators", "mame", "hi", nextPageItem_->name + ".hi");
+                    auto currentModifiedTime = std::filesystem::last_write_time(mameHiPath);
+
+                    // If the file's modification time has changed, update scores
+                    if (currentModifiedTime != lastHiFileModifiedTime_) {
+                        if (HiScores::getInstance().runHi2Txt(nextPageItem_->name)) {
+                            std::cout << "High scores updated for game: " << nextPageItem_->name << std::endl;
+                        } else {
+                            std::cerr << "Failed to update high scores for game: " << nextPageItem_->name << std::endl;
+                        }
+                    }
+                }
+
                 state = RETROFE_IDLE;
             }
             break;
+
 
         // Go back a page; start onMenuExit animation
         case RETROFE_BACK_REQUEST:
