@@ -31,7 +31,13 @@ void HiScores::loadHighScores(const std::string& zipPath, const std::string& ove
                 std::ifstream fileStream(file.path(), std::ios::binary);
                 std::vector<char> buffer((std::istreambuf_iterator<char>(fileStream)), std::istreambuf_iterator<char>());
                 buffer.push_back('\0');
-                loadFromFile(gameName, file.path().string(), buffer);
+
+                // Deobfuscate the buffer if necessary
+                std::string deobfuscatedContent = Utils::deobfuscate(std::string(buffer.begin(), buffer.end()));
+                std::vector<char> deobfuscatedBuffer(deobfuscatedContent.begin(), deobfuscatedContent.end());
+                deobfuscatedBuffer.push_back('\0');  // Null-terminate for parsing
+
+                loadFromFile(gameName, file.path().string(), deobfuscatedBuffer);
             }
         }
     } else {
@@ -189,9 +195,8 @@ bool HiScores::runHi2Txt(const std::string& gameName) {
     std::vector<char> buffer;
     char tempBuffer[128];
     DWORD bytesRead;
-
-    // Capture output from the process
-    while (ReadFile(hRead, tempBuffer, sizeof(tempBuffer), &bytesRead, nullptr) && bytesRead > 0) {
+    while (ReadFile(hRead, tempBuffer, sizeof(tempBuffer) - 1, &bytesRead, nullptr) && bytesRead > 0) {
+        tempBuffer[bytesRead] = '\0';
         buffer.insert(buffer.end(), tempBuffer, tempBuffer + bytesRead);
     }
     CloseHandle(hRead);
@@ -201,10 +206,11 @@ bool HiScores::runHi2Txt(const std::string& gameName) {
     CloseHandle(processInfo.hProcess);
     CloseHandle(processInfo.hThread);
 
-    // Convert the buffer to a string and clean it of any null characters
-    std::string xmlContent = Utils::removeNullCharacters(std::string(buffer.begin(), buffer.end()));
+    // Null-terminate and process the buffer
+    buffer.push_back('\0');
+    std::string xmlContent(buffer.begin(), buffer.end());
 
-    // Parse the cleaned XML content to update the cache
+    // Parse the XML content to update the cache
     std::vector<char> xmlBuffer(xmlContent.begin(), xmlContent.end());
     xmlBuffer.push_back('\0');  // Null-terminate for rapidxml
     loadFromFile(gameName, gameName + ".xml", xmlBuffer);
