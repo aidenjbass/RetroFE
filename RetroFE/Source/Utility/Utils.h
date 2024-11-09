@@ -1,18 +1,18 @@
 /* This file is part of RetroFE.
- *
- * RetroFE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * RetroFE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with RetroFE.  If not, see <http://www.gnu.org/licenses/>.
- */
+*
+* RetroFE is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* RetroFE is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with RetroFE.  If not, see <http://www.gnu.org/licenses/>.
+*/
 #pragma once
 
 #include <string>
@@ -23,8 +23,8 @@
 #include <unordered_set>
 
 #ifdef WIN32
-    #define NOMINMAX
-    #include <Windows.h>
+#define NOMINMAX
+#include <Windows.h>
 #endif
 
 #ifdef __APPLE__
@@ -66,7 +66,11 @@ public:
     static bool startsWith(const std::string& fullString, const std::string& startOfString);
     static bool startsWithAndStrip(std::string& fullString, const std::string& startOfString);
     static std::string getOSType();
-    
+    static std::string obfuscate(const std::string& data);
+    static std::string deobfuscate(const std::string& data);
+    static std::string removeNullCharacters(const std::string& input);
+
+
     template <typename... Paths>
     static std::string combinePath(Paths&&... paths) {
         std::filesystem::path combinedPath;
@@ -75,7 +79,7 @@ public:
         return combinedPath.make_preferred().string();
     }
 
-   
+
 #ifdef WIN32
     static const char pathSeparator = '\\';
 #else
@@ -93,7 +97,10 @@ private:
     static void populateCache(const std::filesystem::path& directory);
     static bool isFileInCache(const std::filesystem::path& directory, const std::string& filename);
     static bool isFileCachePopulated(const std::filesystem::path& directory);
-    
+    static const std::string obfuscationKey; // Key for XOR obfuscation
+    static std::string xorOperation(const std::string& data, const std::string& key);
+
+
     Utils();
     virtual ~Utils();
 };

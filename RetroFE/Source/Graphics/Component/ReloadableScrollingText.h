@@ -24,7 +24,7 @@
 
 struct CachedGlyph {
     SDL_Rect sourceRect;  // Source rectangle on the font texture
-    SDL_Rect destRect;    // Destination rectangle on the screen
+    SDL_FRect destRect;    // Destination rectangle on the screen
     float advance;        // Advance value for the glyph
 };
 
@@ -82,4 +82,9 @@ private:
     float lastImageMaxHeight_;
     std::filesystem::file_time_type lastWriteTime_;
     const HighScoreTable* highScoreTable_ = nullptr;
+    SDL_BlendMode maskBlendMode = SDL_ComposeCustomBlendMode(
+        SDL_BLENDFACTOR_ZERO, SDL_BLENDFACTOR_SRC_COLOR, SDL_BLENDOPERATION_ADD,
+        SDL_BLENDFACTOR_ZERO, SDL_BLENDFACTOR_SRC_ALPHA, SDL_BLENDOPERATION_ADD
+    );
+
 };

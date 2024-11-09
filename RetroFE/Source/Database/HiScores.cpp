@@ -57,31 +57,23 @@ void HiScores::loadFromZip(const std::string& zipPath) {
             if (std::string(fileName).find(".xml") != std::string::npos) {
                 unzOpenCurrentFile(zipFile);
 
-                // Read file content into buffer and ensure null-termination
-                std::vector<char> buffer(fileInfo.uncompressed_size + 1);
-                int bytesRead = unzReadCurrentFile(zipFile, buffer.data(), fileInfo.uncompressed_size);
+                // Read file content into buffer
+                std::vector<char> buffer(fileInfo.uncompressed_size);
+                unzReadCurrentFile(zipFile, buffer.data(), fileInfo.uncompressed_size);
+                unzCloseCurrentFile(zipFile);
 
-                if (bytesRead < 0) {
-                    std::cerr << "Error reading file: " << fileName << std::endl;
-                    unzCloseCurrentFile(zipFile);
-                    continue;
-                }
+                // Deobfuscate content before parsing
+                std::string deobfuscatedContent = Utils::deobfuscate(std::string(buffer.begin(), buffer.end()));
 
-                buffer[bytesRead] = '\0';  // Null-terminate
+                // Load deobfuscated data into rapidxml
+                std::vector<char> xmlBuffer(deobfuscatedContent.begin(), deobfuscatedContent.end());
+                xmlBuffer.push_back('\0');  // Null-terminate for rapidxml
 
                 std::string gameName = std::filesystem::path(fileName).stem().string();
-
-                try {
-                    loadFromFile(gameName, fileName, buffer);  // Parse and load the XML data
-                } catch (const std::exception& e) {
-                    std::cerr << "Error parsing XML file " << fileName << ": " << e.what() << std::endl;
-                }
-
-                unzCloseCurrentFile(zipFile);
+                loadFromFile(gameName, fileName, xmlBuffer);  // Parse and load XML
             }
         } while (unzGoToNextFile(zipFile) == UNZ_OK);
     }
-
 
     unzClose(zipFile);
 }
@@ -115,7 +107,8 @@ void HiScores::loadFromFile(const std::string& gameName, const std::string& file
 
     // Parse columns
     for (rapidxml::xml_node<>* colNode = tableNode->first_node("col"); colNode; colNode = colNode->next_sibling("col")) {
-        highScoreTable.columns.push_back(colNode->value());
+        std::string columnValue = Utils::trimEnds(colNode->value()); // Trim whitespace from the column name
+        highScoreTable.columns.push_back(columnValue);
     }
 
     // Parse rows
@@ -123,7 +116,8 @@ void HiScores::loadFromFile(const std::string& gameName, const std::string& file
         std::vector<std::string> rowData;
 
         for (rapidxml::xml_node<>* cell = row->first_node("cell"); cell; cell = cell->next_sibling("cell")) {
-            rowData.push_back(cell->value());
+            std::string cellValue = Utils::trimEnds(cell->value()); // Trim whitespace from the cell value
+            rowData.push_back(cellValue);
         }
 
         highScoreTable.rows.push_back(rowData);
@@ -195,8 +189,9 @@ bool HiScores::runHi2Txt(const std::string& gameName) {
     std::vector<char> buffer;
     char tempBuffer[128];
     DWORD bytesRead;
-    while (ReadFile(hRead, tempBuffer, sizeof(tempBuffer) - 1, &bytesRead, nullptr) && bytesRead > 0) {
-        tempBuffer[bytesRead] = '\0';
+
+    // Capture output from the process
+    while (ReadFile(hRead, tempBuffer, sizeof(tempBuffer), &bytesRead, nullptr) && bytesRead > 0) {
         buffer.insert(buffer.end(), tempBuffer, tempBuffer + bytesRead);
     }
     CloseHandle(hRead);
@@ -206,31 +201,30 @@ bool HiScores::runHi2Txt(const std::string& gameName) {
     CloseHandle(processInfo.hProcess);
     CloseHandle(processInfo.hThread);
 
-    // Null-terminate and process the buffer
-    buffer.push_back('\0');
-    std::string xmlFilePath = Utils::combinePath(scoresDirectory_, gameName + ".xml");
+    // Convert the buffer to a string and clean it of any null characters
+    std::string xmlContent = Utils::removeNullCharacters(std::string(buffer.begin(), buffer.end()));
 
-    // Save XML to the scores directory
-    std::ofstream outFile(xmlFilePath);
+    // Parse the cleaned XML content to update the cache
+    std::vector<char> xmlBuffer(xmlContent.begin(), xmlContent.end());
+    xmlBuffer.push_back('\0');  // Null-terminate for rapidxml
+    loadFromFile(gameName, gameName + ".xml", xmlBuffer);
+
+    // Obfuscate the XML content before saving
+    std::string obfuscatedContent = Utils::obfuscate(xmlContent);
+
+    // Save obfuscated XML to the scores directory
+    std::string xmlFilePath = Utils::combinePath(scoresDirectory_, gameName + ".xml");
+    std::ofstream outFile(xmlFilePath, std::ios::binary);
     if (!outFile) {
         std::cerr << "Error: Could not create XML file " << xmlFilePath << std::endl;
         return false;
     }
-    outFile.write(buffer.data(), buffer.size() - 1);  // Exclude null terminator
+    outFile.write(obfuscatedContent.c_str(), obfuscatedContent.size());
     outFile.close();
-
-    // Parse and load into cache
-    try {
-        loadFromFile(gameName, xmlFilePath, buffer);
-    } catch (const rapidxml::parse_error& e) {
-        std::cerr << "Parsing failed for game " << gameName << ": " << e.what() << std::endl;
-        return false;
-    }
 
     std::cout << "Scores updated for " << gameName << " and saved to " << xmlFilePath << std::endl;
     return true;
 }
-
 
 // Helper function to load the XML file content into a buffer
 bool HiScores::loadFileToBuffer(const std::string& filePath, std::vector<char>& buffer) {
@@ -242,13 +236,15 @@ bool HiScores::loadFileToBuffer(const std::string& filePath, std::vector<char>& 
 
     // Get the file size and resize the buffer accordingly
     file.seekg(0, std::ios::end);
-    buffer.resize(file.tellg());
+    std::streamsize size = file.tellg();
     file.seekg(0, std::ios::beg);
 
-    // Read file content into buffer and close the file
-    file.read(buffer.data(), buffer.size());
-    buffer.push_back('\0'); // Null-terminate for rapidxml parsing
-    file.close();
+    buffer.resize(size + 1);  // Allocate with extra space for null terminator
+    if (!file.read(buffer.data(), size)) {
+        std::cerr << "Error: Could not read file content for " << filePath << std::endl;
+        return false;
+    }
 
+    buffer[size] = '\0'; // Null-terminate for rapidxml parsing
     return true;
 }

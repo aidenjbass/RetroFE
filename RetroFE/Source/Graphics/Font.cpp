@@ -28,6 +28,7 @@
 Font::Font(std::string fontPath, int fontSize, SDL_Color color, int monitor)
     : texture(nullptr)
     , height (0)
+    , descent (0)
     , ascent (0)
     , fontPath_(fontPath)
     , fontSize_(fontSize)
@@ -66,6 +67,12 @@ int Font::getFontSize() const
 {
     return fontSize_;
 }
+
+int Font::getDescent() const
+{
+    return descent;
+}
+
 int Font::getAscent() const
 {
     return ascent;
@@ -95,6 +102,7 @@ bool Font::initialize() {
 
     height = TTF_FontHeight(font);
     ascent = TTF_FontAscent(font);
+    descent = TTF_FontDescent(font); // Capture descent
 
     for (unsigned short int i = 32; i < 128; ++i) {
         GlyphInfoBuild* info = new GlyphInfoBuild;

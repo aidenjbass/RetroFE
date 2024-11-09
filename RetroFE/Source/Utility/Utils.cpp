@@ -1,18 +1,18 @@
 /* This file is part of RetroFE.
- *
- * RetroFE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * RetroFE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with RetroFE.  If not, see <http://www.gnu.org/licenses/>.
- */
+*
+* RetroFE is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* RetroFE is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with RetroFE.  If not, see <http://www.gnu.org/licenses/>.
+*/
 
 #include "Utils.h"
 #include "../Database/Configuration.h"
@@ -27,17 +27,17 @@
 #include <unordered_map>
 #include <codecvt>
 #ifndef __APPLE__
-    #include <charconv>
+#include <charconv>
 #endif
 
 #ifdef WIN32
-    #include <Windows.h>
+#include <Windows.h>
 #endif
 
 #ifdef WIN32
-    #include <io.h>
+#include <io.h>
 #else
-    #include <unistd.h>
+#include <unistd.h>
 #endif
 
 // Initialize the static member variables
@@ -56,7 +56,7 @@ Utils::~Utils() = default;
 #ifdef WIN32
 void Utils::postMessage( LPCTSTR windowTitle, UINT Msg, WPARAM wParam, LPARAM lParam ) {
     HWND hwnd = FindWindow(NULL, windowTitle);
-	if (hwnd != NULL) {
+    if (hwnd != NULL) {
         PostMessage(hwnd, Msg, wParam, lParam);
     }
 }
@@ -140,10 +140,10 @@ bool Utils::isFileInCache(const std::filesystem::path& baseDir, const std::strin
             LOG_FILECACHE("Hit", removeAbsolutePath(baseDir.string()) + " contains " + filename);
             return true;
         }
-    }
+        }
 
     return false;
-}
+    }
 
 
 
@@ -372,11 +372,11 @@ std::string Utils::removeAbsolutePath(const std::string& fullPath) {
 
 // Check if we're starting retrofe from terminal on Win or Unix
 bool Utils::isOutputATerminal() {
-    #ifdef _WIN32
-        return _isatty(_fileno(stdout));
-    #else
-        return isatty(STDOUT_FILENO);
-    #endif
+#ifdef _WIN32
+    return _isatty(_fileno(stdout));
+#else
+    return isatty(STDOUT_FILENO);
+#endif
 }
 
 // Check if start of fullString contains startOfString
@@ -395,12 +395,45 @@ bool Utils::startsWithAndStrip(std::string& fullString, const std::string& start
 
 
 std::string Utils::getOSType(){
-    #ifdef WIN32
-        std::string osType = "windows";
-    #elif __APPLE__
-        std::string osType = "apple";
-    #else
-        std::string osType = "linux";
-    #endif
+#ifdef WIN32
+    std::string osType = "windows";
+#elif __APPLE__
+    std::string osType = "apple";
+#else
+    std::string osType = "linux";
+#endif
     return osType;
+}
+
+// Define the obfuscation key (simple and hard-coded for now)
+const std::string Utils::obfuscationKey = "s3cReT123!";
+
+// Public method to obfuscate data using XOR with the key
+std::string Utils::obfuscate(const std::string& data) {
+    return xorOperation(data, obfuscationKey);
+}
+
+// Public method to de-obfuscate data (same as obfuscate due to XOR symmetry)
+std::string Utils::deobfuscate(const std::string& data) {
+    return xorOperation(data, obfuscationKey);
+}
+
+// Private helper method to apply XOR obfuscation
+std::string Utils::xorOperation(const std::string& data, const std::string& key) {
+    std::string result = data;
+    for (size_t i = 0; i < data.size(); ++i) {
+        result[i] = data[i] ^ key[i % key.size()];
+    }
+    return result;
+}
+
+std::string Utils::removeNullCharacters(const std::string& input) {
+    std::string output;
+    output.reserve(input.size());  // Reserve space for efficiency
+    for (char ch : input) {
+        if (ch != '\0') {  // Filter out null characters
+            output += ch;
+        }
+    }
+    return output;
 }

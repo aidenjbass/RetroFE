@@ -42,6 +42,7 @@ public:
     int getWidth(const std::string& text);
     int getFontSize() const;
     int getAscent() const;
+    int getDescent() const;
 
 private:
     struct GlyphInfoBuild
@@ -52,6 +53,7 @@ private:
 
     SDL_Texture *texture;
     int height;
+    int descent;
     int ascent;
     std::unordered_map<unsigned int, GlyphInfoBuild*> atlas;
     std::string fontPath_;
