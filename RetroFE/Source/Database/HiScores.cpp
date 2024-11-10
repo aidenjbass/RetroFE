@@ -1,6 +1,7 @@
 #include <Windows.h>
 #include "HiScores.h"
 #include "../Utility/Utils.h"
+#include "../Utility/Log.h"
 #include "minizip/unzip.h"
 #include "rapidxml.hpp"
 #include "rapidxml_utils.hpp"
@@ -41,7 +42,7 @@ void HiScores::loadHighScores(const std::string& zipPath, const std::string& ove
             }
         }
     } else {
-        std::cerr << "Override directory does not exist or is not accessible: " << overridePath << std::endl;
+        LOG_ERROR("HiScores", "Override directory does not exist or is not accessible: " + overridePath);
     }
 }
 
@@ -50,7 +51,7 @@ void HiScores::loadHighScores(const std::string& zipPath, const std::string& ove
 void HiScores::loadFromZip(const std::string& zipPath) {
     unzFile zipFile = unzOpen(zipPath.c_str());
     if (zipFile == nullptr) {
-        std::cerr << "Failed to open ZIP file: " << zipPath << std::endl;
+        LOG_ERROR("HiScores", "Failed to open ZIP file: " + zipPath);
         return;
     }
 
@@ -92,20 +93,19 @@ void HiScores::loadFromFile(const std::string& gameName, const std::string& file
     try {
         doc.parse<0>(buffer.data());
     } catch (const rapidxml::parse_error& e) {
-        std::cerr << "Parse error in file " << filePath << ": " << e.what() << std::endl;
+        LOG_ERROR("HiScores", "Parse error in file " + filePath + ": " + e.what());
         return;  // Exit if parsing fails
     }
 
     // Ensure the root node exists
     rapidxml::xml_node<>* rootNode = doc.first_node("hi2txt");
     if (!rootNode) {
-        std::cerr << "Root node <hi2txt> not found in file " << filePath << std::endl;
+        LOG_ERROR("HiScores", "Root node <hi2txt> not found in file " + filePath);
         return;
     }
 
     rapidxml::xml_node<>* tableNode = rootNode->first_node("table");
     if (!tableNode) {
-        std::cerr << "Table node <table> not found in file " << filePath << std::endl;
         return;
     }
 
@@ -171,7 +171,7 @@ bool HiScores::runHi2Txt(const std::string& gameName) {
     saAttr.bInheritHandle = TRUE;
     saAttr.lpSecurityDescriptor = nullptr;
     if (!CreatePipe(&hRead, &hWrite, &saAttr, 0)) {
-        std::cerr << "Failed to create pipe." << std::endl;
+        LOG_ERROR("HiScores", "Failed to create pipe.");
         return false;
     }
     startupInfo.hStdOutput = hWrite;
@@ -184,7 +184,7 @@ bool HiScores::runHi2Txt(const std::string& gameName) {
         nullptr, nullptr, TRUE,              // Inherit handles
         CREATE_NO_WINDOW,                    // No window
         nullptr, nullptr, &startupInfo, &processInfo)) {
-        std::cerr << "Failed to launch hi2txt for game " << gameName << std::endl;
+        LOG_ERROR("HiScores", "Failed to launch hi2txt for game " + gameName);
         CloseHandle(hRead);
         CloseHandle(hWrite);
         return false;
@@ -222,13 +222,13 @@ bool HiScores::runHi2Txt(const std::string& gameName) {
     std::string xmlFilePath = Utils::combinePath(scoresDirectory_, gameName + ".xml");
     std::ofstream outFile(xmlFilePath, std::ios::binary);
     if (!outFile) {
-        std::cerr << "Error: Could not create XML file " << xmlFilePath << std::endl;
+        LOG_ERROR("HiScores", "Error: Could not create XML file " + xmlFilePath);
         return false;
     }
     outFile.write(obfuscatedContent.c_str(), obfuscatedContent.size());
     outFile.close();
 
-    std::cout << "Scores updated for " << gameName << " and saved to " << xmlFilePath << std::endl;
+    LOG_ERROR("HiScores", "Scores updated for " + gameName + " and saved to " + xmlFilePath);
     return true;
 }
 
@@ -236,7 +236,7 @@ bool HiScores::runHi2Txt(const std::string& gameName) {
 bool HiScores::loadFileToBuffer(const std::string& filePath, std::vector<char>& buffer) {
     std::ifstream file(filePath, std::ios::binary);
     if (!file) {
-        std::cerr << "Error: Could not open file " << filePath << std::endl;
+        LOG_ERROR("HiScores", "Error: Could not open file " + filePath);
         return false;
     }
 
@@ -247,7 +247,7 @@ bool HiScores::loadFileToBuffer(const std::string& filePath, std::vector<char>& 
 
     buffer.resize(size + 1);  // Allocate with extra space for null terminator
     if (!file.read(buffer.data(), size)) {
-        std::cerr << "Error: Could not read file content for " << filePath << std::endl;
+        LOG_ERROR("HiScores", "Error: Could not read file content for " + filePath);
         return false;
     }
 
