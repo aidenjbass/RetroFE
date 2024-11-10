@@ -22,8 +22,13 @@
 #include "../Database/Configuration.h"
 
 struct HighScoreTable {
-    std::vector<std::string> columns; // Column names
-    std::vector<std::vector<std::string>> rows; // Each row is a vector of cell values
+    std::string id;  // Table ID, if any
+    std::vector<std::string> columns;  // Column names
+    std::vector<std::vector<std::string>> rows;  // Rows of cell values
+};
+
+struct HighScoreData {
+    std::vector<HighScoreTable> tables;  // All tables for a game
 };
 
 class HiScores {
@@ -36,7 +41,7 @@ public:
     // Retrieve high score table for a game
     std::string getHighScore(const std::string& gameName);
 
-    const HighScoreTable* getHighScoreTable(const std::string& gameName) const;
+    const HighScoreData* getHighScoreTable(const std::string& gameName) const;
 
     bool hasHiFile(const std::string& gameName) const;
 
@@ -51,7 +56,7 @@ private:
     std::string hiFilesDirectory_ = Utils::combinePath(Configuration::absolutePath, "emulators", "mame", "hi");
     std::string scoresDirectory_ = Utils::combinePath(Configuration::absolutePath, "hi2txt", "scores");
 
-    std::unordered_map<std::string, HighScoreTable> scoresCache_;
+    std::unordered_map<std::string, HighScoreData> scoresCache_;
 
     void loadFromZip(const std::string& zipPath);
     void loadFromFile(const std::string& gameName, const std::string& filePath, std::vector<char>& buffer);

@@ -504,11 +504,10 @@ void ReloadableScrollingText::loadText( std::string collection, std::string type
 }
 
 void ReloadableScrollingText::draw() {
-    // Call the base component's draw method
     Component::draw();
 
     // Early exit conditions
-    if ((text_.empty() && !(type_ == "hiscores" && highScoreTable_)) ||
+    if ((text_.empty() && !(type_ == "hiscores" && highScoreTable_ && !highScoreTable_->tables.empty())) ||
         waitEndTime_ > 0.0f ||
         baseViewInfo.Alpha <= 0.0f) {
         return;
@@ -528,8 +527,6 @@ void ReloadableScrollingText::draw() {
     float yOrigin = baseViewInfo.YRelativeToOrigin();
     float imageMaxWidth = (baseViewInfo.Width < baseViewInfo.MaxWidth && baseViewInfo.Width > 0) ? baseViewInfo.Width : baseViewInfo.MaxWidth;
     float imageMaxHeight = (baseViewInfo.Height < baseViewInfo.MaxHeight && baseViewInfo.Height > 0) ? baseViewInfo.Height : baseViewInfo.MaxHeight;
-
-    // Calculate drawable height
     float drawableHeight = static_cast<float>(font->getAscent() + font->getDescent());
 
     // Update glyph cache if needed
@@ -555,16 +552,17 @@ void ReloadableScrollingText::draw() {
     }
 
     if (type_ == "hiscores" && highScoreTable_) {
-        int paddingBetweenColumns = static_cast<int>(baseColumnPadding_ * drawableHeight * scale); // Adjusted to use drawableHeight
-        int rowPadding = static_cast<int>(baseRowPadding_ * drawableHeight * scale); // Dynamic row padding
-        
+        const HighScoreTable& table = highScoreTable_->tables.front();  // Access the first table only
+        int paddingBetweenColumns = static_cast<int>(baseColumnPadding_ * drawableHeight * scale);
+        int rowPadding = static_cast<int>(baseRowPadding_ * drawableHeight * scale);
+
         // Calculate column widths
-        std::vector<int> columnWidths(highScoreTable_->columns.size(), 0);
-        for (size_t i = 0; i < highScoreTable_->columns.size(); ++i) {
-            int headerWidth = static_cast<int>(font->getWidth(highScoreTable_->columns[i]) * scale);
+        std::vector<int> columnWidths(table.columns.size(), 0);
+        for (size_t i = 0; i < table.columns.size(); ++i) {
+            int headerWidth = static_cast<int>(font->getWidth(table.columns[i]) * scale);
             columnWidths[i] = std::max(columnWidths[i], headerWidth);
 
-            for (const auto& row : highScoreTable_->rows) {
+            for (const auto& row : table.rows) {
                 if (i < row.size()) {
                     int cellWidth = static_cast<int>(font->getWidth(row[i]) * scale);
                     columnWidths[i] = std::max(columnWidths[i], cellWidth);
@@ -577,7 +575,7 @@ void ReloadableScrollingText::draw() {
         for (size_t i = 0; i < columnWidths.size(); ++i) {
             totalTableWidth += columnWidths[i] + ((i < columnWidths.size() - 1) ? paddingBetweenColumns : 0);
         }
-        int totalTableHeight = static_cast<int>((drawableHeight * scale + rowPadding) * (highScoreTable_->rows.size() + 1));
+        int totalTableHeight = static_cast<int>((drawableHeight * scale + rowPadding) * (table.rows.size() + 1));
         bool needsScrolling = (direction_ == "vertical") ? (totalTableHeight > imageMaxHeight) : (totalTableWidth > imageMaxWidth);
 
         // Reset scroll if no scrolling is needed
@@ -590,8 +588,8 @@ void ReloadableScrollingText::draw() {
         // Render the header row at a fixed position
         float headerY = yOrigin;
         int xPos = static_cast<int>(xOrigin);
-        for (size_t col = 0; col < highScoreTable_->columns.size(); ++col) {
-            const std::string& header = highScoreTable_->columns[col];
+        for (size_t col = 0; col < table.columns.size(); ++col) {
+            const std::string& header = table.columns[col];
             int xAligned = xPos + (columnWidths[col] - static_cast<int>(font->getWidth(header) * scale)) / 2;
             float charX = static_cast<float>(xAligned);
             float charY = headerY;
@@ -615,10 +613,7 @@ void ReloadableScrollingText::draw() {
             xPos += columnWidths[col] + paddingBetweenColumns;
         }
 
-        // Calculate minimum height for the clipping area based on font height and padding
         float minimumClipHeight = font->getHeight() * scale;
-
-        // Set up the clipping rectangle for the scrolling area
         SDL_Rect scrollClipRect = { 
             static_cast<int>(xOrigin), 
             static_cast<int>(headerY + minimumClipHeight), 
@@ -627,10 +622,9 @@ void ReloadableScrollingText::draw() {
         };
         SDL_RenderSetClipRect(renderer, &scrollClipRect);
 
-        // Render the remaining rows with scrolling applied
         float currentY = headerY + drawableHeight * scale + rowPadding;
         float adjustedYOrigin = currentY - (needsScrolling && direction_ == "vertical" ? scrollOffset : 0);
-        for (const auto& row : highScoreTable_->rows) {
+        for (const auto& row : table.rows) {
             xPos = static_cast<int>(xOrigin);
 
             bool skipRow = false;
@@ -649,7 +643,7 @@ void ReloadableScrollingText::draw() {
 
             float currentRowX = static_cast<float>(xPos);
             float currentRowY = adjustedYOrigin;
-            for (size_t col = 0; col < highScoreTable_->columns.size(); ++col) {
+            for (size_t col = 0; col < table.columns.size(); ++col) {
                 std::string cell = (col < row.size()) ? row[col] : "";
                 int xAligned = xPos + (columnWidths[col] - static_cast<int>(font->getWidth(cell) * scale)) / 2;
                 float charX = static_cast<float>(xAligned);
@@ -676,19 +670,16 @@ void ReloadableScrollingText::draw() {
             adjustedYOrigin += drawableHeight * scale + rowPadding;
         }
 
-        // Reset scrolling if end reached
         if (needsScrolling) {
             if (direction_ == "horizontal" && currentPosition_ > totalTableWidth) {
                 currentPosition_ = -startPosition_;
-            }
-            else if (direction_ == "vertical" && currentPosition_ > totalTableHeight) {
+            } else if (direction_ == "vertical" && currentPosition_ > totalTableHeight) {
                 currentPosition_ = -startPosition_;
             }
         }
-
-        // Disable clipping after rendering
         SDL_RenderSetClipRect(renderer, nullptr);
     }
+
 
     else {
         // **Normal Scrolling Text Rendering**
@@ -836,13 +827,11 @@ void ReloadableScrollingText::updateGlyphCache() {
 
     float scale = baseViewInfo.FontSize / static_cast<float>(font->getHeight());
 
-    // Determine maximum rendering dimensions
     float imageMaxWidth = (baseViewInfo.Width < baseViewInfo.MaxWidth && baseViewInfo.Width > 0)
         ? baseViewInfo.Width : baseViewInfo.MaxWidth;
     float imageMaxHeight = (baseViewInfo.Height < baseViewInfo.MaxHeight && baseViewInfo.Height > 0)
         ? baseViewInfo.Height : baseViewInfo.MaxHeight;
 
-    // Update last known values
     lastScale_ = scale;
     lastImageMaxWidth_ = imageMaxWidth;
     lastImageMaxHeight_ = imageMaxHeight;
@@ -850,18 +839,19 @@ void ReloadableScrollingText::updateGlyphCache() {
     float xPos = 0.0f;
     float yPos = 0.0f;
 
-    if (type_ == "hiscores" && highScoreTable_) {
-        // Calculate padding relative to font scale
+    if (type_ == "hiscores" && highScoreTable_ && !highScoreTable_->tables.empty()) {
+        const HighScoreTable& table = highScoreTable_->tables.front();  // Access the first table only
+
         int paddingBetweenColumns = static_cast<int>(baseColumnPadding_ * font->getHeight() * scale);
         int rowPadding = static_cast<int>(baseRowPadding_ * font->getHeight() * scale);
 
         // 1. Calculate column widths
-        std::vector<int> columnWidths(highScoreTable_->columns.size(), 0);
-        for (size_t i = 0; i < highScoreTable_->columns.size(); ++i) {
-            int headerWidth = static_cast<int>(font->getWidth(highScoreTable_->columns[i]) * scale);
+        std::vector<int> columnWidths(table.columns.size(), 0);
+        for (size_t i = 0; i < table.columns.size(); ++i) {
+            int headerWidth = static_cast<int>(font->getWidth(table.columns[i]) * scale);
             columnWidths[i] = std::max(columnWidths[i], headerWidth);
 
-            for (const auto& row : highScoreTable_->rows) {
+            for (const auto& row : table.rows) {
                 if (i < row.size()) {
                     int cellWidth = static_cast<int>(font->getWidth(row[i]) * scale);
                     columnWidths[i] = std::max(columnWidths[i], cellWidth);
@@ -872,8 +862,8 @@ void ReloadableScrollingText::updateGlyphCache() {
         // 2. Precompute positions for headers
         float currentY = yPos;
         float currentX = xPos;
-        for (size_t col = 0; col < highScoreTable_->columns.size(); ++col) {
-            const std::string& header = highScoreTable_->columns[col];
+        for (size_t col = 0; col < table.columns.size(); ++col) {
+            const std::string& header = table.columns[col];
             float headerWidth = font->getWidth(header) * scale;
             float xAligned = currentX + (columnWidths[col] - headerWidth) / 2.0f;
 
@@ -899,9 +889,9 @@ void ReloadableScrollingText::updateGlyphCache() {
         currentY += font->getHeight() * scale + rowPadding;
 
         // 3. Precompute positions for each row
-        for (const auto& row : highScoreTable_->rows) {
+        for (const auto& row : table.rows) {
             currentX = xPos;
-            for (size_t col = 0; col < highScoreTable_->columns.size(); ++col) {
+            for (size_t col = 0; col < table.columns.size(); ++col) {
                 std::string cell = (col < row.size()) ? row[col] : "";
 
                 float cellWidth = font->getWidth(cell) * scale;

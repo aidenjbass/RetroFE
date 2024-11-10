@@ -89,56 +89,57 @@ void HiScores::loadFromZip(const std::string& zipPath) {
 void HiScores::loadFromFile(const std::string& gameName, const std::string& filePath, std::vector<char>& buffer) {
     rapidxml::xml_document<> doc;
 
-    // Attempt to parse the XML buffer
     try {
         doc.parse<0>(buffer.data());
     } catch (const rapidxml::parse_error& e) {
         LOG_ERROR("HiScores", "Parse error in file " + filePath + ": " + e.what());
-        return;  // Exit if parsing fails
+        return;
     }
 
-    // Ensure the root node exists
     rapidxml::xml_node<>* rootNode = doc.first_node("hi2txt");
     if (!rootNode) {
         LOG_ERROR("HiScores", "Root node <hi2txt> not found in file " + filePath);
         return;
     }
 
-    rapidxml::xml_node<>* tableNode = rootNode->first_node("table");
-    if (!tableNode) {
-        return;
-    }
+    HighScoreData highScoreData;
 
-    HighScoreTable highScoreTable;
+    for (rapidxml::xml_node<>* tableNode = rootNode->first_node("table"); tableNode; tableNode = tableNode->next_sibling("table")) {
+        HighScoreTable highScoreTable;
 
-    // Parse columns
-    for (rapidxml::xml_node<>* colNode = tableNode->first_node("col"); colNode; colNode = colNode->next_sibling("col")) {
-        std::string columnValue = Utils::trimEnds(colNode->value()); // Trim whitespace from the column name
-        highScoreTable.columns.push_back(columnValue);
-    }
-
-    // Parse rows
-    for (rapidxml::xml_node<>* row = tableNode->first_node("row"); row; row = row->next_sibling("row")) {
-        std::vector<std::string> rowData;
-
-        for (rapidxml::xml_node<>* cell = row->first_node("cell"); cell; cell = cell->next_sibling("cell")) {
-            std::string cellValue = Utils::trimEnds(cell->value()); // Trim whitespace from the cell value
-            rowData.push_back(cellValue);
+        // Assign ID if present
+        if (tableNode->first_attribute("id")) {
+            highScoreTable.id = tableNode->first_attribute("id")->value();
         }
 
-        highScoreTable.rows.push_back(rowData);
+        // Parse columns
+        for (rapidxml::xml_node<>* colNode = tableNode->first_node("col"); colNode; colNode = colNode->next_sibling("col")) {
+            highScoreTable.columns.push_back(Utils::trimEnds(colNode->value()));
+        }
+
+        // Parse rows
+        for (rapidxml::xml_node<>* rowNode = tableNode->first_node("row"); rowNode; rowNode = rowNode->next_sibling("row")) {
+            std::vector<std::string> rowData;
+            for (rapidxml::xml_node<>* cellNode = rowNode->first_node("cell"); cellNode; cellNode = cellNode->next_sibling("cell")) {
+                rowData.push_back(Utils::trimEnds(cellNode->value()));
+            }
+            highScoreTable.rows.push_back(rowData);
+        }
+
+        highScoreData.tables.push_back(highScoreTable);  // Add the table to the list
     }
 
-    scoresCache_[gameName] = highScoreTable;
+    // Store the HighScoreData in the cache
+    scoresCache_[gameName] = highScoreData;
 }
 
 // Retrieve a pointer to the high score table for a specific game
-const HighScoreTable* HiScores::getHighScoreTable(const std::string& gameName) const {
+const HighScoreData* HiScores::getHighScoreTable(const std::string& gameName) const {
     auto it = scoresCache_.find(gameName);
     if (it != scoresCache_.end()) {
-        return &it->second;  // Return pointer to the high score table
+        return &it->second;  // Return pointer to the HighScoreData containing all tables
     }
-    return nullptr;  // Return null if game not found
+    return nullptr;  // Return nullptr if gameName is not found
 }
 
 // Check if a .hi file exists for the given game

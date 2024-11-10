@@ -41,7 +41,6 @@ public:
     virtual ~ReloadableScrollingText( );
     bool     update(float dt);
     void     draw( );
-    void renderText(const std::string& text, Font* font, SDL_Texture* texture, int x, int y, float scale, float alpha);
     void     allocateGraphicsMemory( );
     void     freeGraphicsMemory( );
     void     deInitializeFonts();
@@ -52,8 +51,6 @@ private:
     bool loadFileText(const std::string& filePath);
     void reloadTexture(bool resetScroll = true);
     void loadText( std::string collection, std::string type, std::string basename, std::string filepath, bool systemMode );
-    void renderScrollingTextHorizontal(Font* font, SDL_Texture* texture, float& currentX, float y, float scale, float maxWidth);
-    void renderScrollingTextVertical(Font* font, SDL_Texture* texture, float x, float& currentY, float scale, float maxHeight);
     void updateGlyphCache();
     Configuration           &config_;
     bool                     systemMode_;
@@ -88,10 +85,6 @@ private:
     float lastImageMaxWidth_;
     float lastImageMaxHeight_;
     std::filesystem::file_time_type lastWriteTime_;
-    const HighScoreTable* highScoreTable_ = nullptr;
-    SDL_BlendMode maskBlendMode = SDL_ComposeCustomBlendMode(
-        SDL_BLENDFACTOR_ZERO, SDL_BLENDFACTOR_SRC_COLOR, SDL_BLENDOPERATION_ADD,
-        SDL_BLENDFACTOR_ZERO, SDL_BLENDFACTOR_SRC_ALPHA, SDL_BLENDOPERATION_ADD
-    );
+    const HighScoreData* highScoreTable_ = nullptr;
 
 };
