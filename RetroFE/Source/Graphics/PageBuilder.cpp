@@ -715,6 +715,8 @@ void PageBuilder::loadReloadableImages(const xml_node<>* layout, const std::stri
         xml_attribute<> const* idXml = componentXml->first_attribute("id");
         xml_attribute<> const* randomSelectXml = componentXml->first_attribute("randomSelect");
         xml_attribute<> const* locationXml = componentXml->first_attribute("location");
+        xml_attribute<> const* baseColumnPaddingXml = componentXml->first_attribute("baseColumnPadding");
+        xml_attribute<> const* baseRowPaddingXml = componentXml->first_attribute("baseRowPadding");
 
         bool systemMode = false;
         bool layoutMode = false;
@@ -791,8 +793,15 @@ void PageBuilder::loadReloadableImages(const xml_node<>* layout, const std::stri
                 std::string singlePostfix = singlePostfixXml ? singlePostfixXml->value() : "";
                 std::string pluralPrefix = pluralPrefixXml ? pluralPrefixXml->value() : "";
                 std::string pluralPostfix = pluralPostfixXml ? pluralPostfixXml->value() : "";
+                float baseColumnPadding = baseColumnPaddingXml ? Utils::convertFloat(baseColumnPaddingXml->value()) : 1.5f;
+                float baseRowPadding = baseRowPaddingXml ? Utils::convertFloat(baseRowPaddingXml->value()) : 0.5f;
 
-                c = new ReloadableScrollingText(config_, systemMode, layoutMode, menuMode, typeValue, textFormat, singlePrefix, singlePostfix, pluralPrefix, pluralPostfix, alignment, *page, selectedOffset, font, direction, scrollingSpeed, startPosition, startTime, endTime, location);
+                c = new ReloadableScrollingText(config_, systemMode, layoutMode, menuMode, typeValue, 
+                    textFormat, singlePrefix, singlePostfix, pluralPrefix, 
+                    pluralPostfix, alignment, *page, selectedOffset, 
+                    font, direction, scrollingSpeed, startPosition, 
+                    startTime, endTime, location, baseColumnPadding, 
+                    baseRowPadding);
             }
         }
         else {

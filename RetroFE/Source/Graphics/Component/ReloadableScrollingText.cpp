@@ -29,7 +29,12 @@
 #include <iostream>
 #include <algorithm>
 
-ReloadableScrollingText::ReloadableScrollingText(Configuration& config, bool systemMode, bool layoutMode, bool menuMode, std::string type, std::string textFormat, std::string singlePrefix, std::string singlePostfix, std::string pluralPrefix, std::string pluralPostfix, std::string alignment, Page& p, int displayOffset, Font* font, std::string direction, float scrollingSpeed, float startPosition, float startTime, float endTime, std::string location)
+ReloadableScrollingText::ReloadableScrollingText(Configuration& config, bool systemMode, bool layoutMode, bool menuMode, 
+    std::string type, std::string textFormat, std::string singlePrefix, std::string singlePostfix, 
+    std::string pluralPrefix, std::string pluralPostfix, std::string alignment, 
+    Page& p, int displayOffset, Font* font, std::string direction, float scrollingSpeed, 
+    float startPosition, float startTime, float endTime, std::string location, 
+    float baseColumnPadding, float baseRowPadding)
     : Component(p)
     , config_(config)
     , systemMode_(systemMode)
@@ -51,6 +56,8 @@ ReloadableScrollingText::ReloadableScrollingText(Configuration& config, bool sys
     , waitStartTime_(startTime)
     , endTime_(endTime)
     , waitEndTime_(0.0f)
+    , baseColumnPadding_(baseColumnPadding)
+    , baseRowPadding_(baseRowPadding)
     , currentCollection_("")
     , displayOffset_(displayOffset)
     , needsUpdate_(true)
@@ -548,11 +555,8 @@ void ReloadableScrollingText::draw() {
     }
 
     if (type_ == "hiscores" && highScoreTable_) {
-        // Constants for padding and row spacing
-        const float baseColumnPadding = 1.2f;
-        const float baseRowPadding = 0.2f; // Reintroduced baseRowPadding with a meaningful value
-        int paddingBetweenColumns = static_cast<int>(baseColumnPadding * drawableHeight * scale); // Adjusted to use drawableHeight
-        int rowPadding = static_cast<int>(baseRowPadding * drawableHeight * scale); // Dynamic row padding
+        int paddingBetweenColumns = static_cast<int>(baseColumnPadding_ * drawableHeight * scale); // Adjusted to use drawableHeight
+        int rowPadding = static_cast<int>(baseRowPadding_ * drawableHeight * scale); // Dynamic row padding
         
         // Calculate column widths
         std::vector<int> columnWidths(highScoreTable_->columns.size(), 0);
@@ -847,14 +851,9 @@ void ReloadableScrollingText::updateGlyphCache() {
     float yPos = 0.0f;
 
     if (type_ == "hiscores" && highScoreTable_) {
-        // **High Scores Table Rendering Caching**
-        // Define base padding constants (these values are multipliers for reference)
-        const float baseColumnPadding = 1.2f;
-        const float baseRowPadding = 0.25f;
-
         // Calculate padding relative to font scale
-        int paddingBetweenColumns = static_cast<int>(baseColumnPadding * font->getHeight() * scale);
-        int rowPadding = static_cast<int>(baseRowPadding * font->getHeight() * scale);
+        int paddingBetweenColumns = static_cast<int>(baseColumnPadding_ * font->getHeight() * scale);
+        int rowPadding = static_cast<int>(baseRowPadding_ * font->getHeight() * scale);
 
         // 1. Calculate column widths
         std::vector<int> columnWidths(highScoreTable_->columns.size(), 0);
