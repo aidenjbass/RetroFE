@@ -142,29 +142,67 @@ bool ReloadableScrollingText::loadFileText(const std::string& filePath) {
 bool ReloadableScrollingText::update(float dt) {
     if (waitEndTime_ > 0) {
         waitEndTime_ -= dt;
-    }
-    else if (waitStartTime_ > 0) {
+    } else if (waitStartTime_ > 0) {
         waitStartTime_ -= dt;
-    }
-    else {
-        if (direction_ == "horizontal") {
-            currentPosition_ += scrollingSpeed_ * dt;
-            if (startPosition_ == 0.0f && textWidth_ <= baseViewInfo.Width) {
+    } else {
+        if (type_ == "hiscores" && highScoreTable_ && !highScoreTable_->tables.empty()) {
+            // Ensure currentTableIndex_ is within bounds
+            if (currentTableIndex_ >= highScoreTable_->tables.size()) {
+                currentTableIndex_ = 0;
+            }
+
+            const HighScoreTable& table = highScoreTable_->tables[currentTableIndex_];
+
+            // Consistent padding calculations as in draw()
+            Font* font = baseViewInfo.font ? baseViewInfo.font : fontInst_;
+            float scale = baseViewInfo.FontSize / static_cast<float>(font->getHeight());
+            float drawableHeight = static_cast<float>(font->getAscent() + font->getDescent());
+            int rowPadding = static_cast<int>(baseRowPadding_ * drawableHeight * scale);
+            int totalTableHeight = static_cast<int>((drawableHeight * scale + rowPadding) * (table.rows.size() + 1));
+
+            bool needsScrolling = (totalTableHeight > baseViewInfo.Height);
+
+            if (needsScrolling) {
+                currentPosition_ += scrollingSpeed_ * dt;
+            } else {
                 currentPosition_ = 0.0f;
             }
-        }
-        else if (direction_ == "vertical") {
-            currentPosition_ += scrollingSpeed_ * dt;
+
+            if (highScoreTable_->tables.size() > 1) {
+                if (needsScrolling) {
+                    currentTableDisplayTime_ = totalTableHeight / scrollingSpeed_;
+                } else {
+                    currentTableDisplayTime_ = displayTime_;
+                }
+
+                tableDisplayTimer_ += dt;
+                if (tableDisplayTimer_ >= currentTableDisplayTime_) {
+                    tableDisplayTimer_ = 0.0f;
+                    currentPosition_ = 0.0f;
+                    currentTableIndex_ = (currentTableIndex_ + 1) % highScoreTable_->tables.size();
+                }
+            }
+        } else {
+            // Non-hiscore or empty highScoreTable_: use default scrolling behavior
+            if (direction_ == "horizontal") {
+                currentPosition_ += scrollingSpeed_ * dt;
+                if (startPosition_ == 0.0f && textWidth_ <= baseViewInfo.Width) {
+                    currentPosition_ = 0.0f;
+                }
+            } else if (direction_ == "vertical") {
+                currentPosition_ += scrollingSpeed_ * dt;
+            }
         }
     }
 
-    // If the type is "file", always reload the text
+    // Reload text if necessary
     if (type_ == "file") {
         reloadTexture();
-    }
-    // For non-file types, use the default behavior
-    else if (newItemSelected || (newScrollItemSelected && getMenuScrollReload())) {
-        reloadTexture();  // Reset scroll position as usual for non-file types
+    } else if (newItemSelected || (newScrollItemSelected && getMenuScrollReload())) {
+        currentTableIndex_ = 0;
+        tableDisplayTimer_ = 0.0f; // Reset timer for the new game's table
+        currentPosition_ = 0.0f;   // Reset scroll position
+        reloadTexture();
         newItemSelected = false;
     }
 
@@ -506,14 +544,12 @@ void ReloadableScrollingText::loadText( std::string collection, std::string type
 void ReloadableScrollingText::draw() {
     Component::draw();
 
-    // Early exit conditions
     if ((text_.empty() && !(type_ == "hiscores" && highScoreTable_ && !highScoreTable_->tables.empty())) ||
         waitEndTime_ > 0.0f ||
         baseViewInfo.Alpha <= 0.0f) {
         return;
     }
 
-    // Retrieve the font and texture
     Font* font = baseViewInfo.font ? baseViewInfo.font : fontInst_;
     SDL_Texture* texture = font ? font->getTexture() : nullptr;
     if (!texture) {
@@ -521,40 +557,28 @@ void ReloadableScrollingText::draw() {
         return;
     }
 
-    // Scaling factor and origin positions
+    SDL_Renderer* renderer = SDL::getRenderer(baseViewInfo.Monitor);
+    if (!renderer) {
+        std::cerr << "Error: Unable to retrieve SDL_Renderer." << std::endl;
+        return;
+    }
+
     float scale = baseViewInfo.FontSize / static_cast<float>(font->getHeight());
     float xOrigin = baseViewInfo.XRelativeToOrigin();
     float yOrigin = baseViewInfo.YRelativeToOrigin();
     float imageMaxWidth = (baseViewInfo.Width < baseViewInfo.MaxWidth && baseViewInfo.Width > 0) ? baseViewInfo.Width : baseViewInfo.MaxWidth;
     float imageMaxHeight = (baseViewInfo.Height < baseViewInfo.MaxHeight && baseViewInfo.Height > 0) ? baseViewInfo.Height : baseViewInfo.MaxHeight;
     float drawableHeight = static_cast<float>(font->getAscent() + font->getDescent());
+    int paddingBetweenColumns = static_cast<int>(baseColumnPadding_ * drawableHeight * scale);
+    int rowPadding = static_cast<int>(baseRowPadding_ * drawableHeight * scale);
 
-    // Update glyph cache if needed
-    if (needsUpdate_ || lastScale_ != scale || lastImageMaxWidth_ != imageMaxWidth || lastImageMaxHeight_ != imageMaxHeight) {
-        updateGlyphCache();
-        lastScale_ = scale;
-        lastImageMaxWidth_ = imageMaxWidth;
-        lastImageMaxHeight_ = imageMaxHeight;
-        needsUpdate_ = false;
-    }
+    SDL_Rect clipRect = { static_cast<int>(xOrigin), static_cast<int>(yOrigin), static_cast<int>(imageMaxWidth), static_cast<int>(imageMaxHeight) };
+    SDL_RenderSetClipRect(renderer, &clipRect);
 
-    // Calculate scroll offset based on the current scroll position
     float scrollOffset = currentPosition_;
 
-    // Clip region for the entire table
-    SDL_Rect clipRect = { static_cast<int>(xOrigin), static_cast<int>(yOrigin), static_cast<int>(imageMaxWidth), static_cast<int>(imageMaxHeight) };
-    SDL_Renderer* renderer = SDL::getRenderer(baseViewInfo.Monitor);
-    if (renderer) {
-        SDL_RenderSetClipRect(renderer, &clipRect);
-    } else {
-        std::cerr << "Error: Unable to retrieve SDL_Renderer." << std::endl;
-        return;
-    }
-
-    if (type_ == "hiscores" && highScoreTable_) {
-        const HighScoreTable& table = highScoreTable_->tables.front();  // Access the first table only
-        int paddingBetweenColumns = static_cast<int>(baseColumnPadding_ * drawableHeight * scale);
-        int rowPadding = static_cast<int>(baseRowPadding_ * drawableHeight * scale);
+    if (type_ == "hiscores" && highScoreTable_ && !highScoreTable_->tables.empty()) {
+        const HighScoreTable& table = highScoreTable_->tables[currentTableIndex_];
 
         // Calculate column widths
         std::vector<int> columnWidths(table.columns.size(), 0);
@@ -570,25 +594,43 @@ void ReloadableScrollingText::draw() {
             }
         }
 
-        // Calculate table dimensions using drawableHeight
         int totalTableWidth = 0;
         for (size_t i = 0; i < columnWidths.size(); ++i) {
-            totalTableWidth += columnWidths[i] + ((i < columnWidths.size() - 1) ? paddingBetweenColumns : 0);
-        }
-        int totalTableHeight = static_cast<int>((drawableHeight * scale + rowPadding) * (table.rows.size() + 1));
-        bool needsScrolling = (direction_ == "vertical") ? (totalTableHeight > imageMaxHeight) : (totalTableWidth > imageMaxWidth);
-
-        // Reset scroll if no scrolling is needed
-        if (!needsScrolling) {
-            currentPosition_ = 0.0f;
-            waitStartTime_ = 0.0f;
-            waitEndTime_ = 0.0f;
+            totalTableWidth += columnWidths[i] + (i < columnWidths.size() - 1 ? paddingBetweenColumns : 0);
         }
 
-        // Render the header row at a fixed position
-        float headerY = yOrigin;
+        bool hasTitle = !table.id.empty();
+        float adjustedYOrigin = yOrigin;
+
+        if (hasTitle) {
+            const std::string& title = table.id;
+            float titleX = xOrigin + (totalTableWidth - font->getWidth(title) * scale) / 2.0f;
+            float titleY = adjustedYOrigin;
+
+            for (char c : title) {
+                Font::GlyphInfo glyph;
+                if (font->getRect(c, glyph)) {
+                    SDL_Rect srcRect = glyph.rect;
+                    SDL_Rect destRect = { 
+                        static_cast<int>(titleX), 
+                        static_cast<int>(titleY), 
+                        static_cast<int>(glyph.rect.w * scale), 
+                        static_cast<int>(glyph.rect.h * scale) 
+                    };
+                    SDL::renderCopy(texture, baseViewInfo.Alpha, &srcRect, &destRect, baseViewInfo,
+                        page.getLayoutWidthByMonitor(baseViewInfo.Monitor),
+                        page.getLayoutHeightByMonitor(baseViewInfo.Monitor));
+                    titleX += glyph.advance * scale;
+                }
+            }
+            adjustedYOrigin += drawableHeight * scale + rowPadding;
+        }
+
+        float headerY = adjustedYOrigin;
         int xPos = static_cast<int>(xOrigin);
         for (size_t col = 0; col < table.columns.size(); ++col) {
+            if (col >= columnWidths.size()) continue;
+
             const std::string& header = table.columns[col];
             int xAligned = xPos + (columnWidths[col] - static_cast<int>(font->getWidth(header) * scale)) / 2;
             float charX = static_cast<float>(xAligned);
@@ -604,8 +646,8 @@ void ReloadableScrollingText::draw() {
                         static_cast<int>(glyph.rect.w * scale), 
                         static_cast<int>(glyph.rect.h * scale) 
                     };
-                    SDL::renderCopy(texture, baseViewInfo.Alpha, &srcRect, &destRect, baseViewInfo, 
-                        page.getLayoutWidthByMonitor(baseViewInfo.Monitor), 
+                    SDL::renderCopy(texture, baseViewInfo.Alpha, &srcRect, &destRect, baseViewInfo,
+                        page.getLayoutWidthByMonitor(baseViewInfo.Monitor),
                         page.getLayoutHeightByMonitor(baseViewInfo.Monitor));
                     charX += glyph.advance * scale;
                 }
@@ -613,74 +655,58 @@ void ReloadableScrollingText::draw() {
             xPos += columnWidths[col] + paddingBetweenColumns;
         }
 
-        float minimumClipHeight = font->getHeight() * scale;
-        SDL_Rect scrollClipRect = { 
-            static_cast<int>(xOrigin), 
-            static_cast<int>(headerY + minimumClipHeight), 
-            static_cast<int>(imageMaxWidth), 
-            static_cast<int>(std::max(imageMaxHeight - minimumClipHeight, 0.0f)) 
+        adjustedYOrigin += drawableHeight * scale + rowPadding;
+
+        // Calculate the starting position for the scrolling area precisely below the header row
+        SDL_Rect scrollClipRect = {
+            static_cast<int>(xOrigin),
+            static_cast<int>(headerY + drawableHeight * scale + rowPadding),  // Start directly below the header row
+            static_cast<int>(imageMaxWidth),
+            static_cast<int>(std::max(imageMaxHeight - (headerY + drawableHeight * scale + rowPadding - yOrigin), 0.0f))
         };
         SDL_RenderSetClipRect(renderer, &scrollClipRect);
 
-        float currentY = headerY + drawableHeight * scale + rowPadding;
-        float adjustedYOrigin = currentY - (needsScrolling && direction_ == "vertical" ? scrollOffset : 0);
+        float currentY = adjustedYOrigin;
+        float adjustedScrollY = currentY - scrollOffset;
         for (const auto& row : table.rows) {
             xPos = static_cast<int>(xOrigin);
 
-            bool skipRow = false;
-            if (needsScrolling) {
-                if (direction_ == "vertical") {
-                    if (adjustedYOrigin + drawableHeight * scale < yOrigin || adjustedYOrigin > yOrigin + imageMaxHeight) {
-                        skipRow = true;
+            bool skipRow = (adjustedScrollY + drawableHeight * scale < yOrigin || adjustedScrollY > yOrigin + imageMaxHeight);
+
+            if (!skipRow) {
+                float currentRowX = static_cast<float>(xPos);
+                float currentRowY = adjustedScrollY;
+                for (size_t col = 0; col < table.columns.size(); ++col) {
+                    if (col >= row.size()) continue;
+
+                    std::string cell = row[col];
+                    int xAligned = xPos + (columnWidths[col] - static_cast<int>(font->getWidth(cell) * scale)) / 2;
+                    float charX = static_cast<float>(xAligned);
+                    float charY = currentRowY;
+
+                    for (char c : cell) {
+                        Font::GlyphInfo glyph;
+                        if (font->getRect(c, glyph)) {
+                            SDL_Rect srcRect = glyph.rect;
+                            SDL_Rect destRect = { 
+                                static_cast<int>(charX), 
+                                static_cast<int>(charY), 
+                                static_cast<int>(glyph.rect.w * scale), 
+                                static_cast<int>(glyph.rect.h * scale) 
+                            };
+                            SDL::renderCopy(texture, baseViewInfo.Alpha, &srcRect, &destRect, baseViewInfo,
+                                page.getLayoutWidthByMonitor(baseViewInfo.Monitor),
+                                page.getLayoutHeightByMonitor(baseViewInfo.Monitor));
+                            charX += glyph.advance * scale;
+                        }
                     }
+                    xPos += columnWidths[col] + paddingBetweenColumns;
                 }
             }
-
-            if (skipRow) {
-                adjustedYOrigin += drawableHeight * scale + rowPadding;
-                continue;
-            }
-
-            float currentRowX = static_cast<float>(xPos);
-            float currentRowY = adjustedYOrigin;
-            for (size_t col = 0; col < table.columns.size(); ++col) {
-                std::string cell = (col < row.size()) ? row[col] : "";
-                int xAligned = xPos + (columnWidths[col] - static_cast<int>(font->getWidth(cell) * scale)) / 2;
-                float charX = static_cast<float>(xAligned);
-                float charY = currentRowY;
-
-                for (char c : cell) {
-                    Font::GlyphInfo glyph;
-                    if (font->getRect(c, glyph)) {
-                        SDL_Rect srcRect = glyph.rect;
-                        SDL_Rect destRect = { 
-                            static_cast<int>(charX), 
-                            static_cast<int>(charY), 
-                            static_cast<int>(glyph.rect.w * scale), 
-                            static_cast<int>(glyph.rect.h * scale) 
-                        };
-                        SDL::renderCopy(texture, baseViewInfo.Alpha, &srcRect, &destRect, baseViewInfo, 
-                            page.getLayoutWidthByMonitor(baseViewInfo.Monitor), 
-                            page.getLayoutHeightByMonitor(baseViewInfo.Monitor));
-                        charX += glyph.advance * scale;
-                    }
-                }
-                xPos += columnWidths[col] + paddingBetweenColumns;
-            }
-            adjustedYOrigin += drawableHeight * scale + rowPadding;
-        }
-
-        if (needsScrolling) {
-            if (direction_ == "horizontal" && currentPosition_ > totalTableWidth) {
-                currentPosition_ = -startPosition_;
-            } else if (direction_ == "vertical" && currentPosition_ > totalTableHeight) {
-                currentPosition_ = -startPosition_;
-            }
+            adjustedScrollY += drawableHeight * scale + rowPadding;
         }
         SDL_RenderSetClipRect(renderer, nullptr);
     }
-
-
     else {
         // **Normal Scrolling Text Rendering**
 

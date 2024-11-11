@@ -86,5 +86,10 @@ private:
     float lastImageMaxHeight_;
     std::filesystem::file_time_type lastWriteTime_;
     const HighScoreData* highScoreTable_ = nullptr;
+    int currentTableIndex_ = 0;           // Tracks the current table being displayed (for multi-table support)
+    float tableDisplayTimer_ = 0.0f;      // Timer to manage the display time for each table
+    float currentTableDisplayTime_ = 0.0f; // Calculated display time for the current table, based on scrolling needs
+    bool switchTable_ = false;            // Flag indicating when to switch to the next table
+    float displayTime_ = 5.0f;            // Default display time for non-scrolling tables (adjustable as needed)
 
 };
