@@ -82,6 +82,7 @@ else()
     pkg_search_module(SDL2_MIXER REQUIRED SDL2_mixer)
     pkg_search_module(SDL2_TTF REQUIRED SDL2_ttf)
     pkg_search_module(ZLIB REQUIRED zlib)
+    pkg_search_module(MINIZIP REQUIRED minizip)
     pkg_search_module(WEBP REQUIRED libwebp)
     pkg_check_modules(WEBP_DEMUX REQUIRED libwebpdemux)
     pkg_check_modules(GSTREAMER REQUIRED gstreamer-1.0 gstreamer-video-1.0 gstreamer-audio-1.0 gstreamer-app-1.0)
@@ -95,6 +96,7 @@ else()
         ${SDL2_MIXER_INCLUDE_DIRS}
         ${SDL2_TTF_INCLUDE_DIRS}
         ${ZLIB_INCLUDE_DIRS}
+        ${MINIZIP_INCLUDE_DIRS}
         ${WEBP_INCLUDE_DIRS}
         ${GSTREAMER_INCLUDE_DIRS}
         ${GLIB2_INCLUDE_DIRS}
@@ -108,6 +110,7 @@ else()
         ${SDL2_MIXER_LIBRARY_DIRS}
         ${SDL2_TTF_LIBRARY_DIRS}
         ${ZLIB_LIBRARY_DIRS}
+        ${MINIZIP_LIBRARIES}
         ${WEBP_LIBRARY_DIRS}
         ${GSTREAMER_LIBRARY_DIRS}
         ${GLIB2_LIBRARY_DIRS}
@@ -162,6 +165,7 @@ if(WIN32)
         "${WEBP_LIB}"
         "${WEBP_ROOT}/lib/libwebpdecoder.lib"
         "${WEBP_ROOT}/lib/libwebpdemux.lib"
+        "${ZLIB_ROOT}/lib/minizip.lib"
     )
 endif()
 
@@ -184,7 +188,7 @@ set(RETROFE_HEADERS
 	"${RETROFE_DIR}/Source/Database/Configuration.h"
 	"${RETROFE_DIR}/Source/Database/DB.h"
 	"${RETROFE_DIR}/Source/Database/GlobalOpts.h"
-	"${RETROFE_DIR}/Source/Database/MetadataDatabase.h"
+    "${RETROFE_DIR}/Source/Database/HiScores.h"
 	"${RETROFE_DIR}/Source/Execute/AttractMode.h"
 	"${RETROFE_DIR}/Source/Execute/Launcher.h"
 	"${RETROFE_DIR}/Source/Graphics/Animate/Tween.h"
@@ -238,6 +242,7 @@ set(RETROFE_SOURCES
 	"${RETROFE_DIR}/Source/Database/Configuration.cpp"
 	"${RETROFE_DIR}/Source/Database/DB.cpp"
 	"${RETROFE_DIR}/Source/Database/GlobalOpts.cpp"
+    "${RETROFE_DIR}/Source/Database/HiScores.cpp"
 	"${RETROFE_DIR}/Source/Database/MetadataDatabase.cpp"
 	"${RETROFE_DIR}/Source/Execute/AttractMode.cpp"
 	"${RETROFE_DIR}/Source/Execute/Launcher.cpp"
@@ -287,7 +292,7 @@ if(NOT WIN32)
     target_link_libraries(retrofe 
         ${RETROFE_LIBRARIES}
         webpdemux
-	webp
+	    webp
     )
 else()
 target_link_libraries(retrofe 
@@ -317,6 +322,7 @@ if(MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP /WX /MD")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /MP /WX /MD")
     set_target_properties(retrofe PROPERTIES LINK_FLAGS "/SUBSYSTEM:WINDOWS")
+    target_link_options(retrofe PRIVATE "/NODEFAULTLIB:LIBCMT")
 else()
     set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -ggdb")
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -ggdb")
