@@ -167,15 +167,16 @@ bool HiScores::hasHiFile(const std::string& gameName) const {
 // Run hi2txt to process the .hi file, generate XML output, save to scores directory, and update cache
 bool HiScores::runHi2Txt(const std::string& gameName) {
     // Set up paths
-    std::string hi2txtPath = Utils::combinePath(Configuration::absolutePath, "hi2txt", "hi2txt");
+    std::string hi2txtPath;
     std::string hiFilePath = Utils::combinePath(hiFilesDirectory_, gameName + ".hi");
 
     // Create the command string
-    std::string command = "\"" + hi2txtPath + "\" -r -xml \"" + hiFilePath + "\"";
+    std::string command;
 
 #ifdef WIN32
     // Windows-specific implementation
-
+    hi2txtPath = Utils::combinePath(Configuration::absolutePath, "hi2txt", "hi2txt");
+    command = "\"" + hi2txtPath + "\" -r -xml \"" + hiFilePath + "\"";
     // Initialize structures for the process
     STARTUPINFOA startupInfo;
     PROCESS_INFORMATION processInfo;
@@ -228,7 +229,8 @@ bool HiScores::runHi2Txt(const std::string& gameName) {
 
 #else
     // Unix-based implementation
-
+    hi2txtPath = Utils::combinePath(Configuration::absolutePath, "hi2txt", "hi2txt.jar");
+    command = "java -jar \"" + hi2txtPath + "\" -r -xml \"" + hiFilePath + "\"";
     // Using popen() to execute the command and capture output
     std::vector<char> buffer;
     FILE* pipe = popen(command.c_str(), "r");
