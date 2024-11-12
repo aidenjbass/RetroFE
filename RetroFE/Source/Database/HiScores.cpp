@@ -2,6 +2,7 @@
     #include <Windows.h>
 #else
     #include <cstdlib>  // For system() on Unix-based systems
+    #include <cstring>
 #endif
 
 #include "HiScores.h"
@@ -246,13 +247,6 @@ bool HiScores::runHi2Txt(const std::string& gameName) {
         LOG_ERROR("HiScores", "hi2txt process failed with return code " + std::to_string(returnCode));
         return false;
     }
-
-    // Null-terminate and process the buffer
-    buffer.push_back('\0');
-    std::string xmlContent(buffer.begin(), buffer.end());
-
-    xmlContent = Utils::removeNullCharacters(xmlContent);
-
 #endif
 
     // Null-terminate and process the buffer
