@@ -294,6 +294,7 @@ if(NOT WIN32)
         ${RETROFE_LIBRARIES}
         webpdemux
 	    webp
+        minizip
     )
 else()
 target_link_libraries(retrofe 
