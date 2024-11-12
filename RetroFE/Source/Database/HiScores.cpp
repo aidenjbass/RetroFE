@@ -1,4 +1,10 @@
-#include <Windows.h>
+#ifdef WIN32
+    #include <Windows.h>
+#else
+    #include <cstdlib>  // For system() on Unix-based systems
+    #include <array>
+#endif
+
 #include "HiScores.h"
 #include "../Utility/Utils.h"
 #include "../Utility/Log.h"
@@ -11,6 +17,7 @@
 #include <filesystem>
 #include <fstream>
 #include <algorithm>
+#include <mutex>
 
 // Get the singleton instance
 HiScores& HiScores::getInstance() {
@@ -20,6 +27,10 @@ HiScores& HiScores::getInstance() {
 
 // Load all high scores, first from ZIP, then overriding with external XMLs
 void HiScores::loadHighScores(const std::string& zipPath, const std::string& overridePath) {
+        
+    hiFilesDirectory_ = Utils::combinePath(Configuration::absolutePath, "emulators", "mame", "hi");
+    scoresDirectory_ = Utils::combinePath(Configuration::absolutePath, "hi2txt", "scores");
+    
     // Load defaults from the ZIP file
     loadFromZip(zipPath);
 
@@ -70,7 +81,7 @@ void HiScores::loadFromZip(const std::string& zipPath) {
                 unzCloseCurrentFile(zipFile);
 
                 // Deobfuscate content before parsing
-                std::string deobfuscatedContent = Utils::deobfuscate(std::string(buffer.begin(), buffer.end()));
+                std::string deobfuscatedContent = Utils::removeNullCharacters(Utils::deobfuscate(std::string(buffer.begin(), buffer.end())));        
 
                 // Load deobfuscated data into rapidxml
                 std::vector<char> xmlBuffer(deobfuscatedContent.begin(), deobfuscatedContent.end());
@@ -87,6 +98,11 @@ void HiScores::loadFromZip(const std::string& zipPath) {
 
 // Parse a single XML file for high score data with dynamic columns
 void HiScores::loadFromFile(const std::string& gameName, const std::string& filePath, std::vector<char>& buffer) {
+    std::lock_guard<std::mutex> lock(scoresCacheMutex_);  // Lock mutex for reading
+
+    // Ensure the buffer is null-terminated
+    buffer.push_back('\0');
+
     rapidxml::xml_document<> doc;
 
     try {
@@ -128,13 +144,12 @@ void HiScores::loadFromFile(const std::string& gameName, const std::string& file
 
         highScoreData.tables.push_back(highScoreTable);  // Add the table to the list
     }
-
     // Store the HighScoreData in the cache
     scoresCache_[gameName] = highScoreData;
 }
-
 // Retrieve a pointer to the high score table for a specific game
-const HighScoreData* HiScores::getHighScoreTable(const std::string& gameName) const {
+HighScoreData* HiScores::getHighScoreTable(const std::string& gameName) {
+    std::lock_guard<std::mutex> lock(scoresCacheMutex_);  // Lock the mutex for thread-safe access
     auto it = scoresCache_.find(gameName);
     if (it != scoresCache_.end()) {
         return &it->second;  // Return pointer to the HighScoreData containing all tables
@@ -151,11 +166,14 @@ bool HiScores::hasHiFile(const std::string& gameName) const {
 // Run hi2txt to process the .hi file, generate XML output, save to scores directory, and update cache
 bool HiScores::runHi2Txt(const std::string& gameName) {
     // Set up paths
-    std::string hi2txtPath = Utils::combinePath(Configuration::absolutePath, "hi2txt", "hi2txt.exe");
+    std::string hi2txtPath = Utils::combinePath(Configuration::absolutePath, "hi2txt", "hi2txt");
     std::string hiFilePath = Utils::combinePath(hiFilesDirectory_, gameName + ".hi");
 
     // Create the command string
     std::string command = "\"" + hi2txtPath + "\" -r -xml \"" + hiFilePath + "\"";
+
+#ifdef WIN32
+    // Windows-specific implementation
 
     // Initialize structures for the process
     STARTUPINFOA startupInfo;
@@ -171,6 +189,7 @@ bool HiScores::runHi2Txt(const std::string& gameName) {
     saAttr.nLength = sizeof(SECURITY_ATTRIBUTES);
     saAttr.bInheritHandle = TRUE;
     saAttr.lpSecurityDescriptor = nullptr;
+
     if (!CreatePipe(&hRead, &hWrite, &saAttr, 0)) {
         LOG_ERROR("HiScores", "Failed to create pipe.");
         return false;
@@ -196,8 +215,7 @@ bool HiScores::runHi2Txt(const std::string& gameName) {
     std::vector<char> buffer;
     char tempBuffer[128];
     DWORD bytesRead;
-    while (ReadFile(hRead, tempBuffer, sizeof(tempBuffer) - 1, &bytesRead, nullptr) && bytesRead > 0) {
-        tempBuffer[bytesRead] = '\0';
+    while (ReadFile(hRead, tempBuffer, sizeof(tempBuffer), &bytesRead, nullptr) && bytesRead > 0) {
         buffer.insert(buffer.end(), tempBuffer, tempBuffer + bytesRead);
     }
     CloseHandle(hRead);
@@ -207,10 +225,47 @@ bool HiScores::runHi2Txt(const std::string& gameName) {
     CloseHandle(processInfo.hProcess);
     CloseHandle(processInfo.hThread);
 
+#elif defined(__unix__) || defined(__APPLE__)
+    // Unix-based implementation
+
+    // Using popen() to execute the command and capture output
+    std::array<char, 128> buffer;
+    std::string result;
+
+    FILE* pipe = popen(command.c_str(), "r");
+    if (!pipe) {
+        LOG_ERROR("HiScores", "Failed to run hi2txt command for game " + gameName);
+        return false;
+    }
+
+    while (fgets(buffer.data(), buffer.size(), pipe) != nullptr) {
+        result += buffer.data();
+    }
+
+    int returnCode = pclose(pipe);
+    if (returnCode != 0) {
+        LOG_ERROR("HiScores", "hi2txt process failed with return code " + std::to_string(returnCode));
+        return false;
+    }
+
+    // Store the result into the buffer for further processing
+    buffer.assign(result.begin(), result.end());
+    buffer.push_back('\0');
+
+#endif
+
     // Null-terminate and process the buffer
     buffer.push_back('\0');
     std::string xmlContent(buffer.begin(), buffer.end());
 
+    xmlContent = Utils::removeNullCharacters(xmlContent);
+    xmlContent.push_back('\0');  // Ensure null-termination
+
+    // Check if xmlContent starts with <hi2txt>
+    if (xmlContent.find("<hi2txt>") != 0) {
+        LOG_ERROR("HiScores", "Invalid XML content received from hi2txt for game " + gameName);
+        return false;
+    }
     // Parse the XML content to update the cache
     std::vector<char> xmlBuffer(xmlContent.begin(), xmlContent.end());
     xmlBuffer.push_back('\0');  // Null-terminate for rapidxml
@@ -233,6 +288,18 @@ bool HiScores::runHi2Txt(const std::string& gameName) {
     return true;
 }
 
+// Wrapper function to run hi2txt asynchronously
+void HiScores::runHi2TxtAsync(const std::string& gameName) {
+    // Launch the function in a new thread
+    std::thread([this, gameName]() {
+        if (runHi2Txt(gameName)) {
+            LOG_ERROR("HiScores", "runHi2Txt executed successfully in the background for game " + gameName);
+        } else {
+            LOG_ERROR("HiScores", "runHi2Txt failed in the background for game " + gameName);
+        }
+        }).detach();  // Detach the thread to allow it to run independently
+}
+
 // Helper function to load the XML file content into a buffer
 bool HiScores::loadFileToBuffer(const std::string& filePath, std::vector<char>& buffer) {
     std::ifstream file(filePath, std::ios::binary);
@@ -246,12 +313,10 @@ bool HiScores::loadFileToBuffer(const std::string& filePath, std::vector<char>& 
     std::streamsize size = file.tellg();
     file.seekg(0, std::ios::beg);
 
-    buffer.resize(size + 1);  // Allocate with extra space for null terminator
     if (!file.read(buffer.data(), size)) {
         LOG_ERROR("HiScores", "Error: Could not read file content for " + filePath);
         return false;
     }
 
-    buffer[size] = '\0'; // Null-terminate for rapidxml parsing
     return true;
 }

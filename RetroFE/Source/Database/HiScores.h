@@ -18,6 +18,7 @@
 #include <unordered_map>
 #include <string>
 #include <vector>
+#include <mutex>
 #include "../Utility/Utils.h"
 #include "../Database/Configuration.h"
 
@@ -41,11 +42,13 @@ public:
     // Retrieve high score table for a game
     std::string getHighScore(const std::string& gameName);
 
-    const HighScoreData* getHighScoreTable(const std::string& gameName) const;
+    HighScoreData* getHighScoreTable(const std::string& gameName);
 
     bool hasHiFile(const std::string& gameName) const;
 
     bool runHi2Txt(const std::string& gameName);
+
+    void runHi2TxtAsync(const std::string& gameName);
 
     bool loadFileToBuffer(const std::string& filePath, std::vector<char>& buffer);
 
@@ -53,10 +56,11 @@ public:
 private:
     HiScores() = default;
 
-    std::string hiFilesDirectory_ = Utils::combinePath(Configuration::absolutePath, "emulators", "mame", "hi");
-    std::string scoresDirectory_ = Utils::combinePath(Configuration::absolutePath, "hi2txt", "scores");
+    std::string hiFilesDirectory_;
+    std::string scoresDirectory_;
 
     std::unordered_map<std::string, HighScoreData> scoresCache_;
+    std::mutex scoresCacheMutex_;  // Mutex to protect access to scoresCache_
 
     void loadFromZip(const std::string& zipPath);
     void loadFromFile(const std::string& gameName, const std::string& filePath, std::vector<char>& buffer);

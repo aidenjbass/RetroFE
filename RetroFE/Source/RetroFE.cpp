@@ -1734,11 +1734,7 @@ bool RetroFE::run()
                 config_.getProperty(OPTION_LASTPLAYEDSKIPCOLLECTION, lastPlayedSkipCollection);
                 config_.getProperty(OPTION_LASTPLAYEDSIZE, size);
 
-                // Check if .hi file exists and record last modified time if it does
-                if (HiScores::getInstance().hasHiFile(nextPageItem_->name)) {
-                    std::string mameHiPath = Utils::combinePath(Configuration::absolutePath, "emulators", "mame", "hi", nextPageItem_->name + ".hi");
-                    lastHiFileModifiedTime_ = std::filesystem::last_write_time(mameHiPath);
-                }
+                nextPageItem_ = currentPage_->getSelectedItem();
 
                 if (lastPlayedSkipCollection != "")
                 {
@@ -1795,37 +1791,9 @@ bool RetroFE::run()
 
             // Wait for onGameExit animation to finish
         case RETROFE_LAUNCH_EXIT: {
-            // High score file creation/update logic
-            std::string scoreFilePath = Utils::combinePath(Configuration::absolutePath, "hi2txt", "scores", nextPageItem_->name + ".xml");
-            bool xmlExists = std::filesystem::exists(scoreFilePath);
+            HiScores::getInstance().runHi2TxtAsync(nextPageItem_->name);
 
-            // If XML doesn't exist, run hi2txt to generate it
-            if (!xmlExists) {
-                if (HiScores::getInstance().runHi2Txt(nextPageItem_->name)) {
-                    std::cout << "Initial high scores XML created for game: " << nextPageItem_->name << std::endl;
-                } else {
-                    std::cerr << "Failed to create high scores XML for game: " << nextPageItem_->name << std::endl;
-                }
-            } else if (HiScores::getInstance().hasHiFile(nextPageItem_->name)) {
-                // Check if .hi file exists and has been updated
-                std::string mameHiPath = Utils::combinePath(Configuration::absolutePath, "emulators", "mame", "hi", nextPageItem_->name + ".hi");
-
-                try {
-                    auto currentModifiedTime = std::filesystem::last_write_time(mameHiPath);
-
-                    // If the file's modification time has changed, update scores
-                    if (currentModifiedTime != lastHiFileModifiedTime_) {
-                        if (HiScores::getInstance().runHi2Txt(nextPageItem_->name)) {
-                            std::cout << "High scores updated for game: " << nextPageItem_->name << std::endl;
-                            lastHiFileModifiedTime_ = currentModifiedTime;  // Update last modified time
-                        } else {
-                            std::cerr << "Failed to update high scores for game: " << nextPageItem_->name << std::endl;
-                        }
-                    }
-                } catch (const std::filesystem::filesystem_error& e) {
-                    std::cerr << "Error accessing .hi file: " << e.what() << std::endl;
-                }
-            }
+             
 
             // Only update `state` if `currentPage_` is idle
             if (currentPage_->isIdle()) {
