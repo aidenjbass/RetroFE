@@ -2,7 +2,6 @@
     #include <Windows.h>
 #else
     #include <cstdlib>  // For system() on Unix-based systems
-    #include <array>
 #endif
 
 #include "HiScores.h"
@@ -18,6 +17,7 @@
 #include <fstream>
 #include <algorithm>
 #include <mutex>
+#include <thread>
 
 // Get the singleton instance
 HiScores& HiScores::getInstance() {
@@ -225,21 +225,20 @@ bool HiScores::runHi2Txt(const std::string& gameName) {
     CloseHandle(processInfo.hProcess);
     CloseHandle(processInfo.hThread);
 
-#elif defined(__unix__) || defined(__APPLE__)
+#else
     // Unix-based implementation
 
     // Using popen() to execute the command and capture output
-    std::array<char, 128> buffer;
-    std::string result;
-
+    std::vector<char> buffer;
     FILE* pipe = popen(command.c_str(), "r");
     if (!pipe) {
         LOG_ERROR("HiScores", "Failed to run hi2txt command for game " + gameName);
         return false;
     }
 
-    while (fgets(buffer.data(), buffer.size(), pipe) != nullptr) {
-        result += buffer.data();
+    char tempBuffer[128];
+    while (fgets(tempBuffer, sizeof(tempBuffer), pipe) != nullptr) {
+        buffer.insert(buffer.end(), tempBuffer, tempBuffer + strlen(tempBuffer));
     }
 
     int returnCode = pclose(pipe);
@@ -248,9 +247,11 @@ bool HiScores::runHi2Txt(const std::string& gameName) {
         return false;
     }
 
-    // Store the result into the buffer for further processing
-    buffer.assign(result.begin(), result.end());
+    // Null-terminate and process the buffer
     buffer.push_back('\0');
+    std::string xmlContent(buffer.begin(), buffer.end());
+
+    xmlContent = Utils::removeNullCharacters(xmlContent);
 
 #endif
 
