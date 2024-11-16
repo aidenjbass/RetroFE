@@ -1328,26 +1328,47 @@ void Page::cleanup()
 
 
 void Page::draw() {
+    LOG_DEBUG("Page::draw", "Starting draw process.");
+    LOG_DEBUG("Page::draw", "LayerComponents_ size: " + std::to_string(LayerComponents_.size()));
+    LOG_DEBUG("Page::draw", "menus_ size: " + std::to_string(menus_.size()));
+
     for (unsigned int i = 0; i < NUM_LAYERS; ++i) {
-        // Check if i is within the bounds of LayerComponents_
-        if (i < LayerComponents_.size()) {
-            // Draw all components associated with the current layer
-            for (Component* component : LayerComponents_[i]) {
-                if (component) {
-                    component->draw();
-                }
-            }
+        // Check for out-of-bounds access
+        if (i >= LayerComponents_.size()) {
+            LOG_ERROR("Page::draw", "Layer index out of bounds: " + std::to_string(i));
+            break; // Exit loop
         }
 
-        // Draw all menus associated with the current layer
+        // Skip layers with no components or menus
+        if (LayerComponents_[i].empty() && menus_.empty()) {
+            LOG_DEBUG("Page::draw", "Skipping layer " + std::to_string(i) + " (no components or menus).");
+            continue;
+        }
+
+        // Draw all components in the layer
+        for (Component* component : LayerComponents_[i]) {
+            if (!component) {
+                LOG_WARNING("Page::draw", "Null component in LayerComponents_[" + std::to_string(i) + "].");
+                continue;
+            }
+            component->draw();
+        }
+
+        // Draw all menus in the layer
         for (const auto& menuList : menus_) {
             for (ScrollingList* const menu : menuList) {
-                if (menu) {
-                    // Draw only the components within the menu that belong to the current layer
-                    for (Component* c : menu->getComponents()) {
-                        if (c && c->baseViewInfo.Layer == i) {
-                            c->draw();
-                        }
+                if (!menu) {
+                    LOG_WARNING("Page::draw", "Null menu in menus_.");
+                    continue;
+                }
+
+                for (Component* c : menu->getComponents()) {
+                    if (!c) {
+                        LOG_WARNING("Page::draw", "Null component in menu->getComponents().");
+                        continue;
+                    }
+                    if (c->baseViewInfo.Layer == i) {
+                        c->draw();
                     }
                 }
             }
