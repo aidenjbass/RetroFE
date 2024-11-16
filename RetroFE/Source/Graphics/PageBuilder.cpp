@@ -201,16 +201,16 @@ Page *PageBuilder::buildPage( const std::string& collectionName, bool defaultToC
                 xml_attribute<> const* layoutMonitorXml = root->first_attribute("monitor");
 
                 if (fontXml) {
-                    fontName_ = config_.convertToAbsolutePath(
-                        Utils::combinePath(config_.absolutePath, "layouts", layoutKey, ""),
+                    fontName_ = 
+                        Utils::combinePath(Configuration::absolutePath, "layouts", layoutKey,
                         fontXml->value());
 
                     // Check if the font file exists
                     if (!std::filesystem::exists(fontName_)) {
                         // Fallback to a standard font if the file doesn't exist
                         LOG_ERROR("RetroFE", "Specified font at \n    " + fontName_ + "\n does not exist. Falling back to standard font.");
-                        fontName_ = config_.convertToAbsolutePath(
-                            Utils::combinePath(config_.absolutePath, "layouts", layoutKey, ""),
+                        fontName_ = 
+                            Utils::combinePath(Configuration::absolutePath, "layouts", layoutKey,
                             "fonts/standard.ttf");
                     }
                 }
@@ -507,7 +507,7 @@ bool PageBuilder::buildComponents(xml_node<>* layout, Page* page, const std::str
                 }
             }
 
-            imagePath = Utils::combinePath(Configuration::convertToAbsolutePath(layoutPath, imagePath), std::string(src->value()));
+            imagePath = Utils::combinePath(layoutPath, imagePath, std::string(src->value()));
 
             // Check if collection's assets are in a different theme
             std::string layoutName;
@@ -557,7 +557,7 @@ bool PageBuilder::buildComponents(xml_node<>* layout, Page* page, const std::str
         }
         else {
             VideoBuilder videoBuild{};
-            std::string videoPath = Utils::combinePath(Configuration::convertToAbsolutePath(layoutPath, ""), std::string(srcXml->value()));
+            std::string videoPath = Utils::combinePath(layoutPath, std::string(srcXml->value()));
 
             // Check if collection's assets are in a different theme
             std::string layoutName;
@@ -873,8 +873,8 @@ Font *PageBuilder::addFont(const xml_node<> *component, const xml_node<> *defaul
     int fontSize = fontSize_;
 
     if(fontXml) {
-        fontName = Configuration::convertToAbsolutePath(
-                    Utils::combinePath(Configuration::absolutePath, "layouts", layoutKey,""),
+        fontName = 
+                    Utils::combinePath(Configuration::absolutePath, "layouts", layoutKey,
                     fontXml->value());
 
         LOG_DEBUG("Layout", "loading font " + fontName );
