@@ -1329,10 +1329,13 @@ void Page::cleanup()
 
 void Page::draw() {
     for (unsigned int i = 0; i < NUM_LAYERS; ++i) {
-        // Draw all components associated with the current layer
-        for (Component* component : LayerComponents_[i]) {
-            if (component) {
-                component->draw();
+        // Check if i is within the bounds of LayerComponents_
+        if (i < LayerComponents_.size()) {
+            // Draw all components associated with the current layer
+            for (Component* component : LayerComponents_[i]) {
+                if (component) {
+                    component->draw();
+                }
             }
         }
 
