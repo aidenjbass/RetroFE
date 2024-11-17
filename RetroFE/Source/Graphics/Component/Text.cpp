@@ -97,16 +97,16 @@ void Text::draw() {
     baseViewInfo.ImageWidth = oldImageWidth;
     baseViewInfo.ImageHeight = oldImageHeight;
 
-    SDL_Rect destRect;
+    SDL_FRect destRect;
 
     // Render each cached glyph position
     for (const auto& pos : cachedPositions_) {
-        destRect.x = static_cast<int>(xOrigin + pos.xOffset);
-        destRect.y = static_cast<int>(yOrigin + pos.yOffset);
-        destRect.w = static_cast<int>(pos.sourceRect.w * scale);
-        destRect.h = static_cast<int>(pos.sourceRect.h * scale);
+        destRect.x = xOrigin + pos.xOffset;
+        destRect.y = yOrigin + pos.yOffset;
+        destRect.w = pos.sourceRect.w * scale;
+        destRect.h = pos.sourceRect.h * scale;
 
-        SDL::renderCopy(
+        SDL::renderCopyF(
             texture,
             baseViewInfo.Alpha,
             &pos.sourceRect,

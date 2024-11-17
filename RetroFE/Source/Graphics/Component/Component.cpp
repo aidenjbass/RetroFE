@@ -216,11 +216,11 @@ bool Component::update(float dt) {
 void Component::draw()
 {
     if (backgroundTexture_ && baseViewInfo.Alpha > 0.0f) {
-        SDL_Rect rect = { 0,0,0,0 };
-        rect.h = static_cast<int>(baseViewInfo.ScaledHeight());
-        rect.w = static_cast<int>(baseViewInfo.ScaledWidth());
-        rect.x = static_cast<int>(baseViewInfo.XRelativeToOrigin());
-        rect.y = static_cast<int>(baseViewInfo.YRelativeToOrigin());
+        SDL_FRect rect = { 0,0,0,0 };
+        rect.h = baseViewInfo.ScaledHeight();
+        rect.w = baseViewInfo.ScaledWidth();
+        rect.x = baseViewInfo.XRelativeToOrigin();
+        rect.y = baseViewInfo.YRelativeToOrigin();
 
 
         SDL_SetTextureColorMod(backgroundTexture_,
@@ -228,7 +228,7 @@ void Component::draw()
             static_cast<char>(baseViewInfo.BackgroundGreen * 255),
             static_cast<char>(baseViewInfo.BackgroundBlue * 255));
 
-        SDL::renderCopy(backgroundTexture_, baseViewInfo.BackgroundAlpha, nullptr, &rect, baseViewInfo, page.getLayoutWidthByMonitor(baseViewInfo.Monitor), page.getLayoutHeightByMonitor(baseViewInfo.Monitor));
+        SDL::renderCopyF(backgroundTexture_, baseViewInfo.BackgroundAlpha, nullptr, &rect, baseViewInfo, page.getLayoutWidthByMonitor(baseViewInfo.Monitor), page.getLayoutHeightByMonitor(baseViewInfo.Monitor));
     }
 }
 

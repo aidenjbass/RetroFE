@@ -151,12 +151,12 @@ void VideoComponent::draw() {
             videoInst_->draw();
         }
         if (SDL_Texture* texture = videoInst_->getTexture()) {
-            SDL_Rect rect = {
-                static_cast<int>(baseViewInfo.XRelativeToOrigin()), static_cast<int>(baseViewInfo.YRelativeToOrigin()),
-                static_cast<int>(baseViewInfo.ScaledWidth()), static_cast<int>(baseViewInfo.ScaledHeight()) };
+            SDL_FRect rect = {
+                baseViewInfo.XRelativeToOrigin(), baseViewInfo.YRelativeToOrigin(),
+                baseViewInfo.ScaledWidth(), baseViewInfo.ScaledHeight() };
 
             LOG_DEBUG("VideoComponent", "Drawing texture...");
-            SDL::renderCopy(texture, baseViewInfo.Alpha, nullptr, &rect, baseViewInfo,
+            SDL::renderCopyF(texture, baseViewInfo.Alpha, nullptr, &rect, baseViewInfo,
                 page.getLayoutWidthByMonitor(baseViewInfo.Monitor),
                 page.getLayoutHeightByMonitor(baseViewInfo.Monitor));
 

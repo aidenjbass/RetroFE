@@ -479,17 +479,17 @@ void Image::draw() {
     Component::draw();
 
     // Calculate the destination rectangle for rendering
-    SDL_Rect rect = { 0, 0, 0, 0 };
-    rect.x = static_cast<int>(baseViewInfo.XRelativeToOrigin());
-    rect.y = static_cast<int>(baseViewInfo.YRelativeToOrigin());
-    rect.w = static_cast<int>(baseViewInfo.ScaledWidth());
-    rect.h = static_cast<int>(baseViewInfo.ScaledHeight());
+    SDL_FRect rect = { 0, 0, 0, 0 };
+    rect.x = baseViewInfo.XRelativeToOrigin();
+    rect.y = baseViewInfo.YRelativeToOrigin();
+    rect.w = baseViewInfo.ScaledWidth();
+    rect.h = baseViewInfo.ScaledHeight();
 
     // Prioritize static image rendering
     if (texture_) {
         SDL_LockMutex(SDL::getMutex());
 
-        if (!SDL::renderCopy(texture_, baseViewInfo.Alpha, nullptr, &rect, baseViewInfo,
+        if (!SDL::renderCopyF(texture_, baseViewInfo.Alpha, nullptr, &rect, baseViewInfo,
             page.getLayoutWidthByMonitor(baseViewInfo.Monitor),
             page.getLayoutHeightByMonitor(baseViewInfo.Monitor))) {
             LOG_ERROR("Image", "Failed to render static texture.");
@@ -514,7 +514,7 @@ void Image::draw() {
         if (frameTexture) {
             SDL_LockMutex(SDL::getMutex());
 
-            if (!SDL::renderCopy(frameTexture, baseViewInfo.Alpha, nullptr, &rect, baseViewInfo,
+            if (!SDL::renderCopyF(frameTexture, baseViewInfo.Alpha, nullptr, &rect, baseViewInfo,
                 page.getLayoutWidthByMonitor(baseViewInfo.Monitor),
                 page.getLayoutHeightByMonitor(baseViewInfo.Monitor))) {
                 LOG_ERROR("Image", "Failed to render animation frame.");
