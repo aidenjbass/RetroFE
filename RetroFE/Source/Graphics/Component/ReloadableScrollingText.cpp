@@ -67,12 +67,18 @@ ReloadableScrollingText::ReloadableScrollingText(Configuration& config, bool sys
     , lastImageMaxWidth_(0.0f)
     , lastImageMaxHeight_(0.0f)
     , lastWriteTime_(std::filesystem::file_time_type::min())
+    , intermediateTexture_(nullptr) // Initialize to nullptr
 {
 }
 
 
 
-ReloadableScrollingText::~ReloadableScrollingText( ) = default;
+ReloadableScrollingText::~ReloadableScrollingText() {
+    if (intermediateTexture_) {
+        SDL_DestroyTexture(intermediateTexture_);
+        intermediateTexture_ = nullptr;
+    }
+}
 
 bool ReloadableScrollingText::loadFileText(const std::string& filePath) {
     std::string absolutePath = Utils::combinePath(Configuration::absolutePath, filePath);
@@ -544,12 +550,14 @@ void ReloadableScrollingText::loadText( std::string collection, std::string type
 void ReloadableScrollingText::draw() {
     Component::draw();
 
+    // Early exit conditions
     if ((text_.empty() && !(type_ == "hiscores" && highScoreTable_ && !highScoreTable_->tables.empty())) ||
         waitEndTime_ > 0.0f ||
         baseViewInfo.Alpha <= 0.0f) {
         return;
     }
 
+    // Retrieve font and texture
     Font* font = baseViewInfo.font ? baseViewInfo.font : fontInst_;
     SDL_Texture* texture = font ? font->getTexture() : nullptr;
     if (!texture) {
@@ -557,12 +565,14 @@ void ReloadableScrollingText::draw() {
         return;
     }
 
+    // Retrieve renderer
     SDL_Renderer* renderer = SDL::getRenderer(baseViewInfo.Monitor);
     if (!renderer) {
         std::cerr << "Error: Unable to retrieve SDL_Renderer." << std::endl;
         return;
     }
 
+    // Calculate scaling and positioning
     float scale = baseViewInfo.FontSize / static_cast<float>(font->getHeight());
     float xOrigin = baseViewInfo.XRelativeToOrigin();
     float yOrigin = baseViewInfo.YRelativeToOrigin();
@@ -572,12 +582,38 @@ void ReloadableScrollingText::draw() {
     int paddingBetweenColumns = static_cast<int>(baseColumnPadding_ * drawableHeight * scale);
     int rowPadding = static_cast<int>(baseRowPadding_ * drawableHeight * scale);
 
+    // Set clipping rectangle
     SDL_Rect clipRect = { static_cast<int>(xOrigin), static_cast<int>(yOrigin), static_cast<int>(imageMaxWidth), static_cast<int>(imageMaxHeight) };
     SDL_RenderSetClipRect(renderer, &clipRect);
 
     float scrollOffset = currentPosition_;
 
     if (type_ == "hiscores" && highScoreTable_ && !highScoreTable_->tables.empty()) {
+        // ======== Start of "hiscores" Rendering with Intermediate Texture ========
+
+        // Step 1: Save the current render target
+        SDL_Texture* originalTarget = SDL_GetRenderTarget(renderer);
+        if (!originalTarget) {
+            std::cerr << "Error: Unable to get current render target." << std::endl;
+            return;
+        }
+
+        // Create intermediate texture
+        if (!createIntermediateTexture(renderer, static_cast<int>(imageMaxWidth), static_cast<int>(imageMaxHeight))) {
+            LOG_ERROR("ReloadableScrollingText", "Failed to create intermediate texture in allocateGraphicsMemory.");
+        }
+
+        // Step 3: Set the intermediate texture as the render target
+        SDL_SetRenderTarget(renderer, intermediateTexture_);
+
+        // Step 4: Clear the intermediate texture (transparent background)
+        SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0); // Assuming transparent background
+        SDL_RenderClear(renderer);
+
+        // Optional: Reapply the clipping rectangle on the intermediate texture
+        SDL_RenderSetClipRect(renderer, &clipRect);
+
+        // Retrieve the current high score table
         const HighScoreTable& table = highScoreTable_->tables[currentTableIndex_];
 
         // Calculate column widths
@@ -594,7 +630,8 @@ void ReloadableScrollingText::draw() {
             }
         }
 
-        int totalTableWidth = 0;
+        // Calculate total table width
+        float totalTableWidth = 0;
         for (size_t i = 0; i < columnWidths.size(); ++i) {
             totalTableWidth += columnWidths[i] + (i < columnWidths.size() - 1 ? paddingBetweenColumns : 0);
         }
@@ -602,30 +639,31 @@ void ReloadableScrollingText::draw() {
         bool hasTitle = !table.id.empty();
         float adjustedYOrigin = yOrigin;
 
+        // Draw the title if present
         if (hasTitle) {
             const std::string& title = table.id;
-            float titleX = xOrigin + (totalTableWidth - font->getWidth(title) * scale) / 2.0f;
+            float titleX = xOrigin + (totalTableWidth - static_cast<float>(font->getWidth(title)) * scale) / 2.0f;
             float titleY = adjustedYOrigin;
 
             for (char c : title) {
                 Font::GlyphInfo glyph;
                 if (font->getRect(c, glyph)) {
                     SDL_Rect srcRect = glyph.rect;
-                    SDL_Rect destRect = { 
-                        static_cast<int>(titleX), 
-                        static_cast<int>(titleY), 
-                        static_cast<int>(glyph.rect.w * scale), 
-                        static_cast<int>(glyph.rect.h * scale) 
+                    SDL_FRect destRect = { 
+                        titleX, 
+                        titleY, 
+                        glyph.rect.w * scale, 
+                        glyph.rect.h * scale
                     };
-                    SDL::renderCopy(texture, baseViewInfo.Alpha, &srcRect, &destRect, baseViewInfo,
-                        page.getLayoutWidthByMonitor(baseViewInfo.Monitor),
-                        page.getLayoutHeightByMonitor(baseViewInfo.Monitor));
-                    titleX += glyph.advance * scale;
+                    // Use standard SDL_RenderCopy to draw onto the intermediate texture
+                    SDL_RenderCopyF(renderer, texture, &srcRect, &destRect);
+                    titleX += static_cast<float>(glyph.advance) * scale;
                 }
             }
             adjustedYOrigin += drawableHeight * scale + rowPadding;
         }
 
+        // Draw the headers
         float headerY = adjustedYOrigin;
         int xPos = static_cast<int>(xOrigin);
         for (size_t col = 0; col < table.columns.size(); ++col) {
@@ -640,15 +678,13 @@ void ReloadableScrollingText::draw() {
                 Font::GlyphInfo glyph;
                 if (font->getRect(c, glyph)) {
                     SDL_Rect srcRect = glyph.rect;
-                    SDL_Rect destRect = { 
-                        static_cast<int>(charX), 
-                        static_cast<int>(charY), 
-                        static_cast<int>(glyph.rect.w * scale), 
-                        static_cast<int>(glyph.rect.h * scale) 
+                    SDL_FRect destRect = { 
+                        charX, 
+                        charY, 
+                        glyph.rect.w * scale, 
+                        glyph.rect.h * scale 
                     };
-                    SDL::renderCopy(texture, baseViewInfo.Alpha, &srcRect, &destRect, baseViewInfo,
-                        page.getLayoutWidthByMonitor(baseViewInfo.Monitor),
-                        page.getLayoutHeightByMonitor(baseViewInfo.Monitor));
+                    SDL_RenderCopyF(renderer, texture, &srcRect, &destRect);
                     charX += glyph.advance * scale;
                 }
             }
@@ -688,15 +724,13 @@ void ReloadableScrollingText::draw() {
                         Font::GlyphInfo glyph;
                         if (font->getRect(c, glyph)) {
                             SDL_Rect srcRect = glyph.rect;
-                            SDL_Rect destRect = { 
-                                static_cast<int>(charX), 
-                                static_cast<int>(charY), 
-                                static_cast<int>(glyph.rect.w * scale), 
-                                static_cast<int>(glyph.rect.h * scale) 
+                            SDL_FRect destRect = { 
+                                charX, 
+                                charY, 
+                                glyph.rect.w * scale, 
+                                glyph.rect.h * scale 
                             };
-                            SDL::renderCopy(texture, baseViewInfo.Alpha, &srcRect, &destRect, baseViewInfo,
-                                page.getLayoutWidthByMonitor(baseViewInfo.Monitor),
-                                page.getLayoutHeightByMonitor(baseViewInfo.Monitor));
+                            SDL_RenderCopyF(renderer, texture, &srcRect, &destRect);
                             charX += glyph.advance * scale;
                         }
                     }
@@ -705,10 +739,32 @@ void ReloadableScrollingText::draw() {
             }
             adjustedScrollY += drawableHeight * scale + rowPadding;
         }
+
+        // Reset clipping rectangle after drawing
         SDL_RenderSetClipRect(renderer, nullptr);
+
+        // Step 5: Restore the original render target
+        SDL_SetRenderTarget(renderer, originalTarget);
+
+        // Step 6: Define the destination rectangle where the intermediate texture should be drawn
+        SDL_FRect destRect = {
+            xOrigin,
+            yOrigin,
+            imageMaxWidth,
+            imageMaxHeight
+        };
+
+        // Step 7: Render the intermediate texture to the original render target using SDL::renderCopy
+
+        SDL::renderCopyF(intermediateTexture_, baseViewInfo.Alpha, nullptr, &destRect, baseViewInfo,
+            page.getLayoutWidthByMonitor(baseViewInfo.Monitor),
+            page.getLayoutHeightByMonitor(baseViewInfo.Monitor));
+
+        // ======== End of "hiscores" Rendering with Intermediate Texture ========
     }
     else {
-        // Non-`hiscores` type rendering block, replicates original scrolling behavior
+        // ======== Non-"hiscores" Rendering: Original Scrolling Behavior ========
+
         float scrollPosition = currentPosition_;
 
         if (direction_ == "horizontal") {
@@ -833,7 +889,7 @@ void ReloadableScrollingText::draw() {
                 currentPosition_ = -startPosition_;
             }
         }
-        }
+    }
 }
 
 void ReloadableScrollingText::updateGlyphCache() {
@@ -975,4 +1031,29 @@ void ReloadableScrollingText::updateGlyphCache() {
     }
 
     needsUpdate_ = false;
+}
+
+bool ReloadableScrollingText::createIntermediateTexture(SDL_Renderer* renderer, int width, int height) {
+    // Destroy existing texture if it exists
+    if (intermediateTexture_) {
+        SDL_DestroyTexture(intermediateTexture_);
+        intermediateTexture_ = nullptr;
+    }
+
+    // Create the intermediate texture with alpha support
+    intermediateTexture_ = SDL_CreateTexture(renderer, SDL_PIXELFORMAT_RGBA8888, SDL_TEXTUREACCESS_TARGET, width, height);
+    if (!intermediateTexture_) {
+        LOG_ERROR("ReloadableScrollingText", "Failed to create intermediate texture: " + std::string(SDL_GetError()));
+        return false;
+    }
+
+    // Set the blend mode to allow transparency
+    if (SDL_SetTextureBlendMode(intermediateTexture_, SDL_BLENDMODE_BLEND) != 0) {
+        LOG_ERROR("ReloadableScrollingText", "Failed to set blend mode for intermediate texture: " + std::string(SDL_GetError()));
+        SDL_DestroyTexture(intermediateTexture_);
+        intermediateTexture_ = nullptr;
+        return false;
+    }
+
+    return true;
 }

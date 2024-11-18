@@ -52,6 +52,7 @@ private:
     void reloadTexture(bool resetScroll = true);
     void loadText( std::string collection, std::string type, std::string basename, std::string filepath, bool systemMode );
     void updateGlyphCache();
+    bool createIntermediateTexture(SDL_Renderer* renderer, int width, int height);
     Configuration           &config_;
     bool                     systemMode_;
     bool                     layoutMode_;
@@ -91,5 +92,6 @@ private:
     float currentTableDisplayTime_ = 0.0f; // Calculated display time for the current table, based on scrolling needs
     bool switchTable_ = false;            // Flag indicating when to switch to the next table
     float displayTime_ = 5.0f;            // Default display time for non-scrolling tables (adjustable as needed)
-
+    // Add the intermediate texture as a member variable
+    SDL_Texture* intermediateTexture_;
 };
