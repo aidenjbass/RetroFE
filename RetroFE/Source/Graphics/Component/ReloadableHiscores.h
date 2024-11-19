@@ -39,6 +39,7 @@ public:
 
 private:
     void reloadTexture(bool resetScroll = true);
+    void cacheColumnWidths(Font* font, float scale, const HighScoreTable& table, float paddingBetweenColumns);
     bool createIntermediateTexture(SDL_Renderer* renderer, int width, int height);
     Configuration           &config_;
     Font                    *fontInst_;
@@ -55,6 +56,9 @@ private:
     float                    baseRowPadding_;
     int                      displayOffset_;
     bool needsRedraw_;
+    size_t cachedTableIndex_ = std::numeric_limits<size_t>::max(); // Invalid table index
+    std::vector<float> cachedColumnWidths_;
+    float cachedTotalTableWidth_ = 0.0f;
     Item* lastSelectedItem_ = nullptr;  // Track the previously selected item
     const HighScoreData* highScoreTable_ = nullptr;
     size_t currentTableIndex_ = 0;           // Tracks the current table being displayed (for multi-table support)

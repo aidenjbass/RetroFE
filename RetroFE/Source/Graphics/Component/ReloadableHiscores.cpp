@@ -84,8 +84,13 @@ bool ReloadableHiscores::update(float dt) {
 			float scale = baseViewInfo.FontSize / static_cast<float>(font->getHeight());
 			float drawableHeight = static_cast<float>(font->getHeight()) * scale;
 			float rowPadding = baseRowPadding_ * drawableHeight;  // Adjusted for floating-point precision
-			int totalTableHeight = static_cast<int>((drawableHeight + rowPadding) * (table.rows.size() + 1 + table.id.size()));
 
+			float rowsSize = static_cast<float>(table.rows.size());
+			float idSize = static_cast<float>(table.id.size());
+
+
+			// Calculate total table height
+			float totalTableHeight = (drawableHeight + rowPadding) * (rowsSize + 1.0f + idSize);
 			bool needsScrolling = (totalTableHeight > baseViewInfo.Height);
 
 			if (needsScrolling) {
@@ -154,241 +159,254 @@ void ReloadableHiscores::reloadTexture(bool resetScroll) {
 		waitEndTime_ = 0.0f;
 	}
 
-	// Get the currently selected item
 	Item* selectedItem = page.getSelectedItem(displayOffset_);
-
-	// Check if the selected item has changed
 	if (selectedItem != lastSelectedItem_) {
-		lastSelectedItem_ = selectedItem;  // Update the last selected item
+		lastSelectedItem_ = selectedItem;
 		if (selectedItem) {
 			highScoreTable_ = HiScores::getInstance().getHighScoreTable(selectedItem->name);
-
+		} else {
+			highScoreTable_ = nullptr;
 		}
-		else {
-			highScoreTable_ = nullptr;  // Clear table if no item is selected
-		}
-		needsRedraw_ = true;  // Mark as needing a redraw
+		needsRedraw_ = true;
+		cachedTableIndex_ = std::numeric_limits<size_t>::max(); // Invalidate column widths cache
 	}
 }
 
-
 void ReloadableHiscores::draw() {
-	Component::draw();
+    Component::draw();
 
-	// Early exit conditions
-	if (!(highScoreTable_ && !highScoreTable_->tables.empty()) ||
-		waitEndTime_ > 0.0f ||
-		baseViewInfo.Alpha <= 0.0f) {
-		return;
+    // Early exit conditions
+    if (!(highScoreTable_ && !highScoreTable_->tables.empty()) ||
+        waitEndTime_ > 0.0f ||
+        baseViewInfo.Alpha <= 0.0f) {
+        return;
+    }
+
+    // Retrieve font and texture
+    Font* font = baseViewInfo.font ? baseViewInfo.font : fontInst_;
+    SDL_Texture* texture = font ? font->getTexture() : nullptr;
+    if (!texture) {
+        std::cerr << "Error: Font texture is null." << std::endl;
+        return;
+    }
+
+    if (needsRedraw_) {
+        // Retrieve renderer
+        SDL_Renderer* renderer = SDL::getRenderer(baseViewInfo.Monitor);
+        if (!renderer) {
+            std::cerr << "Error: Unable to retrieve SDL_Renderer." << std::endl;
+            return;
+        }
+
+        // Calculate scaling and positioning
+        float scale = baseViewInfo.FontSize / static_cast<float>(font->getHeight());
+        float xOrigin = baseViewInfo.XRelativeToOrigin();
+        float yOrigin = baseViewInfo.YRelativeToOrigin();
+        float imageMaxWidth = (baseViewInfo.Width < baseViewInfo.MaxWidth && baseViewInfo.Width > 0) 
+            ? baseViewInfo.Width : baseViewInfo.MaxWidth;
+        float imageMaxHeight = (baseViewInfo.Height < baseViewInfo.MaxHeight && baseViewInfo.Height > 0) 
+            ? baseViewInfo.Height : baseViewInfo.MaxHeight;
+        float drawableHeight = static_cast<float>(font->getAscent()) * scale;
+        float rowPadding = baseRowPadding_ * drawableHeight;
+        float paddingBetweenColumns = baseColumnPadding_ * drawableHeight;
+
+        // Set clipping rectangle
+        SDL_Rect clipRect = { static_cast<int>(xOrigin), static_cast<int>(yOrigin), 
+            static_cast<int>(imageMaxWidth), static_cast<int>(imageMaxHeight) };
+        SDL_RenderSetClipRect(renderer, &clipRect);
+
+        float scrollOffset = currentPosition_;
+
+        if (highScoreTable_ && !highScoreTable_->tables.empty()) {
+            // ======== Start of "hiscores" Rendering with Intermediate Texture ========
+
+            // Step 1: Save the current render target
+            SDL_Texture* originalTarget = SDL_GetRenderTarget(renderer);
+            if (!originalTarget) {
+                std::cerr << "Error: Unable to get current render target." << std::endl;
+                return;
+            }
+
+            // Step 2: Create intermediate texture
+            if (!intermediateTexture_) {
+                if (!createIntermediateTexture(renderer, static_cast<int>(imageMaxWidth), static_cast<int>(imageMaxHeight))) {
+                    LOG_ERROR("ReloadableScrollingText", "Failed to create intermediate texture.");
+                    return;
+                }
+            }
+
+            // Step 3: Set the intermediate texture as the render target
+            SDL_SetRenderTarget(renderer, intermediateTexture_);
+
+            // Step 4: Clear the intermediate texture (transparent background)
+            SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
+            SDL_RenderClear(renderer);
+
+            // Retrieve the current high score table
+            const HighScoreTable& table = highScoreTable_->tables[currentTableIndex_];
+
+            // Cache column widths if needed
+            cacheColumnWidths(font, scale, table, paddingBetweenColumns);
+
+            // Use cached column widths and total table width
+            const auto& columnWidths = cachedColumnWidths_;
+            float totalTableWidth = cachedTotalTableWidth_;
+
+            bool hasTitle = !table.id.empty();
+            float adjustedYOrigin = yOrigin;
+
+            // Render title
+            if (hasTitle) {
+                const std::string& title = table.id;
+                float titleWidth = font->getWidth(title) * scale;
+                float titleX = xOrigin + (std::min(imageMaxWidth, totalTableWidth) - titleWidth) / 2.0f;
+                float titleY = adjustedYOrigin;
+
+                for (char c : title) {
+                    Font::GlyphInfo glyph;
+                    if (font->getRect(c, glyph)) {
+                        SDL_Rect srcRect = glyph.rect;
+                        SDL_FRect destRect = {
+                            titleX,
+                            titleY,
+                            glyph.rect.w * scale,
+                            glyph.rect.h * scale
+                        };
+                        SDL_RenderCopyF(renderer, texture, &srcRect, &destRect);
+                        titleX += static_cast<float>(glyph.advance) * scale;
+                    }
+                }
+                adjustedYOrigin += drawableHeight + rowPadding;
+            }
+
+            // Render headers
+            float headerY = adjustedYOrigin;
+            float xPos = xOrigin;
+            for (size_t col = 0; col < table.columns.size(); ++col) {
+                const std::string& header = table.columns[col];
+                float headerWidth = font->getWidth(header) * scale;
+                float xAligned = xPos + (columnWidths[col] - headerWidth) / 2.0f;
+
+                float charX = xAligned;
+                for (char c : header) {
+                    Font::GlyphInfo glyph;
+                    if (font->getRect(c, glyph)) {
+                        SDL_Rect srcRect = glyph.rect;
+                        SDL_FRect destRect = {
+                            charX,
+                            headerY,
+                            glyph.rect.w * scale,
+                            glyph.rect.h * scale
+                        };
+                        SDL_RenderCopyF(renderer, texture, &srcRect, &destRect);
+                        charX += glyph.advance * scale;
+                    }
+                }
+                xPos += columnWidths[col] + paddingBetweenColumns;
+            }
+
+            adjustedYOrigin += drawableHeight + rowPadding;
+
+            // Calculate base position for all rows
+            float baseY = adjustedYOrigin - scrollOffset;
+
+            // Adjusted scrollClipRect calculation
+            SDL_Rect scrollClipRect = {
+                static_cast<int>(xOrigin),
+                static_cast<int>(adjustedYOrigin),
+                static_cast<int>(std::min(totalTableWidth, imageMaxWidth)),
+                static_cast<int>(std::max(imageMaxHeight - (adjustedYOrigin - yOrigin), 0.0f))
+            };
+            SDL_RenderSetClipRect(renderer, &scrollClipRect);
+
+            // Render rows
+            for (size_t rowIndex = 0; rowIndex < table.rows.size(); ++rowIndex) {
+                float currentY = baseY + rowIndex * (drawableHeight + rowPadding);
+
+                // Visibility check
+                if (currentY + drawableHeight < yOrigin || currentY > yOrigin + imageMaxHeight) {
+                    continue;
+                }
+
+                float xPos = xOrigin;
+                for (size_t col = 0; col < table.columns.size(); ++col) {
+                    if (col >= table.rows[rowIndex].size()) continue;
+
+                    const std::string& cell = table.rows[rowIndex][col];
+                    float cellWidth = font->getWidth(cell) * scale;
+                    float xAligned = xPos + (columnWidths[col] - cellWidth) / 2.0f;
+
+                    float charX = xAligned;
+                    for (char c : cell) {
+                        Font::GlyphInfo glyph;
+                        if (font->getRect(c, glyph)) {
+                            SDL_Rect srcRect = glyph.rect;
+                            SDL_FRect destRect = {
+                                charX,
+                                currentY,
+                                glyph.rect.w * scale,
+                                glyph.rect.h * scale
+                            };
+                            SDL_RenderCopyF(renderer, texture, &srcRect, &destRect);
+                            charX += glyph.advance * scale;
+                        }
+                    }
+                    xPos += columnWidths[col] + paddingBetweenColumns;
+                }
+            }
+
+            // Reset clipping rectangle after drawing
+            SDL_RenderSetClipRect(renderer, nullptr);
+
+            // Step 5: Restore the original render target
+            SDL_SetRenderTarget(renderer, originalTarget);
+
+            // Step 6: Define the destination rectangle where the intermediate texture should be drawn
+            SDL_FRect destRect = {
+                baseViewInfo.XRelativeToOrigin(),
+                baseViewInfo.YRelativeToOrigin(),
+                baseViewInfo.Width,
+                baseViewInfo.Height
+            };
+
+            // Step 7: Render the intermediate texture to the original render target
+            SDL::renderCopyF(intermediateTexture_, baseViewInfo.Alpha, nullptr, &destRect, baseViewInfo,
+                page.getLayoutWidthByMonitor(baseViewInfo.Monitor),
+                page.getLayoutHeightByMonitor(baseViewInfo.Monitor));
+        }
+    }
+}
+
+void ReloadableHiscores::cacheColumnWidths(Font* font, float scale, const HighScoreTable& table, float paddingBetweenColumns) {
+	// Only recalculate if the table index has changed
+	if (currentTableIndex_ == cachedTableIndex_) {
+		return; // Cache is valid, no need to recalculate
 	}
 
-	// Retrieve font and texture
-	Font* font = baseViewInfo.font ? baseViewInfo.font : fontInst_;
-	SDL_Texture* texture = font ? font->getTexture() : nullptr;
-	if (!texture) {
-		std::cerr << "Error: Font texture is null." << std::endl;
-		return;
-	}
-	if (needsRedraw_) {
-		// Retrieve renderer
-		SDL_Renderer* renderer = SDL::getRenderer(baseViewInfo.Monitor);
-		if (!renderer) {
-			std::cerr << "Error: Unable to retrieve SDL_Renderer." << std::endl;
-			return;
+	// Recalculate column widths
+	cachedColumnWidths_.clear();
+	cachedColumnWidths_.resize(table.columns.size(), 0.0f);
+	cachedTotalTableWidth_ = 0.0f;
+
+	for (size_t i = 0; i < table.columns.size(); ++i) {
+		float headerWidth = font->getWidth(table.columns[i]) * scale;
+		cachedColumnWidths_[i] = std::max(cachedColumnWidths_[i], headerWidth);
+
+		for (const auto& row : table.rows) {
+			if (i < row.size()) {
+				float cellWidth = font->getWidth(row[i]) * scale;
+				cachedColumnWidths_[i] = std::max(cachedColumnWidths_[i], cellWidth);
+			}
 		}
 
-		// Calculate scaling and positioning
-		float scale = baseViewInfo.FontSize / static_cast<float>(font->getHeight());
-		float xOrigin = baseViewInfo.XRelativeToOrigin();
-		float yOrigin = baseViewInfo.YRelativeToOrigin();
-		float imageMaxWidth = (baseViewInfo.Width < baseViewInfo.MaxWidth && baseViewInfo.Width > 0) ? baseViewInfo.Width : baseViewInfo.MaxWidth;
-		float imageMaxHeight = (baseViewInfo.Height < baseViewInfo.MaxHeight && baseViewInfo.Height > 0) ? baseViewInfo.Height : baseViewInfo.MaxHeight;
-		float drawableHeight = static_cast<float>(font->getAscent()) * scale;
-		float rowPadding = baseRowPadding_ * drawableHeight;  // Adjusted for floating-point precision
-		float paddingBetweenColumns = baseColumnPadding_ * drawableHeight;
-
-		// Set clipping rectangle
-		SDL_Rect clipRect = { static_cast<int>(xOrigin), static_cast<int>(yOrigin), static_cast<int>(imageMaxWidth), static_cast<int>(imageMaxHeight) };
-		SDL_RenderSetClipRect(renderer, &clipRect);
-
-		float scrollOffset = currentPosition_;
-
-		if (highScoreTable_ && !highScoreTable_->tables.empty()) {
-			// ======== Start of "hiscores" Rendering with Intermediate Texture ========
-
-			// Step 1: Save the current render target
-			SDL_Texture* originalTarget = SDL_GetRenderTarget(renderer);
-			if (!originalTarget) {
-				std::cerr << "Error: Unable to get current render target." << std::endl;
-				return;
-			}
-
-			// Step 2: Create intermediate texture
-			if (!intermediateTexture_) {
-				// Create intermediate texture
-				if (!createIntermediateTexture(renderer, static_cast<int>(imageMaxWidth), static_cast<int>(imageMaxHeight))) {
-					LOG_ERROR("ReloadableScrollingText", "Failed to create intermediate texture.");
-				}
-			}
-
-			// Step 3: Set the intermediate texture as the render target
-			SDL_SetRenderTarget(renderer, intermediateTexture_);
-
-			// Step 4: Clear the intermediate texture (transparent background)
-			SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0); // Assuming transparent background
-			SDL_RenderClear(renderer);
-
-			// Optional: Reapply the clipping rectangle on the intermediate texture
-			SDL_RenderSetClipRect(renderer, &clipRect);
-
-			// Retrieve the current high score table
-			const HighScoreTable& table = highScoreTable_->tables[currentTableIndex_];
-
-			// Calculate column widths only once
-			std::vector<float> columnWidths(table.columns.size(), 0.0f);
-			float totalTableWidth = 0.0f;
-
-			for (size_t i = 0; i < table.columns.size(); ++i) {
-				float headerWidth = font->getWidth(table.columns[i]) * scale;
-				columnWidths[i] = std::max(columnWidths[i], headerWidth);
-
-				for (const auto& row : table.rows) {
-					if (i < row.size()) {
-						float cellWidth = font->getWidth(row[i]) * scale;
-						columnWidths[i] = std::max(columnWidths[i], cellWidth);
-					}
-				}
-				totalTableWidth += columnWidths[i];
-				if (i < table.columns.size() - 1) {
-					totalTableWidth += paddingBetweenColumns;
-				}
-			}
-
-
-			bool hasTitle = !table.id.empty();
-			float adjustedYOrigin = yOrigin;
-
-			// Render title
-			if (hasTitle) {
-				const std::string& title = table.id;
-				float titleWidth = font->getWidth(title) * scale;
-				float titleX = xOrigin + (std::min(imageMaxWidth, totalTableWidth) - titleWidth) / 2.0f;
-				float titleY = adjustedYOrigin;
-
-				for (char c : title) {
-					Font::GlyphInfo glyph;
-					if (font->getRect(c, glyph)) {
-						SDL_Rect srcRect = glyph.rect;
-						SDL_FRect destRect = {
-							titleX,
-							titleY,
-							glyph.rect.w * scale,
-							glyph.rect.h * scale
-						};
-						SDL_RenderCopyF(renderer, texture, &srcRect, &destRect);
-						titleX += static_cast<float>(glyph.advance) * scale;
-					}
-				}
-				adjustedYOrigin += drawableHeight + rowPadding;
-			}
-			// Render headers
-			float headerY = adjustedYOrigin;
-			float xPos = xOrigin;
-			for (size_t col = 0; col < table.columns.size(); ++col) {
-				const std::string& header = table.columns[col];
-				float headerWidth = font->getWidth(header) * scale;
-				float xAligned = xPos + (columnWidths[col] - headerWidth) / 2.0f;
-				float charX = xAligned;
-				float charY = headerY;
-
-
-				for (char c : header) {
-					Font::GlyphInfo glyph;
-					if (font->getRect(c, glyph)) {
-						SDL_Rect srcRect = glyph.rect;
-						SDL_FRect destRect = {
-							charX,
-							charY,
-							glyph.rect.w * scale,
-							glyph.rect.h * scale
-						};
-						SDL_RenderCopyF(renderer, texture, &srcRect, &destRect);
-						charX += glyph.advance * scale;
-					}
-				}
-				xPos += columnWidths[col] + paddingBetweenColumns;
-			}
-
-			adjustedYOrigin += drawableHeight + rowPadding;
-
-			// Calculate base position for all rows
-			float baseY = adjustedYOrigin - scrollOffset;
-
-			// Adjusted scrollClipRect calculation
-			SDL_Rect scrollClipRect = {
-				static_cast<int>(xOrigin),
-				static_cast<int>(adjustedYOrigin), // Removed rowPadding / 2
-				static_cast<int>(std::min(totalTableWidth, imageMaxWidth)),
-				static_cast<int>(std::max(imageMaxHeight - (adjustedYOrigin - yOrigin), 0.0f))
-			};
-			SDL_RenderSetClipRect(renderer, &scrollClipRect);
-
-			for (size_t rowIndex = 0; rowIndex < table.rows.size(); ++rowIndex) {
-				float currentY = baseY + rowIndex * (drawableHeight + rowPadding);
-
-				// Visibility check
-				if (currentY + drawableHeight < yOrigin || currentY > yOrigin + imageMaxHeight) {
-					continue;
-				}
-
-				float xPos = xOrigin;
-				for (size_t col = 0; col < table.columns.size(); ++col) {
-					if (col >= table.rows[rowIndex].size()) continue;
-
-					const std::string& cell = table.rows[rowIndex][col];
-					float cellWidth = font->getWidth(cell) * scale;
-					float xAligned = xPos + (columnWidths[col] - cellWidth) / 2.0f;
-
-					float charX = xAligned;
-					float charY = currentY;
-
-					for (char c : cell) {
-						Font::GlyphInfo glyph;
-						if (font->getRect(c, glyph)) {
-							SDL_Rect srcRect = glyph.rect;
-							SDL_FRect destRect = {
-								charX,
-								charY,
-								glyph.rect.w * scale,
-								glyph.rect.h * scale
-							};
-							SDL_RenderCopyF(renderer, texture, &srcRect, &destRect);
-							charX += glyph.advance * scale;
-						}
-					}
-					xPos += columnWidths[col] + paddingBetweenColumns;
-				}
-			}
-			// Reset clipping rectangle after drawing
-			SDL_RenderSetClipRect(renderer, nullptr);
-
-			// Step 5: Restore the original render target
-			SDL_SetRenderTarget(renderer, originalTarget);
+		cachedTotalTableWidth_ += cachedColumnWidths_[i];
+		if (i < table.columns.size() - 1) {
+			cachedTotalTableWidth_ += paddingBetweenColumns;
 		}
-		// Step 6: Define the destination rectangle where the intermediate texture should be drawn
-		SDL_FRect destRect = {
-			baseViewInfo.XRelativeToOrigin(),
-			baseViewInfo.YRelativeToOrigin(),
-			baseViewInfo.Width,
-			baseViewInfo.Height
-		};
-
-		// Step 7: Render the intermediate texture to the original render target using SDL::renderCopy
-
-		SDL::renderCopyF(intermediateTexture_, baseViewInfo.Alpha, nullptr, &destRect, baseViewInfo,
-			page.getLayoutWidthByMonitor(baseViewInfo.Monitor),
-			page.getLayoutHeightByMonitor(baseViewInfo.Monitor));
 	}
+
+	// Update the cached table index
+	cachedTableIndex_ = currentTableIndex_;
 }
 
 bool ReloadableHiscores::createIntermediateTexture(SDL_Renderer* renderer, int width, int height) {
