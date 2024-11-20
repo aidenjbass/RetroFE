@@ -866,6 +866,18 @@ bool RetroFE::run()
         case RETROFE_PLAYLIST_EXIT:
             if (currentPage_->isIdle())
             {
+                bool randomStart = false;
+                config_.getProperty(OPTION_RANDOMSTART, randomStart);
+                if (randomStart)
+                {
+                    currentPage_->selectRandom();
+                }
+                bool rememberMenu = false;
+                config_.getProperty(OPTION_REMEMBERMENU, rememberMenu);
+                if (rememberMenu && currentPage_->getPlaylistName() != "lastplayed")
+                {
+                    currentPage_->returnToRememberSelectedItem();
+                }
                 // lots of different toggles and menu jumps trigger this by accident
                 if (currentPage_->fromPlaylistNav)
                 {
@@ -887,18 +899,8 @@ bool RetroFE::run()
         case RETROFE_PLAYLIST_LOAD_ART:
             if (currentPage_->isIdle())
             {
-                bool randomStart = false;
-                config_.getProperty(OPTION_RANDOMSTART, randomStart);
-                if (randomStart)
-                {
-                    currentPage_->selectRandom();
-                }
-                bool rememberMenu = false;
-                config_.getProperty(OPTION_REMEMBERMENU, rememberMenu);
-                if (rememberMenu && currentPage_->getPlaylistName() != "lastplayed")
-                {
-                    currentPage_->returnToRememberSelectedItem();
-                }
+
+
 
                  currentPage_->onNewItemSelected();
                 
