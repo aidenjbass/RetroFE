@@ -31,7 +31,7 @@
 
 ReloadableHiscores::ReloadableHiscores(Configuration& config, std::string textFormat,
 	Page& p, int displayOffset, Font* font, float scrollingSpeed, float startPosition, float startTime,
-	float endTime, float baseColumnPadding, float baseRowPadding)
+	float endTime, float baseColumnPadding, float baseRowPadding, size_t maxRows)
 	: Component(p)
 	, config_(config)
 	, fontInst_(font)
@@ -46,6 +46,7 @@ ReloadableHiscores::ReloadableHiscores(Configuration& config, std::string textFo
 	, baseColumnPadding_(baseColumnPadding)
 	, baseRowPadding_(baseRowPadding)
 	, displayOffset_(displayOffset)
+	, maxRows_(maxRows)
 	, needsRedraw_(true)
 	, intermediateTexture_(nullptr) // Initialize to nullptr
 {
@@ -79,13 +80,14 @@ bool ReloadableHiscores::update(float dt) {
 			const HighScoreTable& table = highScoreTable_->tables[currentTableIndex_];
 
 			// Calculate scaling and positioning
-			Font* font = baseViewInfo.font ? baseViewInfo.font : fontInst_;
+			Font const* font = baseViewInfo.font ? baseViewInfo.font : fontInst_;
 
 			float scale = baseViewInfo.FontSize / static_cast<float>(font->getHeight());
 			float drawableHeight = static_cast<float>(font->getAscent()) * scale;
 			float rowPadding = baseRowPadding_ * drawableHeight;  // Adjusted for floating-point precision
 
-			float rowsSize = static_cast<float>(table.rows.size());
+			size_t rowsToRender = std::min((table.rows.size()), maxRows_);
+			float rowsSize = static_cast<float>(rowsToRender);
 			float idSize = static_cast<float>(table.id.size());
 
 
@@ -325,15 +327,21 @@ void ReloadableHiscores::draw() {
 			SDL_RenderSetClipRect(renderer, &scrollClipRect);
 
 			// Render rows
+			size_t renderedRows = 0; // Track the number of rows rendered
 			for (size_t rowIndex = 0; rowIndex < table.rows.size(); ++rowIndex) {
-				float currentY = baseY + static_cast<float>(rowIndex) * (drawableHeight + rowPadding);
+				// Stop rendering if the number of rendered rows reaches the maxRows_ limit
+				if (renderedRows >= maxRows_) {
+					break;
+				}
+
+				float currentY = baseY + static_cast<float>(renderedRows) * (drawableHeight + rowPadding);
 
 				// Visibility check
 				if (currentY + drawableHeight < yOrigin || currentY > yOrigin + imageMaxHeight) {
 					continue;
 				}
 
-				float xPos = xOrigin;
+				xPos = xOrigin;
 				for (size_t col = 0; col < table.columns.size(); ++col) {
 					if (col >= table.rows[rowIndex].size()) continue;
 
@@ -358,6 +366,8 @@ void ReloadableHiscores::draw() {
 					}
 					xPos += columnWidths[col] + paddingBetweenColumns;
 				}
+
+				++renderedRows; // Increment the rendered rows count
 			}
 
 			// Reset clipping rectangle after drawing

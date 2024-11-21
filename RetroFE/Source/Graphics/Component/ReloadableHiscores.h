@@ -27,7 +27,7 @@ class ReloadableHiscores : public Component
 {
 public:
     ReloadableHiscores(Configuration& config, std::string textFormat, Page& p, int displayOffset, Font* font,
-        float scrollingSpeed, float startPosition, float startTime, float endTime, float baseColumnPadding, float baseRowPadding);
+        float scrollingSpeed, float startPosition, float startTime, float endTime, float baseColumnPadding, float baseRowPadding, size_t maxRows);
     virtual ~ReloadableHiscores( );
     bool     update(float dt);
     void     draw( );
@@ -55,6 +55,7 @@ private:
     float                    baseColumnPadding_;
     float                    baseRowPadding_;
     int                      displayOffset_;
+    size_t                   maxRows_;
     bool needsRedraw_;
     size_t cachedTableIndex_ = std::numeric_limits<size_t>::max(); // Invalid table index
     std::vector<float> cachedColumnWidths_;

@@ -753,6 +753,7 @@ void PageBuilder::loadReloadableImages(const xml_node<>* layout, const std::stri
 		xml_attribute<> const* locationXml = componentXml->first_attribute("location");
 		xml_attribute<> const* baseColumnPaddingXml = componentXml->first_attribute("baseColumnPadding");
 		xml_attribute<> const* baseRowPaddingXml = componentXml->first_attribute("baseRowPadding");
+		xml_attribute<> const* maxRowsXml = componentXml->first_attribute("maxRows");
 
 		bool systemMode = false;
 		bool layoutMode = false;
@@ -829,8 +830,6 @@ void PageBuilder::loadReloadableImages(const xml_node<>* layout, const std::stri
 				std::string singlePostfix = singlePostfixXml ? singlePostfixXml->value() : "";
 				std::string pluralPrefix = pluralPrefixXml ? pluralPrefixXml->value() : "";
 				std::string pluralPostfix = pluralPostfixXml ? pluralPostfixXml->value() : "";
-				float baseColumnPadding = baseColumnPaddingXml ? Utils::convertFloat(baseColumnPaddingXml->value()) : 1.5f;
-				float baseRowPadding = baseRowPaddingXml ? Utils::convertFloat(baseRowPaddingXml->value()) : 0.5f;
 
 				c = new ReloadableScrollingText(config_, systemMode, layoutMode, menuMode, typeValue,
 					textFormat, singlePrefix, singlePostfix, pluralPrefix,
@@ -848,10 +847,11 @@ void PageBuilder::loadReloadableImages(const xml_node<>* layout, const std::stri
 			float endTime = endTimeXml ? Utils::convertFloat(endTimeXml->value()) : 0.0f;
 			float baseColumnPadding = baseColumnPaddingXml ? Utils::convertFloat(baseColumnPaddingXml->value()) : 1.5f;
 			float baseRowPadding = baseRowPaddingXml ? Utils::convertFloat(baseRowPaddingXml->value()) : 0.5f;
+			size_t maxRows = maxRowsXml ? static_cast<size_t>(Utils::convertInt(maxRowsXml->value())) : std::numeric_limits<size_t>::max();
 
 			c = new ReloadableHiscores(config_, textFormat, *page, selectedOffset,
 				font, scrollingSpeed, startPosition, startTime,
-				endTime, baseColumnPadding, baseRowPadding);
+				endTime, baseColumnPadding, baseRowPadding, maxRows);
 		}
 
 		else {
