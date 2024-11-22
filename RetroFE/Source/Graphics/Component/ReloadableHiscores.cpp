@@ -33,7 +33,6 @@ ReloadableHiscores::ReloadableHiscores(Configuration& config, std::string textFo
 	Page& p, int displayOffset, Font* font, float scrollingSpeed, float startPosition, float startTime,
 	float endTime, float baseColumnPadding, float baseRowPadding, size_t maxRows)
 	: Component(p)
-	, config_(config)
 	, fontInst_(font)
 	, textFormat_(textFormat)
 	, scrollingSpeed_(scrollingSpeed)
@@ -41,7 +40,6 @@ ReloadableHiscores::ReloadableHiscores(Configuration& config, std::string textFo
 	, currentPosition_(-startPosition)
 	, startTime_(startTime)
 	, waitStartTime_(startTime)
-	, endTime_(endTime)
 	, waitEndTime_(0.0f)
 	, baseColumnPadding_(baseColumnPadding)
 	, baseRowPadding_(baseRowPadding)
@@ -66,11 +64,9 @@ ReloadableHiscores::~ReloadableHiscores() {
 bool ReloadableHiscores::update(float dt) {
 	if (waitEndTime_ > 0) {
 		waitEndTime_ -= dt;
-	}
-	else if (waitStartTime_ > 0) {
+	} else if (waitStartTime_ > 0) {
 		waitStartTime_ -= dt;
-	}
-	else {
+	} else {
 		if (highScoreTable_ && !highScoreTable_->tables.empty()) {
 			// Ensure currentTableIndex_ is within bounds
 			if (currentTableIndex_ >= highScoreTable_->tables.size()) {
@@ -81,55 +77,66 @@ bool ReloadableHiscores::update(float dt) {
 
 			// Calculate scaling and positioning
 			Font const* font = baseViewInfo.font ? baseViewInfo.font : fontInst_;
-
 			float scale = baseViewInfo.FontSize / static_cast<float>(font->getHeight());
 			float drawableHeight = static_cast<float>(font->getAscent()) * scale;
-			float rowPadding = baseRowPadding_ * drawableHeight;  // Adjusted for floating-point precision
+			float rowPadding = baseRowPadding_ * drawableHeight;
 
-			size_t rowsToRender = std::min((table.rows.size()), maxRows_);
+			size_t rowsToRender = std::min(table.rows.size(), maxRows_);
 			float rowsSize = static_cast<float>(rowsToRender);
-			float idSize = static_cast<float>(table.id.size());
-
+			float idSize = table.id.empty() ? 0.0f : 1.0f;  // Include title row if present
 
 			// Calculate total table height
-			float totalTableHeight = (drawableHeight + rowPadding) * (rowsSize + 1.0f + idSize);
+			float totalTableHeight = (drawableHeight + rowPadding) * (rowsSize + idSize + 1.0f);
 			bool needsScrolling = (totalTableHeight > baseViewInfo.Height);
 
 			if (needsScrolling) {
 				currentPosition_ += scrollingSpeed_ * dt;
-				needsRedraw_ = true;
-			}
-			else {
-				currentPosition_ = 0.0f;
+
+				// Reset scrolling when it completes
+				if (currentPosition_ >= totalTableHeight) {
+					currentPosition_ = -startPosition_;  // Reset to start position
+					waitEndTime_ = startTime_;          // Optional pause after scrolling
+					needsRedraw_ = true;               // Trigger redraw
+					reloadTexture(true);
+				} else {
+					needsRedraw_ = true;  // Keep redrawing while scrolling
+				}
+			} else {
+				currentPosition_ = 0.0f;  // Ensure non-scrolling tables remain visible
 			}
 
 			if (highScoreTable_->tables.size() > 1) {
 				if (needsScrolling) {
 					currentTableDisplayTime_ = totalTableHeight / scrollingSpeed_;
-				}
-				else {
+				} else {
 					currentTableDisplayTime_ = displayTime_;
 				}
 
 				tableDisplayTimer_ += dt;
-				if (tableDisplayTimer_ >= currentTableDisplayTime_) {
+
+				// Handle table switching when display time elapses
+				if (tableDisplayTimer_ >= currentTableDisplayTime_ && currentPosition_ == 0.0f) {
 					tableDisplayTimer_ = 0.0f;
-					currentPosition_ = 0.0f;
+					currentPosition_ = -startPosition_;  // Reset scroll for new table
 					currentTableIndex_ = (currentTableIndex_ + 1) % highScoreTable_->tables.size();
+					reloadTexture();  // Refresh the texture for the new table
 					needsRedraw_ = true;
 				}
 			}
 		}
 	}
+
+	// Handle new item selection (if relevant to your UI)
 	if (newItemSelected || (newScrollItemSelected && getMenuScrollReload())) {
 		currentTableIndex_ = 0;
-		tableDisplayTimer_ = 0.0f; // Reset timer for the new game's table
-		currentPosition_ = 0.0f;   // Reset scroll position
+		tableDisplayTimer_ = 0.0f;  // Reset timer for the new game's table
+		currentPosition_ = -startPosition_;  // Reset scroll position
 		needsRedraw_ = true;
-		reloadTexture();
+		reloadTexture(true);
 		newItemSelected = false;
 		newScrollItemSelected = false;
 	}
+
 	return Component::update(dt);
 }
 
@@ -334,11 +341,13 @@ void ReloadableHiscores::draw() {
 					break;
 				}
 
-				float currentY = baseY + static_cast<float>(renderedRows) * (drawableHeight + rowPadding);
+				float currentY = baseY + static_cast<float>(rowIndex) * (drawableHeight + rowPadding);
 
-				// Visibility check
-				if (currentY + drawableHeight < yOrigin || currentY > yOrigin + imageMaxHeight) {
-					continue;
+				float rowTop = currentY;
+				float rowBottom = currentY + drawableHeight;
+
+				if (rowBottom < yOrigin || rowTop > yOrigin + imageMaxHeight) {
+					continue;  // Skip rows fully outside the visible area
 				}
 
 				xPos = xOrigin;
@@ -398,24 +407,32 @@ void ReloadableHiscores::cacheColumnWidths(Font* font, float scale, const HighSc
 		return; // Cache is valid, no need to recalculate
 	}
 
-	// Recalculate column widths
+	// Initialize or reset cached column widths and total width
 	cachedColumnWidths_.clear();
 	cachedColumnWidths_.resize(table.columns.size(), 0.0f);
 	cachedTotalTableWidth_ = 0.0f;
 
-	for (size_t i = 0; i < table.columns.size(); ++i) {
-		float headerWidth = font->getWidth(table.columns[i]) * scale;
-		cachedColumnWidths_[i] = std::max(cachedColumnWidths_[i], headerWidth);
+	// Iterate over all tables for the game
+	for (const auto& currentTable : highScoreTable_->tables) {
+		for (size_t i = 0; i < currentTable.columns.size(); ++i) {
+			// Account for header width
+			float headerWidth = font->getWidth(currentTable.columns[i]) * scale;
+			cachedColumnWidths_[i] = std::max(cachedColumnWidths_[i], headerWidth);
 
-		for (const auto& row : table.rows) {
-			if (i < row.size()) {
-				float cellWidth = font->getWidth(row[i]) * scale;
-				cachedColumnWidths_[i] = std::max(cachedColumnWidths_[i], cellWidth);
+			// Account for row cell widths
+			for (const auto& row : currentTable.rows) {
+				if (i < row.size()) {
+					float cellWidth = font->getWidth(row[i]) * scale;
+					cachedColumnWidths_[i] = std::max(cachedColumnWidths_[i], cellWidth);
+				}
 			}
 		}
+	}
 
+	// Calculate total table width
+	for (size_t i = 0; i < cachedColumnWidths_.size(); ++i) {
 		cachedTotalTableWidth_ += cachedColumnWidths_[i];
-		if (i < table.columns.size() - 1) {
+		if (i < cachedColumnWidths_.size() - 1) {
 			cachedTotalTableWidth_ += paddingBetweenColumns;
 		}
 	}

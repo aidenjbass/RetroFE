@@ -41,7 +41,6 @@ private:
     void reloadTexture(bool resetScroll = true);
     void cacheColumnWidths(Font* font, float scale, const HighScoreTable& table, float paddingBetweenColumns);
     bool createIntermediateTexture(SDL_Renderer* renderer, int width, int height);
-    Configuration           &config_;
     Font                    *fontInst_;
     std::string              textFormat_;
     std::string              location_; 
@@ -50,13 +49,14 @@ private:
     float                    currentPosition_;
     float                    startTime_;
     float                    waitStartTime_;
-    float                    endTime_;
     float                    waitEndTime_;
     float                    baseColumnPadding_;
     float                    baseRowPadding_;
     int                      displayOffset_;
     size_t                   maxRows_;
     bool needsRedraw_;
+    bool headersRendered_;
+    bool titleRendered_;
     size_t cachedTableIndex_ = std::numeric_limits<size_t>::max(); // Invalid table index
     std::vector<float> cachedColumnWidths_;
     float cachedTotalTableWidth_ = 0.0f;
@@ -65,7 +65,6 @@ private:
     size_t currentTableIndex_ = 0;           // Tracks the current table being displayed (for multi-table support)
     float tableDisplayTimer_ = 0.0f;      // Timer to manage the display time for each table
     float currentTableDisplayTime_ = 0.0f; // Calculated display time for the current table, based on scrolling needs
-    bool switchTable_ = false;            // Flag indicating when to switch to the next table
     float displayTime_ = 5.0f;            // Default display time for non-scrolling tables (adjustable as needed)
     SDL_Texture* intermediateTexture_;
 };
