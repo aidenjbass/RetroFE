@@ -35,7 +35,7 @@
 
 
 VideoComponent::VideoComponent(Page &p, const std::string &videoFile, int monitor, int numLoops, bool softOverlay)
-    : Component(p), videoFile_(videoFile), numLoops_(numLoops), monitor_(monitor), currentPage_(&p), softOverlay_(softOverlay)
+    : Component(p), videoFile_(videoFile), softOverlay_(softOverlay), numLoops_(numLoops), monitor_(monitor), currentPage_(&p)
 {
 }
 
