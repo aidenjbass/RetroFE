@@ -108,14 +108,14 @@ bool Font::initialize() {
         GlyphInfoBuild* info = new GlyphInfoBuild;
 
         color_.a = 255;
-        info->surface = TTF_RenderGlyph32_Blended(font, i, color_);
+        info->surface = TTF_RenderGlyph_Blended(font, i, color_);
         if (!info->surface) {
             LOG_WARNING("Font", "Failed to render glyph surface.");
             delete info;
             continue;
         }
 
-        TTF_GlyphMetrics32(font, i, &info->glyph.minX, &info->glyph.maxX, &info->glyph.minY, &info->glyph.maxY, &info->glyph.advance);
+        TTF_GlyphMetrics(font, i, &info->glyph.minX, &info->glyph.maxX, &info->glyph.minY, &info->glyph.maxY, &info->glyph.advance);
 
         // Check width limit and wrap to new row if needed
         if (x + info->surface->w >= atlasWidth) {
