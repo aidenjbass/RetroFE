@@ -305,11 +305,15 @@ bool HiScores::loadFileToBuffer(const std::string& filePath, std::vector<char>& 
         return false;
     }
 
-    // Get the file size and resize the buffer accordingly
+    // Get the file size
     file.seekg(0, std::ios::end);
     std::streamsize size = file.tellg();
     file.seekg(0, std::ios::beg);
 
+    // Resize the buffer to hold the file content
+    buffer.resize(size);
+
+    // Read the file content into the buffer
     if (!file.read(buffer.data(), size)) {
         LOG_ERROR("HiScores", "Error: Could not read file content for " + filePath);
         return false;
