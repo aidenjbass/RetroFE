@@ -246,6 +246,25 @@ void ReloadableText::ReloadTexture()
     {
         text = std::to_string(selectedItem->playCount);
     }
+    else if (type_ == "timeSpent")
+    {
+        // Convert timeSpent (in seconds) into hours and minutes
+        int totalMinutes = static_cast<int>(selectedItem->timeSpent / 60);
+        int hours = totalMinutes / 60;
+        int minutes = totalMinutes % 60;
+
+        // Format time spent
+        if (totalMinutes < 1) {
+            // Less than a minute
+            return; // Exit the function early, leaving 'text' unchanged
+        } else if (hours > 0) {
+            // Display hours and minutes
+            text = std::to_string(hours) + "h " + std::to_string(minutes) + "m";
+        } else {
+            // Display only minutes
+            text = std::to_string(minutes) + "m";
+        }
+    }
     else if (type_ == "lastPlayed")
     {
         if (selectedItem->lastPlayed != "0")

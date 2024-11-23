@@ -362,6 +362,15 @@ bool Launcher::execute(std::string executable, std::string args, std::string cur
             });
     }
 
+    // Variables to measure gameplay time
+    std::chrono::time_point<std::chrono::steady_clock> startTime;
+    std::chrono::time_point<std::chrono::steady_clock> endTime;
+
+    // Start timing if not in attract mode
+    if (!isAttractMode) {
+        startTime = std::chrono::steady_clock::now();
+    }
+
 #ifdef WIN32
 
     // Ensure executable and currentDirectory are absolute paths
@@ -695,6 +704,18 @@ bool Launcher::execute(std::string executable, std::string args, std::string cur
         proc_thread.join();
     }
 
+    if (!isAttractMode) {
+        endTime = std::chrono::steady_clock::now();
+        double gameplayDuration = static_cast<double>(std::chrono::duration_cast<std::chrono::seconds>(endTime - startTime).count());
+        LOG_INFO("Launcher", "Gameplay time recorded: " + std::to_string(gameplayDuration) + " seconds.");
+
+        // Update timeSpent and save it
+        if (collectionItem != nullptr) {
+            CollectionInfoBuilder cib(config_, *retroFeInstance_.getMetaDb());
+            cib.updateTimeSpent(collectionItem, gameplayDuration);
+        }
+    }
+    
     LOG_INFO("Launcher", "Completed execution for: " + executionString);
     return retVal;
 }
