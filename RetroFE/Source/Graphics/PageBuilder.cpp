@@ -847,7 +847,7 @@ void PageBuilder::loadReloadableImages(const xml_node<>* layout, const std::stri
 			float endTime = endTimeXml ? Utils::convertFloat(endTimeXml->value()) : 0.0f;
 			float baseColumnPadding = baseColumnPaddingXml ? Utils::convertFloat(baseColumnPaddingXml->value()) : 1.5f;
 			float baseRowPadding = baseRowPaddingXml ? Utils::convertFloat(baseRowPaddingXml->value()) : 0.5f;
-			size_t maxRows = maxRowsXml ? static_cast<size_t>(Utils::convertInt(maxRowsXml->value())) : std::numeric_limits<size_t>::max();
+			size_t maxRows = maxRowsXml ? static_cast<size_t>(Utils::convertInt(maxRowsXml->value())) : 10; // Default to 10 rows
 
 			c = new ReloadableHiscores(config_, textFormat, *page, selectedOffset,
 				font, scrollingSpeed, startPosition, startTime,

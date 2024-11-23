@@ -234,18 +234,11 @@ void ReloadableHiscores::draw() {
 			LOG_DEBUG("ReloadableHiscores", "Redraw triggered due to scrolling or table switch.");
 			// Calculate scaling and positioning
 			float scale = baseViewInfo.FontSize / static_cast<float>(font->getHeight());
-			float xOrigin = baseViewInfo.XRelativeToOrigin();
-			float yOrigin = baseViewInfo.YRelativeToOrigin();
+
 
 			float drawableHeight = static_cast<float>(font->getAscent()) * scale;
 			float rowPadding = baseRowPadding_ * drawableHeight;
 			float paddingBetweenColumns = baseColumnPadding_ * drawableHeight;
-
-			
-			// Set clipping rectangle
-			SDL_Rect clipRect = { static_cast<int>(xOrigin), static_cast<int>(yOrigin),
-				static_cast<int>(imageMaxWidth), static_cast<int>(imageMaxHeight) };
-			SDL_RenderSetClipRect(renderer, &clipRect);
 
 			float scrollOffset = currentPosition_;
 
@@ -265,6 +258,14 @@ void ReloadableHiscores::draw() {
 			// Use cached column widths and total table width
 			const auto& columnWidths = cachedColumnWidths_;
 			float totalTableWidth = cachedTotalTableWidth_;
+
+			float xOrigin = baseViewInfo.XRelativeToOrigin() + (baseViewInfo.Width - totalTableWidth) / 2.0f;
+			float yOrigin = baseViewInfo.YRelativeToOrigin();
+
+			// Set clipping rectangle
+			SDL_Rect clipRect = { static_cast<int>(xOrigin), static_cast<int>(yOrigin),
+				static_cast<int>(imageMaxWidth), static_cast<int>(imageMaxHeight) };
+			SDL_RenderSetClipRect(renderer, &clipRect);
 
 			bool hasTitle = !table.id.empty();
 			float adjustedYOrigin = yOrigin;
@@ -387,8 +388,8 @@ void ReloadableHiscores::draw() {
 		}
 		// Step 6: Define the destination rectangle where the intermediate texture should be drawn
 		SDL_FRect destRect = {
-			baseViewInfo.XRelativeToOrigin(),
-			baseViewInfo.YRelativeToOrigin(),
+			baseViewInfo.XOrigin,
+			baseViewInfo.YOrigin,
 			baseViewInfo.Width,
 			baseViewInfo.Height
 		};
@@ -400,7 +401,6 @@ void ReloadableHiscores::draw() {
 	}
 	needsRedraw_ = false;
 }
-
 void ReloadableHiscores::cacheColumnWidths(Font* font, float scale, const HighScoreTable& table, float paddingBetweenColumns) {
 	// Only recalculate if the table index has changed
 	if (currentTableIndex_ == cachedTableIndex_) {
@@ -414,14 +414,17 @@ void ReloadableHiscores::cacheColumnWidths(Font* font, float scale, const HighSc
 
 	// Iterate over all tables for the game
 	for (const auto& currentTable : highScoreTable_->tables) {
-		for (size_t i = 0; i < currentTable.columns.size(); ++i) {
+		// Safely determine the minimum column count to avoid out-of-bounds access
+		size_t columnCount = std::min(currentTable.columns.size(), table.columns.size());
+
+		for (size_t i = 0; i < columnCount; ++i) {
 			// Account for header width
 			float headerWidth = font->getWidth(currentTable.columns[i]) * scale;
 			cachedColumnWidths_[i] = std::max(cachedColumnWidths_[i], headerWidth);
 
 			// Account for row cell widths
 			for (const auto& row : currentTable.rows) {
-				if (i < row.size()) {
+				if (i < row.size()) { // Ensure the row has enough columns
 					float cellWidth = font->getWidth(row[i]) * scale;
 					cachedColumnWidths_[i] = std::max(cachedColumnWidths_[i], cellWidth);
 				}
