@@ -59,7 +59,6 @@ public:
     void     launchEnter( );
     void     launchExit( );
     std::vector<std::string>     getPlaylistCycle();
-    void selectRandomOnFirstCycle();
     bool getAttractModeCyclePlaylist();
     MetadataDatabase* getMetaDb();
 
@@ -191,7 +190,6 @@ private:
     bool                buildInfo_;
     bool                collectionInfo_;
     bool                gameInfo_;
-    bool playlistCycledOnce_;
 	std::string        firstPlaylist_;
     std::map<std::string, bool> lkupAttractModeSkipPlaylist_;
     std::map<std::string, size_t> lastMenuOffsets_;

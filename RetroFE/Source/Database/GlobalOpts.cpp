@@ -93,6 +93,7 @@ const global_options::options_entry global_options::s_option_entries[] =
     { OPTION_CFWLETTERSUB,             "false",    global_options::option_type::BOOLEAN,  "Jump subs in a collection by sub instead of by the letter of the item" },
     { OPTION_PREVLETTERSUBTOCURRENT,   "false",    global_options::option_type::BOOLEAN,  "Jump to the start of the current letter instead of the previous letter if jump to letter enabled" },
     { OPTION_RANDOMSTART,              "false",    global_options::option_type::BOOLEAN,  "Start on a random item when RetroFE boots" },
+    { OPTION_RANDOMPLAYLIST,           "false",    global_options::option_type::BOOLEAN,  "Start on a random playlist when RetroFE boots" },
     { OPTION_KIOSK,                    "false",    global_options::option_type::BOOLEAN,  "Start on the first playlist in cyclePlaylist with navigation and favorites locked, can be toggled with a setting in controls.conf" },
     { OPTION_GLOBALFAVLAST,            "false",    global_options::option_type::BOOLEAN,  "Save last played and favorites to a new collection" },
     { OPTION_INFOEXITONSCROLL,         "false",    global_options::option_type::BOOLEAN,  "Hide info text boxes when scrolling" },

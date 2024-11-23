@@ -1082,34 +1082,68 @@ void Page::prevPlaylist()
 void Page::selectPlaylist(const std::string& playlist)
 {
     MenuInfo_S &info = collections_.back();
-    //info.collection->saveFavorites();
-    size_t numlists = info.collection->playlists.size();
-    // save last playlist selected item
-    rememberSelectedItem();
 
-    // Store current playlist
+    // Check if "remember menu" functionality is enabled
+    bool rememberMenu = false;
+    config_.getProperty(OPTION_REMEMBERMENU, rememberMenu);
+    if (rememberMenu)
+        rememberSelectedItem();
+
+    // Check if "random start" functionality is enabled
+    bool randomStart = false;
+    config_.getProperty(OPTION_RANDOMSTART, randomStart);
+    std::string settingsPlaylist = "settings";
+    config_.getProperty("settingsPlaylist", settingsPlaylist);
+
+    // Store the current playlist to restore if needed
     CollectionInfo::Playlists_T::iterator playlist_store = playlist_;
 
-    for(size_t i = 0; i <= numlists; ++i) {
+    // Find the target playlist
+    for (size_t i = 0; i <= info.collection->playlists.size(); ++i) {
         playlist_++;
-        // wrap
-        if(playlist_ == info.collection->playlists.end()) 
+        // Wrap around to the beginning if necessary
+        if (playlist_ == info.collection->playlists.end()) 
             playlist_ = info.collection->playlists.begin();
 
-        // find the first playlist
-        if(!playlist_->second->empty() && getPlaylistName() == playlist) 
+        // Match the desired playlist
+        if (!playlist_->second->empty() && getPlaylistName() == playlist) 
             break;
     }
 
-    // Do not change playlist if it does not exist or if it's empty
-    if ( playlist_->second->empty() || getPlaylistName() != playlist)
-      playlist_ = playlist_store;
+    // If playlist not found or empty, restore the original playlist
+    if (playlist_->second->empty() || getPlaylistName() != playlist) {
+        playlist_ = playlist_store;
+        return;
+    }
 
-    for(auto it = activeMenu_.begin(); it != activeMenu_.end(); it++) {
+    // Update active menu items
+    for (auto it = activeMenu_.begin(); it != activeMenu_.end(); it++) {
         setActiveMenuItemsFromPlaylist(info, *it);
     }
+
+    // Determine the initial offset
+    size_t initialOffset = 0;
+    ScrollingList* amenu = getAnActiveMenu();
+
+    if (lastPlaylistOffsets_.count(playlist) > 0) {
+        // Use the remembered offset
+        initialOffset = lastPlaylistOffsets_[playlist];
+    } else if (randomStart && amenu && (getPlaylistName() != settingsPlaylist) && (getPlaylistName() != "lastplayed")) {
+        // First-time navigation: select a random item
+        amenu->random();
+        initialOffset = amenu->getScrollOffsetIndex();
+
+        // Remember the random selection for subsequent navigations
+        lastPlaylistOffsets_[playlist] = initialOffset;
+    }
+
+    setScrollOffsetIndex(initialOffset);
+
+    // Trigger playlist change
     playlistChange();
 }
+
+
 
 void Page::updatePlaylistMenuPosition()
 {
@@ -1123,82 +1157,71 @@ void Page::updatePlaylistMenuPosition()
 
 void Page::nextCyclePlaylist(std::vector<std::string> list)
 {
-    // Empty list
-    if (list.empty())
-        return;
-    
+    if (list.empty()) return;
+
     std::string settingsPlaylist = "";
     config_.getProperty("settingsPlaylist", settingsPlaylist);
 
-    // Find the current playlist in the list
-    auto it = list.begin();
-    while (it != list.end() && *it != getPlaylistName())
-        ++it;
-    
+    auto it = std::find(list.begin(), list.end(), getPlaylistName());
+
     playlistNextEnter();
 
-    // If current playlist not found, switch to the first found cycle playlist in the playlist list
+    std::string nextPlaylist;
     if (it == list.end()) {
         for (auto it2 = list.begin(); it2 != list.end(); ++it2) {
             if (*it2 != settingsPlaylist && playlistExists(*it2)) {
-                selectPlaylist(*it2);
+                nextPlaylist = *it2;
                 break;
             }
         }
-    }
-    // Current playlist found; switch to the next found playlist in the list
-    else {
-        for(;;) {
+    } else {
+        do {
             ++it;
-            if (it == list.end()) 
-                it = list.begin(); // wrap
-
-            if (*it != settingsPlaylist && playlistExists(*it)) {
-                selectPlaylist(*it);
-                break;
-            }
-        }
+            if (it == list.end()) it = list.begin();
+        } while (*it == settingsPlaylist || !playlistExists(*it));
+        nextPlaylist = *it;
     }
-    
+
+    // Call selectPlaylist (restores remembered item automatically)
+    selectPlaylist(nextPlaylist);
 }
 
 
 void Page::prevCyclePlaylist(std::vector<std::string> list)
 {
     // Empty list
-    if (list.empty())
-        return;
+    if (list.empty()) return;
 
     std::string settingsPlaylist = "";
     config_.getProperty("settingsPlaylist", settingsPlaylist);
 
     // Find the current playlist in the list
-    auto it = list.begin();
-    while (it != list.end() && *it != getPlaylistName())
-        ++it;
+    auto it = std::find(list.begin(), list.end(), getPlaylistName());
 
-    // If current playlist not found, switch to the first found cycle playlist in the playlist list
+    std::string prevPlaylist;
+
+    // If current playlist not found, switch to the last playlist in the list
     if (it == list.end()) {
-        for (auto it2 = list.begin(); it2 != list.end(); ++it2) {
+        for (auto it2 = list.rbegin(); it2 != list.rend(); ++it2) {
             if (*it2 != settingsPlaylist && playlistExists(*it2)) {
-                selectPlaylist(*it2);
+                prevPlaylist = *it2;
                 break;
             }
         }
-    }
-    // Current playlist found; switch to the previous found playlist in the list
-    else {
-        for(;;) {
-            if (it == list.begin())
+    } else {
+        // Switch to the previous playlist in the list
+        do {
+            if (it == list.begin()) {
                 it = list.end(); // wrap
-            --it;
-            if (*it != settingsPlaylist && playlistExists(*it)) {
-                selectPlaylist(*it);
-                break;
             }
-        }
+            --it;
+        } while (*it == settingsPlaylist || !playlistExists(*it));
+
+        prevPlaylist = *it;
     }
-    
+
+    // Call selectPlaylist with the determined playlist
+    selectPlaylist(prevPlaylist);
 }
 
 bool Page::playlistExists(const std::string& playlist)

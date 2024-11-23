@@ -87,6 +87,7 @@
 #define OPTION_CFWLETTERSUB           "cfwLetterSub"
 #define OPTION_PREVLETTERSUBTOCURRENT  "prevLetterSubToCurrent"
 #define OPTION_RANDOMSTART            "randomStart"
+#define OPTION_RANDOMPLAYLIST         "randomPlaylist"
 #define OPTION_KIOSK                  "kiosk"
 #define OPTION_GLOBALFAVLAST          "globalFavLast"
 #define OPTION_INFOEXITONSCROLL       "infoExitOnScroll"
@@ -216,6 +217,7 @@ public:
     bool cfwlettersub() { return bool_value(OPTION_CFWLETTERSUB); }
     bool prevlettersubtocurrent() { return bool_value(OPTION_PREVLETTERSUBTOCURRENT); }
     bool randomstart() { return bool_value(OPTION_RANDOMSTART); }
+    bool randomplaylist() { return bool_value(OPTION_RANDOMPLAYLIST);}
     bool kiosk() { return bool_value(OPTION_KIOSK); }
     bool globalfavlast() { return bool_value(OPTION_GLOBALFAVLAST); }
     bool infoexitonscroll() { return bool_value(OPTION_INFOEXITONSCROLL); }

@@ -65,7 +65,7 @@ RetroFE::RetroFE(Configuration &c)
     : initialized(false), initializeError(false), initializeThread(NULL), config_(c), db_(NULL), metadb_(NULL),
       input_(config_), currentPage_(NULL), keyInputDisable_(0), currentTime_(0), lastLaunchReturnTime_(0),
       keyLastTime_(0), keyDelayTime_(.3f), reboot_(false), kioskLock_(false), paused_(false), buildInfo_(false),
-      collectionInfo_(false), gameInfo_(false), playlistCycledOnce_(false)
+      collectionInfo_(false), gameInfo_(false)
 {
     menuMode_ = false;
     attractMode_ = false;
@@ -660,12 +660,12 @@ bool RetroFE::run()
                     if (currentPage_->getPlaylistName() != firstPlaylist_)
                         currentPage_->selectPlaylist("all");
 
-                    bool randomStart = false;
-                    config_.getProperty(OPTION_RANDOMSTART, randomStart);
-                    if (screensaver || randomStart)
+                    bool randomPlaylist = false;
+                    config_.getProperty(OPTION_RANDOMPLAYLIST, randomPlaylist);
+                    if (screensaver || randomPlaylist)
                     {
                         currentPage_->selectRandomPlaylist(info, getPlaylistCycle());
-                        currentPage_->selectRandom();
+                        //currentPage_->selectRandom();
                     }
 
                     currentPage_->onNewItemSelected();
@@ -829,7 +829,7 @@ bool RetroFE::run()
             currentPage_->playlistPrevEnter();
             currentPage_->prevCyclePlaylist(getPlaylistCycle());
             // random highlight on first playlist cycle
-            selectRandomOnFirstCycle();
+            //selectRandomOnFirstCycle();
 
             state = RETROFE_PLAYLIST_REQUEST;
             break;
@@ -837,7 +837,7 @@ bool RetroFE::run()
         case RETROFE_PLAYLIST_NEXT_CYCLE:
             currentPage_->nextCyclePlaylist(getPlaylistCycle());
             // random highlight on first playlist cycle
-            selectRandomOnFirstCycle();
+            //selectRandomOnFirstCycle();
 
             state = RETROFE_PLAYLIST_REQUEST;
             break;
@@ -866,18 +866,6 @@ bool RetroFE::run()
         case RETROFE_PLAYLIST_EXIT:
             if (currentPage_->isIdle())
             {
-                bool randomStart = false;
-                config_.getProperty(OPTION_RANDOMSTART, randomStart);
-                if (randomStart)
-                {
-                    currentPage_->selectRandom();
-                }
-                bool rememberMenu = false;
-                config_.getProperty(OPTION_REMEMBERMENU, rememberMenu);
-                if (rememberMenu && currentPage_->getPlaylistName() != "lastplayed")
-                {
-                    currentPage_->returnToRememberSelectedItem();
-                }
                 // lots of different toggles and menu jumps trigger this by accident
                 if (currentPage_->fromPlaylistNav)
                 {
@@ -2180,21 +2168,6 @@ std::vector<std::string> RetroFE::getPlaylistCycle()
     }
 
     return cycleVector_;
-}
-
-void RetroFE::selectRandomOnFirstCycle()
-{
-    // random highlight on first playlist cycle
-    if (!playlistCycledOnce_)
-    {
-        playlistCycledOnce_ = true;
-        bool randomStart = false;
-        config_.getProperty(OPTION_RANDOMSTART, randomStart);
-        if (randomStart)
-        {
-            currentPage_->selectRandom();
-        }
-    }
 }
 
 // Check if we can go back a page or quite RetroFE
