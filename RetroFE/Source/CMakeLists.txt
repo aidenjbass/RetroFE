@@ -50,7 +50,7 @@ if(WIN32)
     
     # Set paths for libwebp on Windows
     set(WEBP_ROOT "${RETROFE_THIRD_PARTY_DIR}/libwebp")
-    set(WEBP_LIB "${WEBP_ROOT}/lib/libwebp.lib")
+    set(WEBP_LIB "${WEBP_ROOT}/lib/libwebp_dll.lib")
     include_directories("${WEBP_ROOT}/include")
 
 endif()
@@ -164,8 +164,8 @@ if(WIN32)
 	    # Add libwebp, libwebpdecoder, and libwebpdemux to the libraries to be linked on Windows
     list(APPEND RETROFE_LIBRARIES 
         "${WEBP_LIB}"
-        "${WEBP_ROOT}/lib/libwebpdecoder.lib"
-        "${WEBP_ROOT}/lib/libwebpdemux.lib"
+        "${WEBP_ROOT}/lib/libwebpdecoder_dll.lib"
+        "${WEBP_ROOT}/lib/libwebpdemux_dll.lib"
         "${ZLIB_ROOT}/lib/minizip.lib"
     )
 endif()
@@ -326,7 +326,6 @@ if(MSVC)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP /WX /MD")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /MP /WX /MD")
     set_target_properties(retrofe PROPERTIES LINK_FLAGS "/SUBSYSTEM:WINDOWS")
-    target_link_options(retrofe PRIVATE "/NODEFAULTLIB:LIBCMT")
 else()
     set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -ggdb")
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -ggdb")
