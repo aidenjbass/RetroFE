@@ -255,8 +255,7 @@ void ReloadableText::ReloadTexture()
 
         // Format time spent
         if (totalMinutes < 1) {
-            // Less than a minute
-            return; // Exit the function early, leaving 'text' unchanged
+            text = "";
         } else if (hours > 0) {
             // Display hours and minutes
             text = std::to_string(hours) + "h " + std::to_string(minutes) + "m";
