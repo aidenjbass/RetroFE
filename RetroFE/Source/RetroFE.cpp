@@ -725,6 +725,7 @@ bool RetroFE::run()
             {
                 currentPage_->setScrolling(Page::ScrollDirectionForward);
                 currentPage_->scroll(true, false);
+                currentPage_->onNewItemSelected();
                 currentPage_->updateScrollPeriod();
             }
             state = RETROFE_IDLE;
@@ -734,6 +735,7 @@ bool RetroFE::run()
             {
                 currentPage_->setScrolling(Page::ScrollDirectionBack);
                 currentPage_->scroll(false, false);
+                currentPage_->onNewItemSelected();
                 currentPage_->updateScrollPeriod();
             }
             state = RETROFE_IDLE;
