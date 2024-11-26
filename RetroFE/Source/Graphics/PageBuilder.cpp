@@ -391,7 +391,11 @@ float PageBuilder::getHorizontalAlignment(const xml_attribute<>* attribute, floa
 	else {
 		str = attribute->value();
 
-		if (!str.compare("left")) {
+		if (str.empty()) {
+			// Handle the case where the attribute value is an empty string
+			value = valueIfNull; // Or any default value you'd prefer
+		}
+		else if (!str.compare("left")) {
 			value = 0;
 		}
 		else if (!str.compare("center")) {
@@ -423,7 +427,11 @@ float PageBuilder::getVerticalAlignment(const xml_attribute<>* attribute, float 
 	else {
 		str = attribute->value();
 
-		if (!str.compare("top")) {
+		if (str.empty()) {
+			// Handle the case where the attribute value is an empty string
+			value = valueIfNull; // Or any default value you'd prefer
+		}
+		else if (!str.compare("top")) {
 			value = 0;
 		}
 		else if (!str.compare("center")) {
