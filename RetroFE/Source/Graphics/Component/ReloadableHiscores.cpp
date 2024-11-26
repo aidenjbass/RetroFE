@@ -195,6 +195,13 @@ void ReloadableHiscores::draw() {
 		return;
 	}
 
+	// Check if the table requires a redraw
+	HighScoreTable& table = highScoreTable_->tables[currentTableIndex_];
+	if (table.forceRedraw) {
+		needsRedraw_ = true;
+		table.forceRedraw = false;  // Reset the flag directly
+	}
+
 	// Retrieve font and texture
 	Font* font = baseViewInfo.font ? baseViewInfo.font : fontInst_;
 	SDL_Texture* texture = font ? font->getTexture() : nullptr;
@@ -248,9 +255,6 @@ void ReloadableHiscores::draw() {
 			// Step 4: Clear the intermediate texture (transparent background)
 			SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
 			SDL_RenderClear(renderer);
-
-			// Retrieve the current high score table
-			const HighScoreTable& table = highScoreTable_->tables[currentTableIndex_];
 
 			// Cache column widths if needed
 			cacheColumnWidths(font, scale, table, paddingBetweenColumns);

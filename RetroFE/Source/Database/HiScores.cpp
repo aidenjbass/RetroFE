@@ -143,6 +143,8 @@ void HiScores::loadFromFile(const std::string& gameName, const std::string& file
             highScoreTable.rows.push_back(rowData);
         }
 
+        highScoreTable.forceRedraw = true;  // Mark this table for redraw
+
         highScoreData.tables.push_back(highScoreTable);  // Add the table to the list
     }
     // Store the HighScoreData in the cache

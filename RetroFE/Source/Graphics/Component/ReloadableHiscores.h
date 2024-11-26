@@ -61,7 +61,7 @@ private:
     std::vector<float> cachedColumnWidths_;
     float cachedTotalTableWidth_ = 0.0f;
     Item* lastSelectedItem_ = nullptr;  // Track the previously selected item
-    const HighScoreData* highScoreTable_ = nullptr;
+    HighScoreData* highScoreTable_ = nullptr;
     size_t currentTableIndex_ = 0;           // Tracks the current table being displayed (for multi-table support)
     float tableDisplayTimer_ = 0.0f;      // Timer to manage the display time for each table
     float currentTableDisplayTime_ = 0.0f; // Calculated display time for the current table, based on scrolling needs

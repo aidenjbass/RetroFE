@@ -26,6 +26,7 @@ struct HighScoreTable {
     std::string id;  // Table ID, if any
     std::vector<std::string> columns;  // Column names
     std::vector<std::vector<std::string>> rows;  // Rows of cell values
+	bool forceRedraw = false;  // Force redraw of high score table
 };
 
 struct HighScoreData {
