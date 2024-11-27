@@ -893,8 +893,10 @@ void PageBuilder::loadReloadableImages(const xml_node<>* layout, const std::stri
 			c->setId(id);
 
 			// Set menuScrollReload if applicable
-			xml_attribute<> const* menuScrollReload = componentXml->first_attribute("menuScrollReload");
-			if (menuScrollReload && Utils::toLower(menuScrollReload->value()) == "true") {
+			if (xml_attribute<> const* menuScrollReload = componentXml->first_attribute("menuScrollReload"); menuScrollReload &&
+				(Utils::toLower(menuScrollReload->value()) == "true" ||
+					Utils::toLower(menuScrollReload->value()) == "yes"))
+			{
 				c->setMenuScrollReload(true);
 			}
 

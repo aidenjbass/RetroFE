@@ -184,6 +184,7 @@ void RetroFE::launchEnter()
 // Return from the launch of a game/program
 void RetroFE::launchExit()
 {
+    HiScores::getInstance().runHi2TxtAsync(nextPageItem_->name);
     // Set up SDL, and load the textures if unloadSDL flag is set
     bool unloadSDL = false;
     config_.getProperty(OPTION_UNLOADSDL, unloadSDL);
@@ -725,7 +726,6 @@ bool RetroFE::run()
             {
                 currentPage_->setScrolling(Page::ScrollDirectionForward);
                 currentPage_->scroll(true, false);
-                currentPage_->onNewItemSelected();
                 currentPage_->updateScrollPeriod();
             }
             state = RETROFE_IDLE;
@@ -735,7 +735,6 @@ bool RetroFE::run()
             {
                 currentPage_->setScrolling(Page::ScrollDirectionBack);
                 currentPage_->scroll(false, false);
-                currentPage_->onNewItemSelected();
                 currentPage_->updateScrollPeriod();
             }
             state = RETROFE_IDLE;
@@ -1792,10 +1791,6 @@ bool RetroFE::run()
 
             // Wait for onGameExit animation to finish
         case RETROFE_LAUNCH_EXIT: {
-            HiScores::getInstance().runHi2TxtAsync(nextPageItem_->name);
-
-             
-
             // Only update `state` if `currentPage_` is idle
             if (currentPage_->isIdle()) {
                 state = RETROFE_IDLE;
