@@ -18,7 +18,7 @@
 #include <unordered_map>
 #include <string>
 #include <vector>
-#include <mutex>
+#include <shared_mutex>
 #include "../Utility/Utils.h"
 #include "../Database/Configuration.h"
 
@@ -40,9 +40,6 @@ public:
     // Initialize by loading all high scores
     void loadHighScores(const std::string& zipPath, const std::string& overridePath);
 
-    // Retrieve high score table for a game
-    std::string getHighScore(const std::string& gameName);
-
     HighScoreData* getHighScoreTable(const std::string& gameName);
 
     bool hasHiFile(const std::string& gameName) const;
@@ -61,8 +58,8 @@ private:
     std::string scoresDirectory_;
 
     std::unordered_map<std::string, HighScoreData> scoresCache_;
-    std::mutex scoresCacheMutex_;  // Mutex to protect access to scoresCache_
-
+    std::shared_mutex scoresCacheMutex_;
     void loadFromZip(const std::string& zipPath);
     void loadFromFile(const std::string& gameName, const std::string& filePath, std::vector<char>& buffer);
 };
+

@@ -99,7 +99,6 @@ void HiScores::loadFromZip(const std::string& zipPath) {
 
 // Parse a single XML file for high score data with dynamic columns
 void HiScores::loadFromFile(const std::string& gameName, const std::string& filePath, std::vector<char>& buffer) {
-    std::lock_guard<std::mutex> lock(scoresCacheMutex_);  // Lock mutex for reading
 
     // Ensure the buffer is null-terminated
     buffer.push_back('\0');
@@ -113,7 +112,7 @@ void HiScores::loadFromFile(const std::string& gameName, const std::string& file
         return;
     }
 
-    rapidxml::xml_node<>* rootNode = doc.first_node("hi2txt");
+    rapidxml::xml_node<> const* rootNode = doc.first_node("hi2txt");
     if (!rootNode) {
         LOG_ERROR("HiScores", "Root node <hi2txt> not found in file " + filePath);
         return;
@@ -121,7 +120,7 @@ void HiScores::loadFromFile(const std::string& gameName, const std::string& file
 
     HighScoreData highScoreData;
 
-    for (rapidxml::xml_node<>* tableNode = rootNode->first_node("table"); tableNode; tableNode = tableNode->next_sibling("table")) {
+    for (rapidxml::xml_node<> const* tableNode = rootNode->first_node("table"); tableNode; tableNode = tableNode->next_sibling("table")) {
         HighScoreTable highScoreTable;
 
         // Assign ID if present
@@ -130,14 +129,14 @@ void HiScores::loadFromFile(const std::string& gameName, const std::string& file
         }
 
         // Parse columns
-        for (rapidxml::xml_node<>* colNode = tableNode->first_node("col"); colNode; colNode = colNode->next_sibling("col")) {
+        for (rapidxml::xml_node<> const* colNode = tableNode->first_node("col"); colNode; colNode = colNode->next_sibling("col")) {
             highScoreTable.columns.push_back(Utils::trimEnds(colNode->value()));
         }
 
         // Parse rows
-        for (rapidxml::xml_node<>* rowNode = tableNode->first_node("row"); rowNode; rowNode = rowNode->next_sibling("row")) {
+        for (rapidxml::xml_node<> const* rowNode = tableNode->first_node("row"); rowNode; rowNode = rowNode->next_sibling("row")) {
             std::vector<std::string> rowData;
-            for (rapidxml::xml_node<>* cellNode = rowNode->first_node("cell"); cellNode; cellNode = cellNode->next_sibling("cell")) {
+            for (rapidxml::xml_node<> const* cellNode = rowNode->first_node("cell"); cellNode; cellNode = cellNode->next_sibling("cell")) {
                 rowData.push_back(Utils::trimEnds(cellNode->value()));
             }
             highScoreTable.rows.push_back(rowData);
@@ -147,17 +146,21 @@ void HiScores::loadFromFile(const std::string& gameName, const std::string& file
 
         highScoreData.tables.push_back(highScoreTable);  // Add the table to the list
     }
-    // Store the HighScoreData in the cache
-    scoresCache_[gameName] = highScoreData;
+    // Lock mutex only for updating the cache
+    {
+        std::unique_lock<std::shared_mutex> lock(scoresCacheMutex_);  // Exclusive lock for writing
+        scoresCache_[gameName] = std::move(highScoreData);  // Update the cache
+    }
 }
+
 // Retrieve a pointer to the high score table for a specific game
 HighScoreData* HiScores::getHighScoreTable(const std::string& gameName) {
-    std::lock_guard<std::mutex> lock(scoresCacheMutex_);  // Lock the mutex for thread-safe access
+    std::shared_lock<std::shared_mutex> lock(scoresCacheMutex_);  // Shared lock for concurrent reads
     auto it = scoresCache_.find(gameName);
     if (it != scoresCache_.end()) {
-        return &it->second;  // Return pointer to the HighScoreData containing all tables
+        return &it->second;
     }
-    return nullptr;  // Return nullptr if gameName is not found
+    return nullptr;
 }
 
 // Check if a .hi file exists for the given game
@@ -262,7 +265,7 @@ bool HiScores::runHi2Txt(const std::string& gameName) {
 
     // Check if xmlContent starts with <hi2txt>
     if (xmlContent.find("<hi2txt>") != 0) {
-        LOG_ERROR("HiScores", "Invalid XML content received from hi2txt for game " + gameName);
+        LOG_WARNING("HiScores", "Invalid XML content received from hi2txt for game " + gameName);
         return false;
     }
     // Parse the XML content to update the cache
@@ -283,20 +286,25 @@ bool HiScores::runHi2Txt(const std::string& gameName) {
     outFile.write(obfuscatedContent.c_str(), obfuscatedContent.size());
     outFile.close();
 
-    LOG_ERROR("HiScores", "Scores updated for " + gameName + " and saved to " + xmlFilePath);
+    LOG_INFO("HiScores", "Scores updated for " + gameName + " and saved to " + xmlFilePath);
     return true;
 }
 
 // Wrapper function to run hi2txt asynchronously
 void HiScores::runHi2TxtAsync(const std::string& gameName) {
-    // Launch the function in a new thread
     std::thread([this, gameName]() {
-        if (runHi2Txt(gameName)) {
-            LOG_ERROR("HiScores", "runHi2Txt executed successfully in the background for game " + gameName);
-        } else {
-            LOG_ERROR("HiScores", "runHi2Txt failed in the background for game " + gameName);
+        try {
+            if (runHi2Txt(gameName)) {
+                LOG_INFO("HiScores", "runHi2Txt executed successfully in the background for game " + gameName);
+            } else {
+                LOG_ERROR("HiScores", "runHi2Txt failed in the background for game " + gameName);
+            }
+        } catch (const std::exception& e) {
+            LOG_ERROR("HiScores", "Exception in runHi2TxtAsync for game " + gameName + ": " + e.what());
+        } catch (...) {
+            LOG_ERROR("HiScores", "Unknown exception in runHi2TxtAsync for game " + gameName);
         }
-        }).detach();  // Detach the thread to allow it to run independently
+        }).detach();
 }
 
 // Helper function to load the XML file content into a buffer
