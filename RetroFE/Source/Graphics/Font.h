@@ -16,6 +16,11 @@
 #pragma once
 
 #include <SDL2/SDL.h>
+#if (__APPLE__)
+#include <SDL2_ttf/SDL_ttf.h>
+#else
+#include <SDL2/SDL_ttf.h>
+#endif
 #include <string>
 #include <unordered_map>
 
@@ -50,6 +55,8 @@ private:
         Font::GlyphInfo glyph;
         SDL_Surface *surface;
     };
+
+    TTF_Font* font_;
 
     SDL_Texture *texture;
     int height;

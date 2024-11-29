@@ -54,6 +54,9 @@ private:
     float                    baseRowPadding_;
     int                      displayOffset_;
     size_t                   maxRows_;
+    float                    lastScale_ = 0.0f;
+    float                    lastPaddingBetweenColumns_ = 0.0f;
+    bool cacheValid_ = false;
     bool needsRedraw_;
     bool headersRendered_;
     bool titleRendered_;

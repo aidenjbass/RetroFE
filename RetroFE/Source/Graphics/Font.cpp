@@ -96,6 +96,8 @@ bool Font::initialize() {
         return false;
     }
 
+    const int GLYPH_SPACING = fontSize_ / 16; // Scale spacing with font size
+
     int x = 0, y = 0;
     int atlasHeight = 0;
     int atlasWidth = std::min(1024, fontSize_ * 16); // Dynamic width with max limit
@@ -110,30 +112,29 @@ bool Font::initialize() {
         color_.a = 255;
         info->surface = TTF_RenderGlyph_Blended(font, i, color_);
         if (!info->surface) {
-            LOG_WARNING("Font", "Failed to render glyph surface.");
             delete info;
             continue;
         }
 
         TTF_GlyphMetrics(font, i, &info->glyph.minX, &info->glyph.maxX, &info->glyph.minY, &info->glyph.maxY, &info->glyph.advance);
 
-        // Check width limit and wrap to new row if needed
-        if (x + info->surface->w >= atlasWidth) {
-            atlasHeight += y;
-            atlasWidth = std::max(atlasWidth, x);
+        // Check width limit and wrap to a new row if needed
+        if (x + info->surface->w + GLYPH_SPACING > atlasWidth) { // Add spacing to width check
+            atlasHeight += y + GLYPH_SPACING; // Add spacing to row height
             x = 0;
             y = 0;
         }
 
+        // Adjust glyph rectangle to include spacing
         info->glyph.rect = { x, atlasHeight, info->surface->w, info->surface->h };
         atlas[i] = info;
 
-        x += info->glyph.rect.w;
+        x += info->glyph.rect.w + GLYPH_SPACING; // Add spacing to x position
         y = std::max(y, info->glyph.rect.h);
     }
 
-    atlasWidth = std::max(atlasWidth, x);
-    atlasHeight += y;
+    atlasWidth = std::max(atlasWidth, x); // Final atlas width
+    atlasHeight += y + GLYPH_SPACING;    // Final atlas height, including bottom spacing
 
     // Define masks based on byte order
     unsigned int rmask, gmask, bmask, amask;
