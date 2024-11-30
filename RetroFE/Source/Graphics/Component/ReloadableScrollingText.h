@@ -23,7 +23,7 @@
 
 struct CachedGlyph {
     SDL_Rect sourceRect;  // Source rectangle on the font texture
-    SDL_Rect destRect;    // Destination rectangle on the screen
+    SDL_FRect destRect;    // Destination rectangle on the screen
     float advance;        // Advance value for the glyph
 };
 

@@ -509,18 +509,18 @@ void ReloadableScrollingText::draw() {
         updateGlyphCache();
     }
 
-    SDL_Rect destRect;
-    destRect.y = static_cast<int>(yOrigin);
+    SDL_FRect destRect;
+    destRect.y = yOrigin;
 
     if (direction_ == "horizontal") {
         float scrollPosition = currentPosition_;
 
         // Adjust for negative scroll position
         if (scrollPosition < 0.0f) {
-            destRect.x = static_cast<int>(xOrigin - scrollPosition);
+            destRect.x = xOrigin - scrollPosition;
         }
         else {
-            destRect.x = static_cast<int>(xOrigin);
+            destRect.x = xOrigin;
         }
 
         // Do not scroll if the text fits within the available width
@@ -532,8 +532,8 @@ void ReloadableScrollingText::draw() {
 
         for (const auto& glyph : cachedGlyphs_) {
             // Calculate the glyph's position with scrolling
-            destRect.x = static_cast<int>(xOrigin + glyph.destRect.x - scrollPosition);
-            destRect.y = static_cast<int>(yOrigin + glyph.destRect.y);
+            destRect.x = xOrigin + glyph.destRect.x - scrollPosition;
+            destRect.y = yOrigin + glyph.destRect.y;
             destRect.w = glyph.destRect.w;
             destRect.h = glyph.destRect.h;
 
@@ -547,8 +547,8 @@ void ReloadableScrollingText::draw() {
 
             // Left clipping
             if (destRect.x < xOrigin) {
-                int clipAmount = static_cast<int>(xOrigin - destRect.x);
-                destRect.x = static_cast<int>(xOrigin);
+                float clipAmount = xOrigin - destRect.x;
+                destRect.x = xOrigin;
                 destRect.w -= clipAmount;
                 srcRect.x += static_cast<int>(clipAmount / scale);
                 srcRect.w -= static_cast<int>(clipAmount / scale);
@@ -556,7 +556,7 @@ void ReloadableScrollingText::draw() {
 
             // Right clipping
             if ((destRect.x + destRect.w) > (xOrigin + imageMaxWidth)) {
-                int clipAmount = static_cast<int>((destRect.x + destRect.w) - (xOrigin + imageMaxWidth));
+                float clipAmount = (destRect.x + destRect.w) - (xOrigin + imageMaxWidth);
                 destRect.w -= clipAmount;
                 srcRect.w -= static_cast<int>(clipAmount / scale);
             }
@@ -565,7 +565,7 @@ void ReloadableScrollingText::draw() {
                 continue;
             }
 
-            SDL::renderCopy(texture, baseViewInfo.Alpha, &srcRect, &destRect, baseViewInfo,
+            SDL::renderCopyF(texture, baseViewInfo.Alpha, &srcRect, &destRect, baseViewInfo,
                 page.getLayoutWidthByMonitor(baseViewInfo.Monitor),
                 page.getLayoutHeightByMonitor(baseViewInfo.Monitor));
         }
@@ -582,10 +582,10 @@ void ReloadableScrollingText::draw() {
 
         // Adjust for negative scroll position
         if (scrollPosition < 0.0f) {
-            destRect.y = static_cast<int>(yOrigin - scrollPosition);
+            destRect.y = yOrigin - scrollPosition;
         }
         else {
-            destRect.y = static_cast<int>(yOrigin);
+            destRect.y = yOrigin;
         }
 
         // Do not scroll if the text fits within the available height
@@ -597,8 +597,8 @@ void ReloadableScrollingText::draw() {
 
         for (const auto& glyph : cachedGlyphs_) {
             // Calculate the glyph's position with scrolling
-            destRect.x = static_cast<int>(xOrigin + glyph.destRect.x);
-            destRect.y = static_cast<int>(yOrigin + glyph.destRect.y - scrollPosition);
+            destRect.x = xOrigin + glyph.destRect.x;
+            destRect.y = yOrigin + glyph.destRect.y - scrollPosition;
             destRect.w = glyph.destRect.w;
             destRect.h = glyph.destRect.h;
 
@@ -612,8 +612,8 @@ void ReloadableScrollingText::draw() {
 
             // Top clipping
             if (destRect.y < yOrigin) {
-                int clipAmount = static_cast<int>(yOrigin - destRect.y);
-                destRect.y = static_cast<int>(yOrigin);
+                float clipAmount = yOrigin - destRect.y;
+                destRect.y = yOrigin;
                 destRect.h -= clipAmount;
                 srcRect.y += static_cast<int>(clipAmount / scale);
                 srcRect.h -= static_cast<int>(clipAmount / scale);
@@ -621,7 +621,7 @@ void ReloadableScrollingText::draw() {
 
             // Bottom clipping
             if ((destRect.y + destRect.h) > (yOrigin + imageMaxHeight)) {
-                int clipAmount = static_cast<int>((destRect.y + destRect.h) - (yOrigin + imageMaxHeight));
+                float clipAmount = (destRect.y + destRect.h) - (yOrigin + imageMaxHeight);
                 destRect.h -= clipAmount;
                 srcRect.h -= static_cast<int>(clipAmount / scale);
             }
@@ -630,7 +630,7 @@ void ReloadableScrollingText::draw() {
                 continue;
             }
 
-            SDL::renderCopy(texture, baseViewInfo.Alpha, &srcRect, &destRect, baseViewInfo,
+            SDL::renderCopyF(texture, baseViewInfo.Alpha, &srcRect, &destRect, baseViewInfo,
                 page.getLayoutWidthByMonitor(baseViewInfo.Monitor),
                 page.getLayoutHeightByMonitor(baseViewInfo.Monitor));
         }
@@ -676,15 +676,15 @@ void ReloadableScrollingText::updateGlyphCache() {
                 if (font->getRect(c, glyph) && glyph.rect.h > 0) {
                     CachedGlyph cachedGlyph;
                     cachedGlyph.sourceRect = glyph.rect;
-                    cachedGlyph.destRect.x = static_cast<int>(xPos);
+                    cachedGlyph.destRect.x = xPos;
                     cachedGlyph.destRect.y = 0;  // Adjusted later
-                    cachedGlyph.destRect.w = static_cast<int>(glyph.rect.w * scale);
-                    cachedGlyph.destRect.h = static_cast<int>(glyph.rect.h * scale);
-                    cachedGlyph.advance = glyph.advance * scale;
+                    cachedGlyph.destRect.w = static_cast<float>(glyph.rect.w) * scale;
+                    cachedGlyph.destRect.h = static_cast<float>(glyph.rect.h) * scale;
+                    cachedGlyph.advance = static_cast<float>(glyph.advance) * scale;
 
                     cachedGlyphs_.push_back(cachedGlyph);
 
-                    xPos += glyph.advance * scale;
+                    xPos += static_cast<float>(glyph.advance) * scale;
                 }
             }
         }
@@ -707,14 +707,14 @@ void ReloadableScrollingText::updateGlyphCache() {
                 for (char c : word) {
                     Font::GlyphInfo glyph;
                     if (font->getRect(c, glyph)) {
-                        wordWidth += glyph.advance * scale;
+                        wordWidth += static_cast<float>(glyph.advance) * scale;
                     }
                 }
                 // Add space width if this is not the first word on the line
                 if (!currentLine.empty()) {
                     Font::GlyphInfo spaceGlyph;
                     if (font->getRect(' ', spaceGlyph)) {
-                        wordWidth += spaceGlyph.advance * scale;
+                        wordWidth += static_cast<float>(spaceGlyph.advance) * scale;
                     }
                 }
                 // Check if the word fits on the current line
@@ -748,7 +748,7 @@ void ReloadableScrollingText::updateGlyphCache() {
             for (char c : line) {
                 Font::GlyphInfo glyph;
                 if (font->getRect(c, glyph)) {
-                    lineWidth += glyph.advance * scale;
+                    lineWidth += static_cast<float>(glyph.advance) * scale;
                 }
             }
 
@@ -765,19 +765,19 @@ void ReloadableScrollingText::updateGlyphCache() {
                 if (font->getRect(c, glyph) && glyph.rect.h > 0) {
                     CachedGlyph cachedGlyph;
                     cachedGlyph.sourceRect = glyph.rect;
-                    cachedGlyph.destRect.x = static_cast<int>(xPos);
-                    cachedGlyph.destRect.y = static_cast<int>(yPos);
-                    cachedGlyph.destRect.w = static_cast<int>(glyph.rect.w * scale);
-                    cachedGlyph.destRect.h = static_cast<int>(glyph.rect.h * scale);
-                    cachedGlyph.advance = glyph.advance * scale;
+                    cachedGlyph.destRect.x = xPos;
+                    cachedGlyph.destRect.y = yPos;
+                    cachedGlyph.destRect.w = static_cast<float>(glyph.rect.w) * scale;
+                    cachedGlyph.destRect.h = static_cast<float>(glyph.rect.h) * scale;
+                    cachedGlyph.advance = static_cast<float>(glyph.advance) * scale;
 
                     cachedGlyphs_.push_back(cachedGlyph);
 
-                    xPos += glyph.advance * scale;
+                    xPos += static_cast<float>(glyph.advance) * scale;
                 }
             }
 
-            yPos += font->getHeight() * scale;
+            yPos += static_cast<float>(font->getHeight()) * scale;
         }
         textHeight_ = yPos;
     }
