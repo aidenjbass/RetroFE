@@ -762,6 +762,7 @@ void PageBuilder::loadReloadableImages(const xml_node<>* layout, const std::stri
 		xml_attribute<> const* baseColumnPaddingXml = componentXml->first_attribute("baseColumnPadding");
 		xml_attribute<> const* baseRowPaddingXml = componentXml->first_attribute("baseRowPadding");
 		xml_attribute<> const* maxRowsXml = componentXml->first_attribute("maxRows");
+		xml_attribute<> const* excludedColumnsXml = componentXml->first_attribute("excludedColumns");
 
 		bool systemMode = false;
 		bool layoutMode = false;
@@ -850,16 +851,15 @@ void PageBuilder::loadReloadableImages(const xml_node<>* layout, const std::stri
 			Font* font = addFont(componentXml, nullptr, cMonitor);
 			std::string textFormat = textFormatXml ? textFormatXml->value() : "";
 			float scrollingSpeed = scrollingSpeedXml ? Utils::convertFloat(scrollingSpeedXml->value()) : 1.0f;
-			float startPosition = startPositionXml ? Utils::convertFloat(startPositionXml->value()) : 0.0f;
 			float startTime = startTimeXml ? Utils::convertFloat(startTimeXml->value()) : 0.0f;
-			float endTime = endTimeXml ? Utils::convertFloat(endTimeXml->value()) : 0.0f;
 			float baseColumnPadding = baseColumnPaddingXml ? Utils::convertFloat(baseColumnPaddingXml->value()) : 1.5f;
 			float baseRowPadding = baseRowPaddingXml ? Utils::convertFloat(baseRowPaddingXml->value()) : 0.5f;
 			size_t maxRows = maxRowsXml ? static_cast<size_t>(Utils::convertInt(maxRowsXml->value())) : std::numeric_limits<size_t>::max(); // Default to unlimited rows
+			std::string excludedColumns = excludedColumnsXml ? excludedColumnsXml->value() : "";
 
 			c = new ReloadableHiscores(config_, textFormat, *page, selectedOffset,
-				font, scrollingSpeed, startPosition, startTime,
-				endTime, baseColumnPadding, baseRowPadding, maxRows);
+				font, scrollingSpeed, startTime,
+				excludedColumns, baseColumnPadding, baseRowPadding, maxRows);
 		}
 
 		else {

@@ -1,4 +1,3 @@
-#pragma once
 /* This file is part of RetroFE.
 *
 * RetroFE is free software: you can redistribute it and/or modify
@@ -15,59 +14,71 @@
 * along with RetroFE.  If not, see <http://www.gnu.org/licenses/>.
 */
 #pragma once
-#include "Component.h"
-#include "../../Collection/Item.h"
-#include "../../Database/HiScores.h"
-#include <SDL2/SDL.h>
 #include <vector>
 #include <string>
 #include <filesystem>
+#include <unordered_set>
+
+#include <SDL2/SDL.h>
+
+#include "Component.h"
+#include "../../Collection/Item.h"
+#include "../../Database/HiScores.h"
+
 
 class ReloadableHiscores : public Component
 {
 public:
     ReloadableHiscores(Configuration& config, std::string textFormat, Page& p, int displayOffset, Font* font,
-        float scrollingSpeed, float startPosition, float startTime, float endTime, float baseColumnPadding, float baseRowPadding, size_t maxRows);
-    virtual ~ReloadableHiscores( );
-    bool     update(float dt);
-    void     draw( );
-    void     allocateGraphicsMemory( );
-    void     freeGraphicsMemory( );
-    void     deInitializeFonts();
-    void     initializeFonts();
+        float scrollingSpeed, float startTime, std::string excludedColumns, float baseColumnPadding, float baseRowPadding, size_t maxRows);
+    ~ReloadableHiscores() override;
+    bool     update(float dt) override;
+    void     draw() override;
+    void     allocateGraphicsMemory() override;
+    void     freeGraphicsMemory() override;
+    void     deInitializeFonts() override;
+    void     initializeFonts() override;
 
 
 private:
     void reloadTexture(bool resetScroll = true);
     void cacheColumnWidths(Font* font, float scale, const HighScoreTable& table, float paddingBetweenColumns);
+    void updateVisibleColumns(const HighScoreTable& table);
     bool createIntermediateTexture(SDL_Renderer* renderer, int width, int height);
-    Font                    *fontInst_;
-    std::string              textFormat_;
-    std::string              location_; 
-    float                    scrollingSpeed_;
-    float                    startPosition_;
-    float                    currentPosition_;
-    float                    startTime_;
-    float                    waitStartTime_;
-    float                    waitEndTime_;
-    float                    baseColumnPadding_;
-    float                    baseRowPadding_;
-    int                      displayOffset_;
-    size_t                   maxRows_;
-    float                    lastScale_ = 0.0f;
-    float                    lastPaddingBetweenColumns_ = 0.0f;
-    bool cacheValid_ = false;
+    
+    // Configuration Parameters
+    Font* fontInst_;
+    std::string textFormat_;
+    std::string excludedColumns_;
+    std::unordered_set<std::string> excludedColumnsSet_;
+    float baseColumnPadding_;
+    float baseRowPadding_;
+    int displayOffset_;
+    size_t maxRows_;
+
+    // State Variables
+    float scrollingSpeed_;
+    float currentPosition_;
+    float startTime_;
+    float waitStartTime_;
+    float waitEndTime_;
+    size_t currentTableIndex_;
+    float tableDisplayTimer_;
+    float currentTableDisplayTime_;
+    float displayTime_;
     bool needsRedraw_;
-    bool headersRendered_;
-    bool titleRendered_;
-    size_t cachedTableIndex_ = std::numeric_limits<size_t>::max(); // Invalid table index
+
+    // Cached Data
+    float lastScale_;
+    float lastPaddingBetweenColumns_;
+    bool cacheValid_;
+    size_t cachedTableIndex_;
     std::vector<float> cachedColumnWidths_;
-    float cachedTotalTableWidth_ = 0.0f;
-    Item* lastSelectedItem_ = nullptr;  // Track the previously selected item
-    HighScoreData* highScoreTable_ = nullptr;
-    size_t currentTableIndex_ = 0;           // Tracks the current table being displayed (for multi-table support)
-    float tableDisplayTimer_ = 0.0f;      // Timer to manage the display time for each table
-    float currentTableDisplayTime_ = 0.0f; // Calculated display time for the current table, based on scrolling needs
-    float displayTime_ = 5.0f;            // Default display time for non-scrolling tables (adjustable as needed)
+    float cachedTotalTableWidth_;
+    std::vector<size_t> visibleColumnIndices_;
+
+    // Resources
+    Item* lastSelectedItem_;
+    HighScoreData* highScoreTable_;
     SDL_Texture* intermediateTexture_;
 };
