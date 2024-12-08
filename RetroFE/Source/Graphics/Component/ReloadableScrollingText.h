@@ -31,7 +31,7 @@ struct CachedGlyph {
 class ReloadableScrollingText : public Component
 {
 public:
-    ReloadableScrollingText(Configuration& config, bool systemMode, bool layoutMode, bool menuMode, std::string type, std::string textFormat, std::string singlePrefix, std::string singlePostfix, std::string pluralPrefix, std::string pluralPostfix, std::string alignment, Page& p, int displayOffset, Font* font, std::string direction, float scrollingSpeed, float startPosition, float startTime, float endTime, std::string location);
+    ReloadableScrollingText(Configuration& config, bool systemMode, bool layoutMode, bool menuMode, std::string type, std::string textFormat, std::string singlePrefix, std::string singlePostfix, std::string pluralPrefix, std::string pluralPostfix, std::string alignment, Page& p, int displayOffset, FontManager* font, std::string direction, float scrollingSpeed, float startPosition, float startTime, float endTime, std::string location);
     virtual ~ReloadableScrollingText( );
     bool     update(float dt);
     void     draw( );
@@ -49,7 +49,7 @@ private:
     Configuration           &config_;
     bool                     systemMode_;
     bool                     layoutMode_;
-    Font                    *fontInst_;
+    FontManager                    *fontInst_;
     std::string              type_;
     std::string              textFormat_;
     std::string              singlePrefix_;

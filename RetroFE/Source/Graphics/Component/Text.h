@@ -22,7 +22,7 @@
 #include <vector>
 
 
-class Font;
+class FontManager;
 
 
 class Text : public Component
@@ -36,7 +36,7 @@ class Text : public Component
     };
 
 public:
-    Text( const std::string& text, Page &p, Font *font, int monitor );
+    Text( const std::string& text, Page &p, FontManager *font, int monitor );
     ~Text( ) override;
     void     setText(const std::string& text, int id = -1) override;
     void     deInitializeFonts( ) override;
@@ -45,8 +45,8 @@ public:
 
 private:
     std::string textData_;
-    Font       *fontInst_;
-    void updateGlyphPositions(Font* font, float scale, float maxWidth);
+    FontManager       *fontInst_;
+    void updateGlyphPositions(FontManager* font, float scale, float maxWidth);
 
 
     std::vector<CachedGlyphPosition> cachedPositions_;

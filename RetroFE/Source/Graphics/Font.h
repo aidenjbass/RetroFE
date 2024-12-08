@@ -24,7 +24,7 @@
 #include <string>
 #include <unordered_map>
 
-class Font
+class FontManager
 {
 public:
     struct GlyphInfo
@@ -37,8 +37,8 @@ public:
         SDL_Rect rect;
     };
 
-    Font(std::string fontPath, int fontSize, SDL_Color color, int monitor);
-    virtual ~Font();
+    FontManager(std::string fontPath, int fontSize, SDL_Color color, int monitor);
+    virtual ~FontManager();
     bool initialize();
     void deInitialize();
     SDL_Texture *getTexture();
@@ -52,7 +52,7 @@ public:
 private:
     struct GlyphInfoBuild
     {
-        Font::GlyphInfo glyph;
+        FontManager::GlyphInfo glyph;
         SDL_Surface *surface;
     };
 

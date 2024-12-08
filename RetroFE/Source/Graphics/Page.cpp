@@ -521,18 +521,22 @@ void Page::setControlsType(const std::string& type)
 
 void Page::playlistChange()
 {
+    std::string playlistName = getPlaylistName();
+
     for(auto it = activeMenu_.begin(); it != activeMenu_.end(); it++) {
         ScrollingList *menu = *it;
         if(menu)
-            menu->setPlaylist(getPlaylistName());
+            menu->setPlaylist(playlistName);
     }
 
     // Update the playlist for all components, layer by layer
     for (auto& layer : LayerComponents_) {
         for (Component* component : layer) {
-            component->setPlaylist(getPlaylistName());
+            component->setPlaylist(playlistName);
         }
     }
+
+    lastPlaylistName_ = playlistName;
 
     updatePlaylistMenuPosition();
 }
@@ -1237,35 +1241,44 @@ bool Page::playlistExists(const std::string& playlist)
 void Page::update(float dt) {
     std::string playlistName = getPlaylistName();
 
+    // Check if the playlist name has changed since the last update
+    bool playlistNameChanged = false;
+    if (playlistName != lastPlaylistName_) {
+        lastPlaylistName_ = playlistName;
+        playlistNameChanged = true;
+    }
+
     if (useThreading_) {
         // Asynchronous (threaded) version for non-OpenGL backends
 
         // Future for asynchronous update of ScrollingLists within menus_
-        auto menuUpdateFuture = pool_.enqueue([this, dt, playlistName]() {
+        auto menuUpdateFuture = pool_.enqueue([this, dt, playlistNameChanged]() {
             for (auto& menuList : menus_) {
                 for (auto* menu : menuList) {
-                    menu->playlistName = playlistName;
+                    if (playlistNameChanged) {
+                        menu->playlistName = lastPlaylistName_;
+                    }
                     menu->update(dt);
                 }
             }
             });
 
         // Future for asynchronous update of LayerComponents
-        auto layerUpdateFuture = pool_.enqueue([this, dt, playlistName]() {
+        auto layerUpdateFuture = pool_.enqueue([this, dt, playlistNameChanged]() {
             for (auto& layer : LayerComponents_) {
                 for (auto it = layer.begin(); it != layer.end();) {
                     if (*it) {
-                        (*it)->playlistName = playlistName;
+                        if (playlistNameChanged) {
+                            (*it)->playlistName = lastPlaylistName_;
+                        }
                         if ((*it)->update(dt) && (*it)->getAnimationDoneRemove()) {
                             (*it)->freeGraphicsMemory();
-                            delete* it;
+                            delete *it;
                             it = layer.erase(it);
-                        }
-                        else {
+                        } else {
                             ++it;
                         }
-                    }
-                    else {
+                    } else {
                         ++it;
                     }
                 }
@@ -1275,13 +1288,14 @@ void Page::update(float dt) {
         // Wait for asynchronous operations to complete
         menuUpdateFuture.get();
         layerUpdateFuture.get();
-    }
-    else {
+    } else {
         // Synchronous (non-threaded) version for OpenGL backend
 
         for (auto& menuList : menus_) {
             for (auto* menu : menuList) {
-                menu->playlistName = playlistName;
+                if (playlistNameChanged) {
+                    menu->playlistName = lastPlaylistName_;
+                }
                 menu->update(dt);
             }
         }
@@ -1289,17 +1303,17 @@ void Page::update(float dt) {
         for (auto& layer : LayerComponents_) {
             for (auto it = layer.begin(); it != layer.end();) {
                 if (*it) {
-                    (*it)->playlistName = playlistName;
+                    if (playlistNameChanged) {
+                        (*it)->playlistName = lastPlaylistName_;
+                    }
                     if ((*it)->update(dt) && (*it)->getAnimationDoneRemove()) {
                         (*it)->freeGraphicsMemory();
-                        delete* it;
+                        delete *it;
                         it = layer.erase(it);
-                    }
-                    else {
+                    } else {
                         ++it;
                     }
-                }
-                else {
+                } else {
                     ++it;
                 }
             }

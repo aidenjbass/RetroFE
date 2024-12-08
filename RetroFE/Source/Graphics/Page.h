@@ -188,6 +188,7 @@ public:
 
 private:
     void playlistChange();
+    std::string lastPlaylistName_;
     std::string collectionName_;
     Configuration &config_;
     std::string controlsType_;

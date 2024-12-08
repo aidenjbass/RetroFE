@@ -26,7 +26,7 @@
 
 
 class Configuration;
-class Font;
+class FontManager;
 
 class ScrollingList : public Component
 {
@@ -39,7 +39,7 @@ public:
         bool          commonMode,
         bool          playlistType,
         bool          selectedImage,
-        Font* font,
+        FontManager* font,
         const std::string& layoutKey,
         const std::string& imageType,
         const std::string& videoType,
@@ -149,7 +149,7 @@ private:
     float scrollPeriod_{ 0 };
 
     Configuration& config_;
-    Font* fontInst_;
+    FontManager* fontInst_;
     std::string    layoutKey_;
     std::string    imageType_;
     std::string    videoType_;

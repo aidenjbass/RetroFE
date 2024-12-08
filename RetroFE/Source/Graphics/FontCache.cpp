@@ -53,7 +53,7 @@ bool FontCache::initialize() const
     }
 }
 
-Font* FontCache::getFont(const std::string& fontPath, int fontSize, SDL_Color color, int monitor) {
+FontManager* FontCache::getFont(const std::string& fontPath, int fontSize, SDL_Color color, int monitor) {
     std::string key = buildFontKey(fontPath, fontSize, color, monitor);
     auto it = fontFaceMap_.find(key);
 
@@ -76,7 +76,7 @@ std::string FontCache::buildFontKey(std::string font, int fontSize, SDL_Color co
 bool FontCache::loadFont(std::string fontPath, int fontSize, SDL_Color color, int monitor) {
     std::string key = buildFontKey(fontPath, fontSize, color, monitor);
     if (fontFaceMap_.find(key) == fontFaceMap_.end()) {
-        auto font = std::make_unique<Font>(fontPath, fontSize, color, monitor);
+        auto font = std::make_unique<FontManager>(fontPath, fontSize, color, monitor);
         if (font->initialize()) {
             fontFaceMap_[key] = std::move(font);
         } else {

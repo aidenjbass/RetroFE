@@ -31,7 +31,7 @@
 #include <string_view>
 
 ReloadableHiscores::ReloadableHiscores(Configuration& config, std::string textFormat,
-	Page& p, int displayOffset, Font* font, float scrollingSpeed, float startTime,
+	Page& p, int displayOffset, FontManager* font, float scrollingSpeed, float startTime,
 	std::string excludedColumns, float baseColumnPadding, float baseRowPadding, size_t maxRows)
 	: Component(p)
 	, fontInst_(font)
@@ -105,7 +105,7 @@ bool ReloadableHiscores::update(float dt) {
 			const HighScoreTable& table = highScoreTable_->tables[currentTableIndex_];
 
 			// Calculate scaling and positioning
-			Font* font = baseViewInfo.font ? baseViewInfo.font : fontInst_;
+			FontManager* font = baseViewInfo.font ? baseViewInfo.font : fontInst_;
 			float scale = baseViewInfo.FontSize / static_cast<float>(font->getHeight());
 			float drawableHeight = static_cast<float>(font->getAscent()) * scale;
 			float rowPadding = baseRowPadding_ * drawableHeight;
@@ -283,7 +283,7 @@ void ReloadableHiscores::draw() {
 	}
 
 	// Retrieve font and texture
-	Font* font = baseViewInfo.font ? baseViewInfo.font : fontInst_;
+	FontManager* font = baseViewInfo.font ? baseViewInfo.font : fontInst_;
 	SDL_Texture* texture = font ? font->getTexture() : nullptr;
 	if (!texture) {
 		LOG_ERROR("ReloadableHiscores", "Font texture is null.");
@@ -373,7 +373,7 @@ void ReloadableHiscores::draw() {
 			float titleY = adjustedYOrigin;
 
 			for (char c : title) {
-				Font::GlyphInfo glyph;
+				FontManager::GlyphInfo glyph;
 				if (font->getRect(c, glyph)) {
 					SDL_Rect srcRect = glyph.rect;
 					SDL_FRect destRect = {
@@ -400,7 +400,7 @@ void ReloadableHiscores::draw() {
 
 			float charX = xAligned;
 			for (char c : header) {
-				Font::GlyphInfo glyph;
+				FontManager::GlyphInfo glyph;
 				if (font->getRect(c, glyph)) {
 					SDL_Rect srcRect = glyph.rect;
 					SDL_FRect destRect = {
@@ -457,7 +457,7 @@ void ReloadableHiscores::draw() {
 
 				float charX = xAligned;
 				for (char c : cell) {
-					Font::GlyphInfo glyph;
+					FontManager::GlyphInfo glyph;
 					if (font->getRect(c, glyph)) {
 						SDL_Rect srcRect = glyph.rect;
 						SDL_FRect destRect = {
@@ -495,7 +495,7 @@ void ReloadableHiscores::draw() {
 	needsRedraw_ = false;
 }
 
-void ReloadableHiscores::cacheColumnWidths(Font* font, float scale, const HighScoreTable& table, float paddingBetweenColumns) {
+void ReloadableHiscores::cacheColumnWidths(FontManager* font, float scale, const HighScoreTable& table, float paddingBetweenColumns) {
 	// Return early if the table hasn't changed and scale/padding are the same
 	if (cacheValid_ && currentTableIndex_ == cachedTableIndex_ &&
 		lastScale_ == scale && lastPaddingBetweenColumns_ == paddingBetweenColumns) {

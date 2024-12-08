@@ -25,7 +25,7 @@
 #include <cstdio>
 #include <cstring>
 
-Font::Font(std::string fontPath, int fontSize, SDL_Color color, int monitor)
+FontManager::FontManager(std::string fontPath, int fontSize, SDL_Color color, int monitor)
     : texture(nullptr)
     , height (0)
     , descent (0)
@@ -37,22 +37,22 @@ Font::Font(std::string fontPath, int fontSize, SDL_Color color, int monitor)
 {
 }
 
-Font::~Font()
+FontManager::~FontManager()
 {
     deInitialize();
 }
 
-SDL_Texture* Font::getTexture()
+SDL_Texture* FontManager::getTexture()
 {
     return texture;
 }
 
-int Font::getHeight() const
+int FontManager::getHeight() const
 {
     return height;
 }
 
-int Font::getWidth(const std::string& text) {
+int FontManager::getWidth(const std::string& text) {
     int width = 0;
     for (char c : text) {
         GlyphInfo glyph;
@@ -63,22 +63,22 @@ int Font::getWidth(const std::string& text) {
     return width;
 }
 
-int Font::getFontSize() const
+int FontManager::getFontSize() const
 {
     return fontSize_;
 }
 
-int Font::getDescent() const
+int FontManager::getDescent() const
 {
     return descent;
 }
 
-int Font::getAscent() const
+int FontManager::getAscent() const
 {
     return ascent;
 }
 
-bool Font::getRect(unsigned int charCode, GlyphInfo& glyph) {
+bool FontManager::getRect(unsigned int charCode, GlyphInfo& glyph) {
     auto it = atlas.find(charCode); // Iterator type automatically adjusted
 
     if (it != atlas.end()) {
@@ -89,7 +89,7 @@ bool Font::getRect(unsigned int charCode, GlyphInfo& glyph) {
     return false;
 }
 
-bool Font::initialize() {
+bool FontManager::initialize() {
     TTF_Font* font = TTF_OpenFont(fontPath_.c_str(), fontSize_);
     if (!font) {
         LOG_WARNING("Font", "Failed to open font: " + std::string(TTF_GetError()));
@@ -184,7 +184,7 @@ bool Font::initialize() {
     return true;
 }
 
-void Font::deInitialize() {
+void FontManager::deInitialize() {
     // Destroy the atlas texture if it exists
     if (texture) {
         SDL_DestroyTexture(texture);

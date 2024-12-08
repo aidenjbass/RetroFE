@@ -32,7 +32,7 @@ class ScrollingList;
 class Page;
 class ViewInfo;
 class Configuration;
-class Font;
+class FontManager;
 
 class PageBuilder
 {
@@ -57,7 +57,7 @@ private:
     FontCache *fontCache_;
     bool isMenu_;
 
-    Font *addFont(const rapidxml::xml_node<> *component, const rapidxml::xml_node<> *defaults, int monitor);
+    FontManager *addFont(const rapidxml::xml_node<> *component, const rapidxml::xml_node<> *defaults, int monitor);
     void loadReloadableImages(const rapidxml::xml_node<> *layout, const std::string& tagName, Page *page);
     float getVerticalAlignment(const rapidxml::xml_attribute<> *attribute, float valueIfNull) const;
     float getHorizontalAlignment(const rapidxml::xml_attribute<> *attribute, float valueIfNull) const;

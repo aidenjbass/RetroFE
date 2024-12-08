@@ -30,7 +30,7 @@
 #include <iostream>
 
 ReloadableMedia::ReloadableMedia(Configuration& config, bool systemMode, bool layoutMode, bool commonMode, [[maybe_unused]] bool menuMode, const std::string& type, const std::string& imageType,
-    Page& p, int displayOffset, bool isVideo, Font* font, bool jukebox, int jukeboxNumLoops, int randomSelect)
+    Page& p, int displayOffset, bool isVideo, FontManager* font, bool jukebox, int jukeboxNumLoops, int randomSelect)
     : Component(p)
     , config_(config)
     , systemMode_(systemMode)

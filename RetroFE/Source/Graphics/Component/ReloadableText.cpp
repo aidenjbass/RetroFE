@@ -30,7 +30,7 @@
 #include <time.h>
 #include <vector>
 
-ReloadableText::ReloadableText(std::string type, Page &page, Configuration &config, bool systemMode, Font *font,
+ReloadableText::ReloadableText(std::string type, Page &page, Configuration &config, bool systemMode, FontManager *font,
                                std::string layoutKey, std::string timeFormat, std::string textFormat,
                                std::string singlePrefix, std::string singlePostfix, std::string pluralPrefix,
                                std::string pluralPostfix, std::string location)

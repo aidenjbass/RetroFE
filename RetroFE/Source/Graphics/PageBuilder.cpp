@@ -682,7 +682,7 @@ bool PageBuilder::buildComponents(xml_node<>* layout, Page* page, const std::str
 		}
 		else {
 			int textMonitor = monitorXml ? Utils::convertInt(monitorXml->value()) : layoutMonitor;
-			Font* font = addFont(componentXml, NULL, textMonitor);
+			FontManager* font = addFont(componentXml, NULL, textMonitor);
 
 			auto* c = new Text(value->value(), *page, font, textMonitor);
 			c->setId(id);
@@ -702,7 +702,7 @@ bool PageBuilder::buildComponents(xml_node<>* layout, Page* page, const std::str
 	for (xml_node<>* componentXml = layout->first_node("statusText"); componentXml; componentXml = componentXml->next_sibling("statusText")) {
 		xml_attribute<> const* monitorXml = componentXml->first_attribute("monitor");
 		int statusTextMonitor = monitorXml ? Utils::convertInt(monitorXml->value()) : layoutMonitor;
-		Font* font = addFont(componentXml, NULL, statusTextMonitor);
+		FontManager* font = addFont(componentXml, NULL, statusTextMonitor);
 
 		auto* c = new Text("", *page, font, statusTextMonitor);
 		if (auto const* menuScrollReload = componentXml->first_attribute("menuScrollReload");
@@ -795,7 +795,7 @@ void PageBuilder::loadReloadableImages(const xml_node<>* layout, const std::stri
 
 		if (tagName == "reloadableText") {
 			if (type) {
-				Font* font = addFont(componentXml, nullptr, cMonitor);
+				FontManager* font = addFont(componentXml, nullptr, cMonitor);
 				std::string typeValue = type->value();
 				std::string textFormat = textFormatXml ? textFormatXml->value() : "";
 
@@ -820,7 +820,7 @@ void PageBuilder::loadReloadableImages(const xml_node<>* layout, const std::stri
 		}
 		else if (tagName == "reloadableScrollingText") {
 			if (type) {
-				Font* font = addFont(componentXml, nullptr, cMonitor);
+				FontManager* font = addFont(componentXml, nullptr, cMonitor);
 				std::string typeValue = type->value();
 				std::string location = (typeValue == "file" && locationXml) ? locationXml->value() : "";
 				if (typeValue == "file" && location.empty()) {
@@ -848,7 +848,7 @@ void PageBuilder::loadReloadableImages(const xml_node<>* layout, const std::stri
 			}
 		}
 		else if (tagName == "reloadableHiscores") {
-			Font* font = addFont(componentXml, nullptr, cMonitor);
+			FontManager* font = addFont(componentXml, nullptr, cMonitor);
 			std::string textFormat = textFormatXml ? textFormatXml->value() : "";
 			float scrollingSpeed = scrollingSpeedXml ? Utils::convertFloat(scrollingSpeedXml->value()) : 1.0f;
 			float startTime = startTimeXml ? Utils::convertFloat(startTimeXml->value()) : 0.0f;
@@ -868,7 +868,7 @@ void PageBuilder::loadReloadableImages(const xml_node<>* layout, const std::stri
 			int jukeboxNumLoops = (jukeboxXml && componentXml->first_attribute("jukeboxNumLoops")) ? Utils::convertInt(componentXml->first_attribute("jukeboxNumLoops")->value()) : 1;
 			if (jukebox) page->setJukebox();
 
-			Font* font = addFont(componentXml, nullptr, cMonitor);
+			FontManager* font = addFont(componentXml, nullptr, cMonitor);
 			std::string typeString = type ? type->value() : "video";
 			std::string imageTypeString = imageType ? imageType->value() : "";
 			int randomSelectInt = randomSelectXml ? Utils::convertInt(randomSelectXml->value()) : 0;
@@ -906,7 +906,7 @@ void PageBuilder::loadReloadableImages(const xml_node<>* layout, const std::stri
 	}
 }
 
-Font* PageBuilder::addFont(const xml_node<>* component, const xml_node<>* defaults, int monitor)
+FontManager* PageBuilder::addFont(const xml_node<>* component, const xml_node<>* defaults, int monitor)
 {
 	xml_attribute<> const* fontXml = component->first_attribute("font");
 	xml_attribute<> const* fontColorXml = component->first_attribute("fontColor");
@@ -1135,7 +1135,7 @@ ScrollingList* PageBuilder::buildMenu(xml_node<>* menuXml, Page& page, int monit
 	int cMonitor = monitorXml ? Utils::convertInt(monitorXml->value()) : monitor;
 
 	// on default, text will be rendered to the menu. Preload it into cache.
-	Font* font = addFont(itemDefaults, NULL, cMonitor);
+	FontManager* font = addFont(itemDefaults, NULL, cMonitor);
 
 	bool useTextureCache = false;
 	if (useTextureCacheXml && (Utils::toLower(useTextureCacheXml->value()) == "true" ||
@@ -1466,7 +1466,7 @@ void PageBuilder::buildViewInfo(xml_node<>* componentXml, ViewInfo& info, xml_no
 	}
 
 	if (fontColor) {
-		Font* font = addFont(componentXml, defaultXml, info.Monitor);
+		FontManager* font = addFont(componentXml, defaultXml, info.Monitor);
 		info.font = font;
 	}
 

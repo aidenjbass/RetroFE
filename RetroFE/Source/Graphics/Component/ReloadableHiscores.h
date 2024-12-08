@@ -29,7 +29,7 @@
 class ReloadableHiscores : public Component
 {
 public:
-    ReloadableHiscores(Configuration& config, std::string textFormat, Page& p, int displayOffset, Font* font,
+    ReloadableHiscores(Configuration& config, std::string textFormat, Page& p, int displayOffset, FontManager* font,
         float scrollingSpeed, float startTime, std::string excludedColumns, float baseColumnPadding, float baseRowPadding, size_t maxRows);
     ~ReloadableHiscores() override;
     bool     update(float dt) override;
@@ -42,12 +42,12 @@ public:
 
 private:
     void reloadTexture(bool resetScroll = true);
-    void cacheColumnWidths(Font* font, float scale, const HighScoreTable& table, float paddingBetweenColumns);
+    void cacheColumnWidths(FontManager* font, float scale, const HighScoreTable& table, float paddingBetweenColumns);
     void updateVisibleColumns(const HighScoreTable& table);
     bool createIntermediateTexture(SDL_Renderer* renderer, int width, int height);
     
     // Configuration Parameters
-    Font* fontInst_;
+    FontManager* fontInst_;
     std::string textFormat_;
     std::string excludedColumns_;
     std::unordered_set<std::string> excludedColumnsSet_;

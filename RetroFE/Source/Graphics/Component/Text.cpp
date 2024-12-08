@@ -22,7 +22,7 @@
 #include <sstream>
 
 
-Text::Text( const std::string& text, Page &p, Font *font, int monitor )
+Text::Text( const std::string& text, Page &p, FontManager *font, int monitor )
     : Component(p)
     , textData_(text)
     , fontInst_(font)
@@ -57,7 +57,7 @@ void Text::setText(const std::string& text, int id) {
 void Text::draw() {
     Component::draw();
 
-    Font* font = baseViewInfo.font ? baseViewInfo.font : fontInst_;
+    FontManager* font = baseViewInfo.font ? baseViewInfo.font : fontInst_;
     SDL_Texture* texture = font->getTexture();
 
     if (!texture || textData_.empty()) {
@@ -118,7 +118,7 @@ void Text::draw() {
     }
 }
 
-void Text::updateGlyphPositions(Font* font, float scale, float maxWidth) {
+void Text::updateGlyphPositions(FontManager* font, float scale, float maxWidth) {
     cachedPositions_.clear();
     cachedPositions_.reserve(textData_.size());
 
@@ -126,7 +126,7 @@ void Text::updateGlyphPositions(Font* font, float scale, float maxWidth) {
     int baseAscent = font->getAscent();
 
     for (char c : textData_) {
-        Font::GlyphInfo glyph;
+        FontManager::GlyphInfo glyph;
         if (!font->getRect(c, glyph) || glyph.rect.h <= 0) continue;
 
         // Adjust currentWidth by glyph.minX if minX < 0, unscaled

@@ -28,7 +28,7 @@ class ReloadableMedia : public Component
 {
 public:
     ReloadableMedia(Configuration& config, bool systemMode, bool layoutMode, bool commonMode, [[maybe_unused]] bool menuMode, const std::string& type, const std::string& imageType,
-        Page& p, int displayOffset, bool isVideo, Font* font, bool jukebox, int jukeboxNumLoops, int randomSelect);
+        Page& p, int displayOffset, bool isVideo, FontManager* font, bool jukebox, int jukeboxNumLoops, int randomSelect);
     ~ReloadableMedia() override;
     void enableTextureCache_(bool value);
     bool update(float dt) override;
@@ -58,7 +58,7 @@ private:
     int randomSelect_;
     Component* loadedComponent_{ nullptr };
     bool isVideo_;
-    Font* FfntInst_;
+    FontManager* FfntInst_;
     bool textFallback_{ false };
     std::string type_;
     int displayOffset_;

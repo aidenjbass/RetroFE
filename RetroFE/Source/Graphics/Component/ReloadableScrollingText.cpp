@@ -28,7 +28,7 @@
 #include <iostream>
 #include <algorithm>
 
-ReloadableScrollingText::ReloadableScrollingText(Configuration& config, bool systemMode, bool layoutMode, bool menuMode, std::string type, std::string textFormat, std::string singlePrefix, std::string singlePostfix, std::string pluralPrefix, std::string pluralPostfix, std::string alignment, Page& p, int displayOffset, Font* font, std::string direction, float scrollingSpeed, float startPosition, float startTime, float endTime, std::string location)
+ReloadableScrollingText::ReloadableScrollingText(Configuration& config, bool systemMode, bool layoutMode, bool menuMode, std::string type, std::string textFormat, std::string singlePrefix, std::string singlePostfix, std::string pluralPrefix, std::string pluralPostfix, std::string alignment, Page& p, int displayOffset, FontManager* font, std::string direction, float scrollingSpeed, float startPosition, float startTime, float endTime, std::string location)
     : Component(p)
     , config_(config)
     , systemMode_(systemMode)
@@ -488,7 +488,7 @@ void ReloadableScrollingText::draw() {
         return;
     }
 
-    Font* font = baseViewInfo.font ? baseViewInfo.font : fontInst_;
+    FontManager* font = baseViewInfo.font ? baseViewInfo.font : fontInst_;
     SDL_Texture* texture = font ? font->getTexture() : nullptr;
 
     if (!texture) {
@@ -649,7 +649,7 @@ void ReloadableScrollingText::updateGlyphCache() {
     textWidth_ = 0.0f;
     textHeight_ = 0.0f;
 
-    Font* font = baseViewInfo.font ? baseViewInfo.font : fontInst_;
+    FontManager* font = baseViewInfo.font ? baseViewInfo.font : fontInst_;
     if (!font) {
         return;
     }
@@ -672,7 +672,7 @@ void ReloadableScrollingText::updateGlyphCache() {
     if (direction_ == "horizontal") {
         for (const auto& line : text_) {
             for (char c : line) {
-                Font::GlyphInfo glyph;
+                FontManager::GlyphInfo glyph;
                 if (font->getRect(c, glyph) && glyph.rect.h > 0) {
                     CachedGlyph cachedGlyph;
                     cachedGlyph.sourceRect = glyph.rect;
@@ -705,14 +705,14 @@ void ReloadableScrollingText::updateGlyphCache() {
                 // Calculate the width of the word
                 float wordWidth = 0.0f;
                 for (char c : word) {
-                    Font::GlyphInfo glyph;
+                    FontManager::GlyphInfo glyph;
                     if (font->getRect(c, glyph)) {
                         wordWidth += static_cast<float>(glyph.advance) * scale;
                     }
                 }
                 // Add space width if this is not the first word on the line
                 if (!currentLine.empty()) {
-                    Font::GlyphInfo spaceGlyph;
+                    FontManager::GlyphInfo spaceGlyph;
                     if (font->getRect(' ', spaceGlyph)) {
                         wordWidth += static_cast<float>(spaceGlyph.advance) * scale;
                     }
@@ -746,7 +746,7 @@ void ReloadableScrollingText::updateGlyphCache() {
             // Calculate line width for alignment
             float lineWidth = 0.0f;
             for (char c : line) {
-                Font::GlyphInfo glyph;
+                FontManager::GlyphInfo glyph;
                 if (font->getRect(c, glyph)) {
                     lineWidth += static_cast<float>(glyph.advance) * scale;
                 }
@@ -761,7 +761,7 @@ void ReloadableScrollingText::updateGlyphCache() {
             }
 
             for (char c : line) {
-                Font::GlyphInfo glyph;
+                FontManager::GlyphInfo glyph;
                 if (font->getRect(c, glyph) && glyph.rect.h > 0) {
                     CachedGlyph cachedGlyph;
                     cachedGlyph.sourceRect = glyph.rect;
