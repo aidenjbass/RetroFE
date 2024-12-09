@@ -87,6 +87,8 @@ else()
     pkg_check_modules(WEBP_DEMUX REQUIRED libwebpdemux)
     pkg_check_modules(GSTREAMER REQUIRED gstreamer-1.0 gstreamer-video-1.0 gstreamer-audio-1.0 gstreamer-app-1.0)
     pkg_check_modules(Glib2 REQUIRED glib-2.0 gobject-2.0 gthread-2.0 gmodule-2.0)
+    pkg_search_module(LIBUSB REQUIRED libusb-1.0)
+    pkg_check_modules(LIBEVDEV REQUIRED libevdev)
     find_package(Threads REQUIRED)
     
     # Include directories for all found libraries
@@ -101,6 +103,8 @@ else()
         ${GSTREAMER_INCLUDE_DIRS}
         ${GLIB2_INCLUDE_DIRS}
         ${Threads_INCLUDE_DIRS}
+        ${LIBUSB_INCLUDE_DIRS}
+        ${LIBEVDEV_INCLUDE_DIRS}
     )
     
     # Link directories (optional, mostly handled by pkg-config)
@@ -114,6 +118,8 @@ else()
         ${WEBP_LIBRARY_DIRS}
         ${GSTREAMER_LIBRARY_DIRS}
         ${GLIB2_LIBRARY_DIRS}
+        ${LIBUSB_LIBRARY_DIRS}
+        ${LIBEVDEV_LIBRARY_DIRS}
     )
     
     # Append the necessary libraries to be linked
@@ -130,8 +136,11 @@ else()
         ${GLIB2_LIBRARIES}
         ${CMAKE_DL_LIBS}
         ${CMAKE_THREAD_LIBS_INIT}
+        ${LIBUSB_LIBRARIES}
+        ${LIBEVDEV_LIBRARIES}
     )
-endif()
+    add_definitions(${LIBEVDEV_CFLAGS_OTHER})
+    endif()
 
 set(RETROFE_INCLUDE_DIRS
     "${GLIB2_INCLUDE_DIRS}"
@@ -148,7 +157,9 @@ set(RETROFE_INCLUDE_DIRS
     "/opt/homebrew/lib/glib-2.0/include"
 )
 
-set(RETROFE_LIBRARIES
+# Link PacDrive library if on Windows
+if(WIN32)
+    set(RETROFE_LIBRARIES
     ${GLIB2_LIBRARIES}
     ${GSTREAMER_LIBRARIES}
     ${SDL2_LIBRARIES}
@@ -157,9 +168,6 @@ set(RETROFE_LIBRARIES
     ${SDL2_TTF_LIBRARIES}
     ${ZLIB_LIBRARIES}
 )
-
-# Link PacDrive library if on Windows
-if(WIN32)
     list(APPEND RETROFE_LIBRARIES "${PACDRIVE_ROOT}/PacDrive64.lib")
 	    # Add libwebp, libwebpdecoder, and libwebpdemux to the libraries to be linked on Windows
     list(APPEND RETROFE_LIBRARIES 
@@ -327,8 +335,8 @@ if(MSVC)
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /MP /WX /MD")
     set_target_properties(retrofe PROPERTIES LINK_FLAGS "/SUBSYSTEM:WINDOWS")
 else()
-    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -Wall -ggdb")
-    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -Wall -ggdb")
+    set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -g -O0 -Wall -ggdb")
+    set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -O0 -Wall -ggdb")
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -O3 -march=native -ffast-math -Wall -funroll-loops")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -O3 -march=native -ffast-math -Wall -Wno-reorder -funroll-loops")
 endif()
