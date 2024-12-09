@@ -67,6 +67,86 @@ Launcher::Launcher(Configuration& c, RetroFE& retroFe)
 
 #if defined(__linux)
 
+// Function to set ServoStik mode
+bool SetServoStikMode(bool fourWay) {
+	LOG_INFO("ServoStik", "Attempting to set ServoStik mode to " + std::string(fourWay ? "4-way" : "8-way"));
+
+	libusb_context* ctx = NULL;
+	int ret = libusb_init(&ctx);
+	if (ret < 0) {
+		LOG_ERROR("ServoStik", "libusb_init failed: " + std::string(libusb_error_name(ret)));
+		return false;
+	}
+
+	libusb_device_handle* handle = libusb_open_device_with_vid_pid(ctx, 0xD209, 0x1700);
+	if (!handle) {
+		LOG_ERROR("ServoStik", "Failed to open ServoStik device.");
+		libusb_exit(ctx);
+		return false;
+	}
+
+	// Detach kernel driver
+	if (libusb_kernel_driver_active(handle, 0) == 1) {
+		ret = libusb_detach_kernel_driver(handle, 0);
+		if (ret < 0) {
+			LOG_ERROR("ServoStik", "Failed to detach kernel driver: " + std::string(libusb_error_name(ret)));
+			libusb_close(handle);
+			libusb_exit(ctx);
+			return false;
+		}
+	}
+
+	// Claim the interface
+	ret = libusb_claim_interface(handle, 0);
+	if (ret < 0) {
+		LOG_ERROR("ServoStik", "libusb_claim_interface failed: " + std::string(libusb_error_name(ret)));
+		libusb_close(handle);
+		libusb_exit(ctx);
+		return false;
+	}
+
+	LOG_INFO("ServoStik", "Interface 0 claimed successfully.");
+
+	unsigned char mesg[4] = { 0x00, 0xdd, 0x00, static_cast<unsigned char>(fourWay ? 0x00 : 0x01) };
+	LOG_INFO("ServoStik", "Sending command: {0x00, 0xDD, 0x00, " + std::to_string((int)mesg[3]) + "}");
+
+	for (int i = 0; i < 2; ++i) {
+		ret = libusb_control_transfer(handle,
+			0x21,  // Request type
+			9,     // Request
+			0x0200, // Value
+			0,      // Index
+			mesg,    // Data
+			4,       // Length
+			2000);   // Timeout (ms)
+		if (ret < 0) {
+			LOG_ERROR("ServoStik", "libusb_control_transfer failed on attempt " + std::to_string(i + 1) + ": " + std::string(libusb_error_name(ret)));
+			libusb_release_interface(handle, 0);
+			libusb_close(handle);
+			libusb_exit(ctx);
+			return false;
+		}
+		else {
+			LOG_INFO("ServoStik", "Control transfer successful on attempt " + std::to_string(i + 1));
+		}
+	}
+
+	libusb_release_interface(handle, 0);
+	libusb_close(handle);
+	libusb_exit(ctx);
+
+	LOG_INFO("ServoStik", "ServoStik mode set successfully.");
+	return true;
+}
+
+bool SetServoStik4Way() {
+	return SetServoStikMode(true);
+}
+
+bool SetServoStik8Way() {
+	return SetServoStikMode(false);
+}
+
 std::vector<std::string> getInputDevices() {
 	std::vector<std::string> devicePaths;
 	const std::string inputDir = "/dev/input/";
