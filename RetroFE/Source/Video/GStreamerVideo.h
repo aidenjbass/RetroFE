@@ -185,7 +185,7 @@ private:
     GstElement* capsFilter_{ nullptr };
     GstBus* videoBus_{ nullptr };
     GstClockTime baseTime_;
-    GstVideoInfo* videoInfo_{ gst_video_info_new() };
+    GstVideoInfo* videoInfo_;
     SDL_Texture* texture_{ nullptr };
     SDL_PixelFormatEnum sdlFormat_{ SDL_PIXELFORMAT_UNKNOWN };
     guint elementSetupHandlerId_{ 0 };

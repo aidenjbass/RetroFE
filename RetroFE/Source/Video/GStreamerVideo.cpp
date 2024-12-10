@@ -52,9 +52,10 @@ static SDL_BlendMode softOverlayBlendMode = SDL_ComposeCustomBlendMode(
 
 GStreamerVideo::GStreamerVideo(int monitor)
 
-    : monitor_(monitor)
+    : monitor_(monitor), videoInfo_(gst_video_info_new())
 
 {
+    gst_video_info_init(videoInfo_);
     initializePlugins();
 }
 
