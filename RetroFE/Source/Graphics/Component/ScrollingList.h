@@ -24,6 +24,62 @@
 #include "../../Database/Configuration.h"
 #include <SDL2/SDL.h>
 
+template<typename T>
+class CircularBuffer {
+private:
+    std::vector<T> buffer_;
+    size_t head_ = 0;
+    size_t size_ = 0;
+    size_t capacity_;
+
+public:
+    // Default constructor
+    CircularBuffer() : buffer_(0), capacity_(0) {}
+
+    // Parameterized constructor
+    CircularBuffer(size_t capacity) : buffer_(capacity, T()), capacity_(capacity) {}
+
+    // Initialize or reset the buffer
+    void initialize(size_t capacity) {
+        buffer_.clear();
+        buffer_.resize(capacity, T());
+        head_ = 0;
+        capacity_ = capacity;
+    }
+
+    // Rotate the buffer forward or backward
+    void rotate(bool forward) {
+        if (forward) {
+            head_ = (head_ + 1) % capacity_;
+        }
+        else {
+            head_ = (head_ - 1 + capacity_) % capacity_;
+        }
+    }
+
+    // Access element at a given offset from the head
+    T& operator[](size_t index) {
+        return buffer_[(head_ + index) % capacity_];
+    }
+
+    const T& operator[](size_t index) const {
+        return buffer_[(head_ + index) % capacity_];
+    }
+
+
+    // Get the raw underlying vector for iteration if needed
+    std::vector<T>& raw() { return buffer_; }
+    const std::vector<T>& raw() const { return buffer_; }
+
+    // Size and capacity methods
+    size_t size() const { return capacity_; }
+    bool empty() const { return capacity_ == 0; }
+
+    // Direct access to current head
+    T& head() { return buffer_[head_]; }
+    const T& head() const { return buffer_[head_]; }
+};
+
 
 class Configuration;
 class FontManager;
@@ -155,7 +211,7 @@ private:
     std::string    videoType_;
 
     std::vector<Item*>* items_{ nullptr };
-    std::vector<Component*> components_;
+    CircularBuffer<Component*> components_;
 
     bool useTextureCaching_{ false };
 

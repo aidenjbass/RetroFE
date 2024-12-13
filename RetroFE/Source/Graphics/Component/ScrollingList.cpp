@@ -67,6 +67,7 @@ ScrollingList::ScrollingList( Configuration &c,
     , imageType_( imageType )
     , videoType_( videoType )
 	, useTextureCaching_(useTextureCaching)
+    , components_()
  {
 }
 
@@ -216,25 +217,31 @@ void ScrollingList::destroyItems()
     }
 }
 
-void ScrollingList::setPoints(std::vector<ViewInfo*>* scrollPoints, std::shared_ptr<std::vector<std::shared_ptr<AnimationEvents>>> tweenPoints) {
+void ScrollingList::setPoints(std::vector<ViewInfo*>* scrollPoints,
+    std::shared_ptr<std::vector<std::shared_ptr<AnimationEvents>>> tweenPoints) {
     clearPoints();
     clearTweenPoints();
 
     scrollPoints_ = scrollPoints;
     tweenPoints_ = tweenPoints;
 
-    components_.clear();
+    size_t size = (scrollPoints_) ? scrollPoints_->size() : 0;
 
-    size_t size = 0;
+    // Initialize or reset the CircularBuffer
+    components_.initialize(size);
 
-    if (scrollPoints_) {
-        size = scrollPoints_->size();
-    }
-    components_.resize(size);
+    // No need to manually set to nullptr as initialize already does that
+    // Initialize all components to nullptr (redundant if initialize sets them to nullptr)
+    // for (size_t i = 0; i < size; ++i) {
+    //     components_.raw()[i] = nullptr;
+    // }
 
     if (items_) {
         itemIndex_ = loopDecrement(0, selectedOffsetIndex_, items_->size());
     }
+
+    // Allocate and initialize components
+    allocateSpritePoints();
 }
 
 size_t ScrollingList::getScrollOffsetIndex( ) const
@@ -977,7 +984,7 @@ void ScrollingList::deallocateTexture( size_t index )
 }
 
 const std::vector<Component*>& ScrollingList::getComponents() const {
-    return components_;
+    return components_.raw();
 }
 
 bool ScrollingList::isScrollingListIdle()
@@ -1038,55 +1045,49 @@ void ScrollingList::scroll(bool forward)
     size_t itemsSize = items_->size();
     size_t scrollPointsSize = scrollPoints_->size();
 
-    // Identify which component to scroll out and in
-    Item const* itemToScrollIn;
-    size_t indexToDeallocate = forward ? 0 : loopDecrement(0, 1, components_.size());
-    size_t indexToAllocate = forward ? loopIncrement(itemIndex_, scrollPointsSize, itemsSize)
-        : loopDecrement(itemIndex_, 1, itemsSize);
-
+    // Replace the item that's scrolled out
+    Item const* itemToScroll;
     if (forward) {
-        itemToScrollIn = (*items_)[indexToAllocate];
+        itemToScroll = (*items_)[loopIncrement(itemIndex_, scrollPointsSize, itemsSize)];
         itemIndex_ = loopIncrement(itemIndex_, 1, itemsSize);
+        deallocateTexture(0);
+        allocateTexture(0, itemToScroll);
     }
     else {
-        itemToScrollIn = (*items_)[indexToAllocate];
+        itemToScroll = (*items_)[loopDecrement(itemIndex_, 1, itemsSize)];
         itemIndex_ = loopDecrement(itemIndex_, 1, itemsSize);
+        deallocateTexture(loopDecrement(0, 1, components_.size()));
+        allocateTexture(loopDecrement(0, 1, components_.size()), itemToScroll);
     }
 
-    // 1. **Only deallocate the component that's scrolled out**
-    deallocateTexture(indexToDeallocate);  // Deallocate the component that's scrolled out of view
+    // Set the animations
+    for (size_t index = 0; index < scrollPointsSize; ++index)  // Renamed from 'i' to 'index'
+    {
+        size_t nextIndex;
+        if (forward) {
+            nextIndex = (index == 0) ? scrollPointsSize - 1 : index - 1;
+        }
+        else {
+            nextIndex = (index == scrollPointsSize - 1) ? 0 : index + 1;
+        }
 
-    // 2. **Allocate a new component for the newly scrolled-in item**
-    allocateTexture(indexToDeallocate, itemToScrollIn);  // Allocate the new one for the newly visible item
-
-    // 3. **Do not deallocate/reallocate components that are just shifting**
-    // Set animations and tweens for components that remain in view
-    for (size_t index = 0; index < scrollPointsSize; ++index) {
-        size_t nextIndex = forward ? (index == 0 ? scrollPointsSize - 1 : index - 1)
-            : (index == scrollPointsSize - 1 ? 0 : index + 1);
-
-        Component* component = components_[index];  // Use the current component in the list
+        Component* component = components_[index];  // Renamed from 'c' to 'component' for clarity
         if (component) {
             auto& nextTweenPoint = (*tweenPoints_)[nextIndex];
             auto& currentScrollPoint = (*scrollPoints_)[index];
             auto& nextScrollPoint = (*scrollPoints_)[nextIndex];
 
-            component->allocateGraphicsMemory();  // Ensure the component has allocated resources
+            component->allocateGraphicsMemory();
             resetTweens(component, nextTweenPoint, currentScrollPoint, nextScrollPoint, scrollPeriod_);
-            component->baseViewInfo.font = nextScrollPoint->font;  // Set the font for the next scroll point
-            component->triggerEvent("menuScroll");  // Trigger menu scroll event for animation
+            component->baseViewInfo.font = nextScrollPoint->font;
+            component->triggerEvent("menuScroll");
         }
     }
 
-    // Reorder components using std::rotate for forward or backward scroll
-    if (forward) {
-        std::rotate(components_.begin(), components_.begin() + 1, components_.end());
-    }
-    else {
-        std::rotate(components_.rbegin(), components_.rbegin() + 1, components_.rend());
-    }
-}
+	components_.rotate(forward);
 
+    return;
+}
 bool ScrollingList::isPlaylist() const
 {
     return playlistType_;
