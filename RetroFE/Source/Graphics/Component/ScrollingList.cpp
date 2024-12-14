@@ -1056,8 +1056,8 @@ void ScrollingList::scroll(bool forward)
     else {
         itemToScroll = (*items_)[loopDecrement(itemIndex_, 1, itemsSize)];
         itemIndex_ = loopDecrement(itemIndex_, 1, itemsSize);
-        deallocateTexture(loopDecrement(0, 1, components_.size()));
-        allocateTexture(loopDecrement(0, 1, components_.size()), itemToScroll);
+        deallocateTexture(loopDecrement(0, 1, scrollPointsSize));
+        allocateTexture(loopDecrement(0, 1, scrollPointsSize), itemToScroll);
     }
 
     // Set the animations
@@ -1088,6 +1088,7 @@ void ScrollingList::scroll(bool forward)
 
     return;
 }
+
 bool ScrollingList::isPlaylist() const
 {
     return playlistType_;

@@ -25,24 +25,24 @@
 #include <SDL2/SDL.h>
 
 template<typename T>
-class CircularBuffer {
+class RotatableView {
 private:
-    std::vector<T> buffer_;
+    std::vector<T> data_;
     size_t head_ = 0;
     size_t size_ = 0;
     size_t capacity_;
 
 public:
     // Default constructor
-    CircularBuffer() : buffer_(0), capacity_(0) {}
+    RotatableView() : data_(0), capacity_(0) {}
 
     // Parameterized constructor
-    CircularBuffer(size_t capacity) : buffer_(capacity, T()), capacity_(capacity) {}
+    explicit RotatableView(size_t capacity) : data_(capacity, T()), capacity_(capacity) {}
 
     // Initialize or reset the buffer
     void initialize(size_t capacity) {
-        buffer_.clear();
-        buffer_.resize(capacity, T());
+        data_.clear();
+        data_.resize(capacity, T());
         head_ = 0;
         capacity_ = capacity;
     }
@@ -59,25 +59,25 @@ public:
 
     // Access element at a given offset from the head
     T& operator[](size_t index) {
-        return buffer_[(head_ + index) % capacity_];
+        return data_[(head_ + index) % capacity_];
     }
 
     const T& operator[](size_t index) const {
-        return buffer_[(head_ + index) % capacity_];
+        return data_[(head_ + index) % capacity_];
     }
 
 
     // Get the raw underlying vector for iteration if needed
-    std::vector<T>& raw() { return buffer_; }
-    const std::vector<T>& raw() const { return buffer_; }
+    std::vector<T>& raw() { return data_; }
+    const std::vector<T>& raw() const { return data_; }
 
     // Size and capacity methods
     size_t size() const { return capacity_; }
     bool empty() const { return capacity_ == 0; }
 
     // Direct access to current head
-    T& head() { return buffer_[head_]; }
-    const T& head() const { return buffer_[head_]; }
+    T& head() { return data_[head_]; }
+    const T& head() const { return data_[head_]; }
 };
 
 
@@ -103,8 +103,6 @@ public:
 
     ~ScrollingList() override;
     const std::vector<Item*>& getItems() const;
-    
-    using Component::draw;
     
     void triggerEnterEvent();
     void triggerExitEvent();
@@ -211,7 +209,7 @@ private:
     std::string    videoType_;
 
     std::vector<Item*>* items_{ nullptr };
-    CircularBuffer<Component*> components_;
+    RotatableView<Component*> components_;
 
     bool useTextureCaching_{ false };
 
