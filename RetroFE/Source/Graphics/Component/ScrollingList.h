@@ -103,6 +103,8 @@ public:
 
     ~ScrollingList() override;
     const std::vector<Item*>& getItems() const;
+
+    void setLayerIndex(size_t layer);
     
     void triggerEnterEvent();
     void triggerExitEvent();
@@ -131,6 +133,7 @@ public:
     bool allocateTexture(size_t index, const Item* i);
     void buildPaths(std::string& imagePath, std::string& videoPath, const std::string& base, const std::string& subPath, const std::string& mediaType, const std::string& videoType);
     void deallocateTexture(size_t index);
+    size_t getLayerIndex();
     void setItems(std::vector<Item*>* items);
     void selectItemByName(std::string_view name);
     std::string getSelectedItemName();
@@ -212,5 +215,6 @@ private:
     RotatableView<Component*> components_;
 
     bool useTextureCaching_{ false };
+    size_t layerIndex_;
 
 };
