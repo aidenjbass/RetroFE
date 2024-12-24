@@ -1,18 +1,18 @@
 /* This file is part of RetroFE.
- *
- * RetroFE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * RetroFE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with RetroFE.  If not, see <http://www.gnu.org/licenses/>.
- */
+*
+* RetroFE is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* RetroFE is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with RetroFE.  If not, see <http://www.gnu.org/licenses/>.
+*/
 #pragma once
 
 #include "../Database/Configuration.h"
@@ -185,15 +185,12 @@ private:
     GstElement* capsFilter_{ nullptr };
     GstBus* videoBus_{ nullptr };
     GstClockTime baseTime_;
-    GstVideoInfo* videoInfo_;
+    GstVideoInfo videoInfo_;
     SDL_Texture* texture_{ nullptr };
     SDL_PixelFormatEnum sdlFormat_{ SDL_PIXELFORMAT_UNKNOWN };
     guint elementSetupHandlerId_{ 0 };
-    guint sourceSetupHandlerId_{ 0 };
     guint handoffHandlerId_{ 0 };
-    guint aboutToFinishHandlerId_{ 0 };
     guint padProbeId_{ 0 };
-    guint prerollHandlerId_{ 0 };
     gint height_{ 0 };
     gint width_{ 0 };
     TNQueue<GstBuffer*, 8> bufferQueue_; // Using TNQueue to hold a maximum of 8 buffers
@@ -219,4 +216,3 @@ private:
 
     std::string generateDotFileName(const std::string& prefix, const std::string& videoFilePath) const;
 };
-

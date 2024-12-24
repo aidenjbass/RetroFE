@@ -1,18 +1,18 @@
 /* This file is part of RetroFE.
- *
- * RetroFE is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * RetroFE is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU General Public License for more details.
- *
- * You should have received a copy of the GNU General Public License
- * along with RetroFE.  If not, see <http://www.gnu.org/licenses/>.
- */
+*
+* RetroFE is free software: you can redistribute it and/or modify
+* it under the terms of the GNU General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* RetroFE is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU General Public License for more details.
+*
+* You should have received a copy of the GNU General Public License
+* along with RetroFE.  If not, see <http://www.gnu.org/licenses/>.
+*/
 #include "GStreamerVideo.h"
 #include "../Database/Configuration.h"
 #include "../Graphics/Component/Image.h"
@@ -52,10 +52,10 @@ static SDL_BlendMode softOverlayBlendMode = SDL_ComposeCustomBlendMode(
 
 GStreamerVideo::GStreamerVideo(int monitor)
 
-    : monitor_(monitor), videoInfo_(gst_video_info_new())
+    : monitor_(monitor)
 
 {
-    gst_video_info_init(videoInfo_);
+    gst_video_info_init(&videoInfo_);
     initializePlugins();
 }
 
@@ -183,22 +183,14 @@ bool GStreamerVideo::stop()
             LOG_ERROR("Video", "Failed to change playbin state to NULL");
         }
 
-        if (videoInfo_)
-            gst_video_info_free(videoInfo_);
-        
         // Clear the buffer queue
         bufferQueue_.clear();
-        
+
         // Disconnect signal handlers
         if (elementSetupHandlerId_)
         {
             g_signal_handler_disconnect(playbin_, elementSetupHandlerId_);
             elementSetupHandlerId_ = 0;
-        }
-        if (aboutToFinishHandlerId_ != 0)
-        {
-            g_signal_handler_disconnect(playbin_, aboutToFinishHandlerId_);
-            aboutToFinishHandlerId_ = 0;
         }
 
         if (handoffHandlerId_)
@@ -207,20 +199,14 @@ bool GStreamerVideo::stop()
             handoffHandlerId_ = 0;
         }
 
-        if (prerollHandlerId_)
-        {
-            g_signal_handler_disconnect(videoSink_, prerollHandlerId_);
-            prerollHandlerId_ = 0;
-        }
 
         gst_object_unref(playbin_);
-        
+
         playbin_ = nullptr;
         videoSink_ = nullptr;
         capsFilter_ = nullptr;
         videoBin_ = nullptr;
         videoBus_ = nullptr;
-        videoInfo_ = nullptr;
 
 
 
@@ -285,7 +271,6 @@ bool GStreamerVideo::play(const std::string &file)
 bool GStreamerVideo::initializeGstElements(const std::string &file)
 {
     gchar *uriFile = gst_filename_to_uri(file.c_str(), nullptr);
-    gint flags;
     if (!uriFile)
     {
         LOG_DEBUG("Video", "Failed to convert filename to URI");
@@ -304,8 +289,7 @@ bool GStreamerVideo::initializeGstElements(const std::string &file)
         return false;
     }
 
-    g_object_get(playbin_, "flags", &flags, nullptr);
-    flags |= GST_PLAY_FLAG_VIDEO | GST_PLAY_FLAG_AUDIO;
+    gint flags = GST_PLAY_FLAG_VIDEO | GST_PLAY_FLAG_AUDIO;
     g_object_set(playbin_, "flags", flags, nullptr);
 
     GstCaps *videoConvertCaps;
@@ -396,12 +380,12 @@ GstPadProbeReturn GStreamerVideo::padProbeCallback(GstPad *pad, GstPadProbeInfo 
         gst_event_parse_caps(event, &caps);
         if (caps)
         {
-            if (gst_video_info_from_caps(video->videoInfo_, caps))
+            if (gst_video_info_from_caps(&video->videoInfo_, caps))
             {
-                video->width_ = video->videoInfo_->width;
-                video->height_ = video->videoInfo_->height;
+                video->width_ = video->videoInfo_.width;
+                video->height_ = video->videoInfo_.height;
                 LOG_DEBUG("GStreamerVideo", "Video dimensions: width = " + std::to_string(video->width_) +
-                                                ", height = " + std::to_string(video->height_));
+                    ", height = " + std::to_string(video->height_));
 
                 // Remove the pad probe after getting the video dimensions
                 gst_pad_remove_probe(pad, video->padProbeId_);
@@ -447,7 +431,7 @@ void GStreamerVideo::loopHandler()
             if (!numLoops_ || numLoops_ > playCount_)
             {
                 gst_element_seek(playbin_, 1.0, GST_FORMAT_TIME, GST_SEEK_FLAG_FLUSH, GST_SEEK_TYPE_SET, 0,
-                                 GST_SEEK_TYPE_NONE, GST_CLOCK_TIME_NONE);
+                    GST_SEEK_TYPE_NONE, GST_CLOCK_TIME_NONE);
             }
             else
             {
@@ -597,8 +581,8 @@ void GStreamerVideo::draw() {
     }
 
     if (texture_) {
-        GstVideoFrame vframe(GST_VIDEO_FRAME_INIT);
-        if (gst_video_frame_map(&vframe, videoInfo_, buffer, (GstMapFlags)(GST_MAP_READ | GST_VIDEO_FRAME_MAP_FLAG_NO_REF))) {
+        GstVideoFrame vframe;
+        if (gst_video_frame_map(&vframe, &videoInfo_, buffer, (GstMapFlags)(GST_MAP_READ | GST_VIDEO_FRAME_MAP_FLAG_NO_REF))) {
             SDL_LockMutex(SDL::getMutex());
             if (sdlFormat_ == SDL_PIXELFORMAT_NV12) {
                 if (SDL_UpdateNVTexture(texture_, nullptr,
@@ -666,7 +650,7 @@ void GStreamerVideo::skipForward()
     if (current > duration)
         current = duration - 1;
     gst_element_seek_simple(playbin_, GST_FORMAT_TIME, GstSeekFlags(GST_SEEK_FLAG_FLUSH | GST_SEEK_FLAG_KEY_UNIT),
-                            current);
+        current);
 }
 
 void GStreamerVideo::skipBackward()
@@ -681,7 +665,7 @@ void GStreamerVideo::skipBackward()
     else
         current = 0;
     gst_element_seek_simple(playbin_, GST_FORMAT_TIME, GstSeekFlags(GST_SEEK_FLAG_FLUSH | GST_SEEK_FLAG_KEY_UNIT),
-                            current);
+        current);
 }
 
 void GStreamerVideo::skipForwardp()
@@ -698,7 +682,7 @@ void GStreamerVideo::skipForwardp()
     if (current > duration)
         current = duration - 1;
     gst_element_seek_simple(playbin_, GST_FORMAT_TIME, GstSeekFlags(GST_SEEK_FLAG_FLUSH | GST_SEEK_FLAG_KEY_UNIT),
-                            current);
+        current);
 }
 
 void GStreamerVideo::skipBackwardp()
@@ -717,7 +701,7 @@ void GStreamerVideo::skipBackwardp()
     else
         current = 0;
     gst_element_seek_simple(playbin_, GST_FORMAT_TIME, GstSeekFlags(GST_SEEK_FLAG_FLUSH | GST_SEEK_FLAG_KEY_UNIT),
-                            current);
+        current);
 }
 
 void GStreamerVideo::pause()
@@ -788,7 +772,7 @@ std::string GStreamerVideo::generateDotFileName(const std::string &prefix, const
 
     std::stringstream ss;
     ss << prefix << "_" << videoFileName << "_" << std::put_time(std::localtime(&now_c), "%Y%m%d_%H%M%S_")
-       << std::setfill('0') << std::setw(6) << microseconds.count();
+        << std::setfill('0') << std::setw(6) << microseconds.count();
 
     return ss.str();
 }
