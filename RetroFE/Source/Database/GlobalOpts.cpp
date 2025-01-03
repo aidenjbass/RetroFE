@@ -40,11 +40,20 @@ const char * setSDL() {
 const global_options::options_entry global_options::s_option_entries[] =
 {
     
-    { nullptr,                        nullptr,     global_options::option_type::HEADER,   "LOGGING OPTIONS", "Logging Options" },
+    { nullptr,                        nullptr,     global_options::option_type::HEADER,   "SYSTEM AND INPUT OPTIONS", "" },
     { OPTION_LOG,                     "NONE",      global_options::option_type::STRING,   "Set logging level, any combo of ERROR,INFO,NOTICE,WARNING,DEBUG,FILECACHE or ALL or NONE", "Logging Level" },
     { OPTION_DUMPPROPERTIES,          "false",     global_options::option_type::BOOLEAN,  "Dump contents of properties to a txt file in current directory", "Dump Properties"},
 
-    { nullptr,                        nullptr,     global_options::option_type::HEADER,   "DISPLAY OPTIONS", "Display Options" },
+    { OPTION_COLLECTIONINPUTCLEAR,     "false",    global_options::option_type::BOOLEAN,  "Clear input queue on collection change", "Clear Input Queue on Collection Change" },
+    { OPTION_PLAYLISTINPUTCLEAR,       "false",    global_options::option_type::BOOLEAN,  "Clear input queue on playlist change", "Clear Input Queue on Playlist Change" },
+    { OPTION_JUMPINPUTCLEAR,           "false",    global_options::option_type::BOOLEAN,  "Clear input queue while jumping through the menu", "Clear Input Queue While Jumping Through Menu" },
+    { OPTION_CONTROLLERCOMBOEXIT,      "true",     global_options::option_type::BOOLEAN,  "Close RetroFE with the controller combo set in controls.conf", "Enable Controller Combo Exit" },
+    { OPTION_CONTROLLERCOMBOSETTINGS,  "false",    global_options::option_type::BOOLEAN,  "Open settings playlist with the controller combo set in controls.conf", "Enable Opening Settings with Controller" },
+    { OPTION_SETTINGSCOLLECTIONPLAYLIST,"Arcades:settings", global_options::option_type::STRING,   "Used by settings toggle to go to the playlist in collection:playlist format, defaults to settings.txt in the current collection", "Settings Collection Playlist" },
+
+
+
+    { nullptr,                        nullptr,     global_options::option_type::HEADER,   "DISPLAY AND VIDEO OPTIONS", "" },
     { OPTION_NUMSCREENS,              "1",         global_options::option_type::INTEGER,  "Defines the number of monitors used", "Number of Screens" },
     { OPTION_FULLSCREEN,              "true",      global_options::option_type::BOOLEAN,  "Run the frontend in fullscreen", "Enable Fullscreen" },
     { OPTION_HORIZONTAL,              "stretch",   global_options::option_type::STRING,   "Pixel width integer or stretch", "Horizontal Resolution" },
@@ -56,7 +65,6 @@ const global_options::options_entry global_options::s_option_entries[] =
     { OPTION_MIRRORX,                 "false",     global_options::option_type::BOOLEAN,  "Divides monitor x into two halves", "Mirror Monitor X" },
     { OPTION_ROTATIONX,               "0",         global_options::option_type::INTEGER,  "Rotation of monitor x (0, 1, 2, 3)", "Rotation Monitor X" },
 
-    { nullptr,                        nullptr,     global_options::option_type::HEADER,   "WINDOW OPTIONS", "Window Options" },
     { OPTION_WINDOWBORDER,            "false",     global_options::option_type::BOOLEAN,  "Show window decorations", "Enable Window Border" },
     { OPTION_WINDOWRESIZE,            "false",     global_options::option_type::BOOLEAN,  "Allow RetroFE to be resized", "Enable Window Resizing" },
     { OPTION_FPS,                     "60",        global_options::option_type::INTEGER,  "Requested FPS while in an active state", "Target FPS" },
@@ -64,13 +72,11 @@ const global_options::options_entry global_options::s_option_entries[] =
     { OPTION_HIDEMOUSE,               "true",      global_options::option_type::BOOLEAN,  "Hide the mouse cursor when RetroFE is active", "Hide Mouse Cursor" },
     { OPTION_ANIMATEDURINGGAME,       "true",      global_options::option_type::BOOLEAN,  "Play animated marquees while in game", "Enable Animations During Game" },
 
-    { nullptr,                        nullptr,     global_options::option_type::HEADER,   "VIDEO OPTIONS", "Video Options" },
     { OPTION_VIDEOENABLE,             "true",      global_options::option_type::BOOLEAN,  "Defines whether video is rendered", "Enable Video Support" },
     { OPTION_VIDEOLOOP,               "0",         global_options::option_type::INTEGER,  "Number of times to play video<br><br>If unsure leave at 0", "Video Loop Count" },
     { OPTION_DISABLEVIDEORESTART,     "false",     global_options::option_type::BOOLEAN,  "Pauses video while scrolling for performance increase.<br><br> If unsure leave unchecked", "Enable Pausing Video on Scroll" },
     { OPTION_DISABLEPAUSEONSCROLL,    "false",     global_options::option_type::BOOLEAN,  "Disables restarting video when selected.<br><br> If unsure leave unchecked", "Enable Restart Video on Selection" },
 
-    { nullptr,                         nullptr,    global_options::option_type::HEADER,   "RENDERER OPTIONS", "Renderer Options" },
     { OPTION_VSYNC,                    "false",    global_options::option_type::BOOLEAN,  "Prevents screen tearing by synchronizing the <br>frame rate with the monitor's refresh rate, ensuring smoother visuals.", "Enable V-Sync" },
     { OPTION_HARDWAREVIDEOACCEL,       "false",    global_options::option_type::BOOLEAN,  "Enhances video playback performance by offloading decoding tasks to the GPU,<br> reducing CPU usage and improving playback smoothness.", "Enable Hardware Video Acceleration" },
     { OPTION_AVDECMAXTHREADS,          "2",        global_options::option_type::INTEGER,  "Specifies the number of threads used by the audio/video decoder,<br> allowing for parallel processing to improve performance and reduce playback stuttering.", "AV Decoder Threads" },
@@ -82,7 +88,28 @@ const global_options::options_entry global_options::s_option_entries[] =
     { OPTION_MINIMIZEONFOCUSLOSS,      "false",    global_options::option_type::BOOLEAN,  "Minimize RetroFE when focus is lost", "Enable Minimize on Focus Loss" },
     { OPTION_AVDECTHREADTYPE,          "2",        global_options::option_type::INTEGER,  "Type of threading in the case of software decoding (1=frame, 2=slice)", "AV Decoder Thread Type" },
 
-    { nullptr,                         nullptr,    global_options::option_type::HEADER,   "CUSTOMIZATION OPTIONS", "Customization Options" },
+
+
+    { nullptr,                         nullptr,    global_options::option_type::HEADER,   "MEDIA AND METADATA OPTIONS", "" },
+    { OPTION_ATTRACTMODECYCLEPLAYLIST, "false",    global_options::option_type::BOOLEAN,  "Cycle through all playlists or defined in cyclePlaylist", "Enable Cycling Through All Playlists in Attract Mode" },
+    { OPTION_ATTRACTMODETIME,          "19",       global_options::option_type::INTEGER,  "Number of seconds to wait before scrolling to another random point", "Attract Mode Wait Time" },
+    { OPTION_ATTRACTMODENEXTTIME,      "19",       global_options::option_type::INTEGER,  "Number of seconds to wait before scrolling to another random point while attract mode is active", "Attract Mode Next Wait Time" },
+    { OPTION_ATTRACTMODEPLAYLISTTIME,  "300",      global_options::option_type::INTEGER,  "Number of seconds to wait before attract mode jumps to another playlist, 0 to lock", "Attract Mode Playlist Switch Time" },
+    { OPTION_ATTRACTMODESKIPPLAYLIST,  "",         global_options::option_type::MSTRING,  "Skip CSV list of playlists while in attract mode", "Skip Playlists in Attract Mode" },
+    { OPTION_ATTRACTMODECOLLECTIONTIME, "300",     global_options::option_type::INTEGER,  "Number of seconds before attract mode switches to the next collection, 0 to lock", "Attract Mode Collection Switch Time" },
+    { OPTION_ATTRACTMODESKIPCOLLECTION, "",        global_options::option_type::MSTRING,  "Skip CSV list of collections while in attract mode", "Skip Collections in Attract Mode" },
+    { OPTION_ATTRACTMODEMINTIME,        "100",     global_options::option_type::INTEGER,  "Minimum number of milliseconds attract mode will scroll", "Minimum Attract Mode Scroll Time" },
+    { OPTION_ATTRACTMODEMAXTIME,        "1600",    global_options::option_type::INTEGER,  "Maximum number of milliseconds attract mode will scroll", "Maximum Attract Mode Scroll Time" },
+    { OPTION_ATTRACTMODEFAST,           "false",   global_options::option_type::BOOLEAN,  "Scroll(false) or jump(true) to the next random point while in attract mode", "Enable Fast Scroll in Attract Mode" },
+
+    { OPTION_METALOCK,                 "true",     global_options::option_type::BOOLEAN,  "Locks RetroFE from looking for XML changes and uses meta.db.<br><br> If unsure leave checked", "Enable Metadata Lock" },
+    { OPTION_OVERWRITEXML,             "false",    global_options::option_type::BOOLEAN,  "Allows metadata XMLs to be overwritten by files in a collection.<br><br> If unsure leave unchecked", "Allow XML Overwrite by Collection Files" },
+    { OPTION_SHOWPARENTHESIS,          "true",     global_options::option_type::BOOLEAN,  "Show item information between ().<br><br> If unsure leave checked", "Enable Show Item Info Between Parentheses" },
+    { OPTION_SHOWSQUAREBRACKETS,       "true",     global_options::option_type::BOOLEAN,  "Show item information between []<br><br> If unsure leave checked", "Enable Show Item Info Between Square Brackets" },
+
+
+
+    { nullptr,                         nullptr,    global_options::option_type::HEADER,   "CUSTOMIZATION OPTIONS", "" },
     { OPTION_LAYOUT,                   "Arcades",  global_options::option_type::STRING,   "Theme to be used in RetroFE, a folder name in /layouts", "RetroFE Theme" },
     { OPTION_RANDOMLAYOUT,             "",         global_options::option_type::MSTRING,  "Randomly choose a layout on launch, CSV list of layout names", "Random Layouts" },
     { OPTION_FIRSTPLAYLIST,            "arcades",  global_options::option_type::STRING,   "Start on this playlist if available", "First Playlist" },
@@ -110,38 +137,13 @@ const global_options::options_entry global_options::s_option_entries[] =
     { OPTION_FIXEDRESLAYOUTS,          "false",    global_options::option_type::BOOLEAN,  "Enables the use of fixed resolution layouts ie layout1920x1080.xml", "Enable Fixed Resolution Layouts" },
     { OPTION_SCREENSAVER,              "false",    global_options::option_type::BOOLEAN,  "Enables screensaver mode", "Enable Screensaver" },
 
-    { nullptr,                         nullptr,    global_options::option_type::HEADER,   "ATTRACT MODE OPTIONS", "Attract Mode Options" },
-    { OPTION_ATTRACTMODECYCLEPLAYLIST, "false",    global_options::option_type::BOOLEAN,  "Cycle through all playlists or defined in cyclePlaylist", "Enable Cycling Through All Playlists in Attract Mode" },
-    { OPTION_ATTRACTMODETIME,          "19",       global_options::option_type::INTEGER,  "Number of seconds to wait before scrolling to another random point", "Attract Mode Wait Time" },
-    { OPTION_ATTRACTMODENEXTTIME,      "19",       global_options::option_type::INTEGER,  "Number of seconds to wait before scrolling to another random point while attract mode is active", "Attract Mode Next Wait Time" },
-    { OPTION_ATTRACTMODEPLAYLISTTIME,  "300",      global_options::option_type::INTEGER,  "Number of seconds to wait before attract mode jumps to another playlist, 0 to lock", "Attract Mode Playlist Switch Time" },
-    { OPTION_ATTRACTMODESKIPPLAYLIST,  "",         global_options::option_type::MSTRING,  "Skip CSV list of playlists while in attract mode", "Skip Playlists in Attract Mode" },
-    { OPTION_ATTRACTMODECOLLECTIONTIME, "300",     global_options::option_type::INTEGER,  "Number of seconds before attract mode switches to the next collection, 0 to lock", "Attract Mode Collection Switch Time" },
-    { OPTION_ATTRACTMODESKIPCOLLECTION, "",        global_options::option_type::MSTRING,  "Skip CSV list of collections while in attract mode", "Skip Collections in Attract Mode" },
-    { OPTION_ATTRACTMODEMINTIME,        "100",     global_options::option_type::INTEGER,  "Minimum number of milliseconds attract mode will scroll", "Minimum Attract Mode Scroll Time" },
-    { OPTION_ATTRACTMODEMAXTIME,        "1600",    global_options::option_type::INTEGER,  "Maximum number of milliseconds attract mode will scroll", "Maximum Attract Mode Scroll Time" },
-    { OPTION_ATTRACTMODEFAST,           "false",   global_options::option_type::BOOLEAN,  "Scroll(false) or jump(true) to the next random point while in attract mode", "Enable Fast Scroll in Attract Mode" },
 
-    { nullptr,                         nullptr,    global_options::option_type::HEADER,   "INPUT OPTIONS", "Input Options" },
-    { OPTION_COLLECTIONINPUTCLEAR,     "false",    global_options::option_type::BOOLEAN,  "Clear input queue on collection change", "Clear Input Queue on Collection Change" },
-    { OPTION_PLAYLISTINPUTCLEAR,       "false",    global_options::option_type::BOOLEAN,  "Clear input queue on playlist change", "Clear Input Queue on Playlist Change" },
-    { OPTION_JUMPINPUTCLEAR,           "false",    global_options::option_type::BOOLEAN,  "Clear input queue while jumping through the menu", "Clear Input Queue While Jumping Through Menu" },
-    { OPTION_CONTROLLERCOMBOEXIT,      "true",     global_options::option_type::BOOLEAN,  "Close RetroFE with the controller combo set in controls.conf", "Enable Controller Combo Exit" },
-    { OPTION_CONTROLLERCOMBOSETTINGS,  "false",    global_options::option_type::BOOLEAN,  "Open settings playlist with the controller combo set in controls.conf", "Enable Opening Settings with Controller" },
-    { OPTION_SETTINGSCOLLECTIONPLAYLIST,"Arcades:settings", global_options::option_type::STRING,   "Used by settings toggle to go to the playlist in collection:playlist format, defaults to settings.txt in the current collection", "Settings Collection Playlist" },
 
-    { nullptr,                         nullptr,    global_options::option_type::HEADER,   "METADATA OPTIONS", "Metadata Options" },
-    { OPTION_METALOCK,                 "true",     global_options::option_type::BOOLEAN,  "Locks RetroFE from looking for XML changes and uses meta.db.<br><br> If unsure leave checked", "Enable Metadata Lock" },
-    { OPTION_OVERWRITEXML,             "false",    global_options::option_type::BOOLEAN,  "Allows metadata XMLs to be overwritten by files in a collection.<br><br> If unsure leave unchecked", "Allow XML Overwrite by Collection Files" },
-    { OPTION_SHOWPARENTHESIS,          "true",     global_options::option_type::BOOLEAN,  "Show item information between ().<br><br> If unsure leave checked", "Enable Show Item Info Between Parentheses" },
-    { OPTION_SHOWSQUAREBRACKETS,       "true",     global_options::option_type::BOOLEAN,  "Show item information between []<br><br> If unsure leave checked", "Enable Show Item Info Between Square Brackets" },
+    { nullptr,                         nullptr,    global_options::option_type::HEADER,   "LEDBlinky and Path Overrides", "" },
+    { OPTION_LEDBLINKYDIRECTORY,       "",         global_options::option_type::PATH,     "Path to LEDBlinky.exe", "LEDBlinky Install Path" },
 
-    { nullptr,                         nullptr,    global_options::option_type::HEADER,   "WINDOWS ONLY OPTIONS", "Windows Only Options" },
-    { OPTION_LEDBLINKYDIRECTORY,       "",         global_options::option_type::PATH,     "Path to LEDBlinky.exe", "LED Blinky Directory Path" },
-
-    { nullptr,                        nullptr,     global_options::option_type::HEADER,   "MEDIA SEARCH PATH OPTIONS", "Media Search Path Options" },
-    { OPTION_BASEMEDIAPATH,            "",         global_options::option_type::PATH,     "Override path to media if stored outside directory", "Base Media Path" },
-    { OPTION_BASEITEMPATH,             "",         global_options::option_type::PATH,     "Override path to items if stored outside directory", "Base Item Path" },
+    { OPTION_BASEMEDIAPATH,            "",         global_options::option_type::PATH,     "Override path to media if stored outside directory", "Media Path Override" },
+    { OPTION_BASEITEMPATH,             "",         global_options::option_type::PATH,     "Override path to items if stored outside directory", "Item Path Overrides" },
 
     { nullptr }
 };
