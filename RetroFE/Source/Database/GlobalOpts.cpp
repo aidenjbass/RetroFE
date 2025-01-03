@@ -67,19 +67,19 @@ const global_options::options_entry global_options::s_option_entries[] =
     { nullptr,                        nullptr,     global_options::option_type::HEADER,   "VIDEO OPTIONS", "Video Options" },
     { OPTION_VIDEOENABLE,             "true",      global_options::option_type::BOOLEAN,  "Defines whether video is rendered", "Enable Video Support" },
     { OPTION_VIDEOLOOP,               "0",         global_options::option_type::INTEGER,  "Number of times to play video<br><br>If unsure leave at 0", "Video Loop Count" },
-    { OPTION_DISABLEVIDEORESTART,     "false",     global_options::option_type::BOOLEAN,  "Pauses video while scrolling", "Enable Pausing Video on Scroll" },
-    { OPTION_DISABLEPAUSEONSCROLL,    "false",     global_options::option_type::BOOLEAN,  "Restart video when selected", "Enable Restart Video on Selection" },
+    { OPTION_DISABLEVIDEORESTART,     "false",     global_options::option_type::BOOLEAN,  "Pauses video while scrolling for performance increase.<br><br> If unsure leave unchecked", "Enable Pausing Video on Scroll" },
+    { OPTION_DISABLEPAUSEONSCROLL,    "false",     global_options::option_type::BOOLEAN,  "Disables restarting video when selected.<br><br> If unsure leave unchecked", "Enable Restart Video on Selection" },
 
     { nullptr,                         nullptr,    global_options::option_type::HEADER,   "RENDERER OPTIONS", "Renderer Options" },
     { OPTION_VSYNC,                    "false",    global_options::option_type::BOOLEAN,  "Prevents screen tearing by synchronizing the <br>frame rate with the monitor's refresh rate, ensuring smoother visuals.", "Enable V-Sync" },
     { OPTION_HARDWAREVIDEOACCEL,       "false",    global_options::option_type::BOOLEAN,  "Enhances video playback performance by offloading decoding tasks to the GPU,<br> reducing CPU usage and improving playback smoothness.", "Enable Hardware Video Acceleration" },
-    { OPTION_AVDECMAXTHREADS,          "2",        global_options::option_type::INTEGER,  "Number of threads for avdec software decoding", "AV Decoder Threads" },
+    { OPTION_AVDECMAXTHREADS,          "2",        global_options::option_type::INTEGER,  "Specifies the number of threads used by the audio/video decoder,<br> allowing for parallel processing to improve performance and reduce playback stuttering.", "AV Decoder Threads" },
     { OPTION_MUTEVIDEO,                "false",    global_options::option_type::BOOLEAN,  "Video playback is muted", "Mute Video Playback" },
     { OPTION_SDLRENDERDRIVER,          setSDL(),   global_options::option_type::STRING,   "Selects which graphics API to use internally.<br><br>The software renderer is extremely slow and only useful for debugging, so any of the other backends are recommended.", "SDL Render Driver" },
     { OPTION_SCALEQUALITY,             "1",        global_options::option_type::INTEGER,  "Scaling quality (0, 1, 2)", "Scale Quality" },
-    { OPTION_HIGHPRIORITY,             "false",    global_options::option_type::BOOLEAN,  "RetroFE Windows process priority", "High Priority" },
-    { OPTION_UNLOADSDL,                "false",    global_options::option_type::BOOLEAN,  "Close SDL when launching a game, MUST be true for RPI", "Unload SDL on Game Launch" },
-    { OPTION_MINIMIZEONFOCUSLOSS,      "false",    global_options::option_type::BOOLEAN,  "Minimize RetroFE when focus is lost", "Minimize on Focus Loss" },
+    { OPTION_HIGHPRIORITY,             "false",    global_options::option_type::BOOLEAN,  "Adjusts the priority level of the RetroFE, affecting its CPU time allocation.", "Enable High Priority Process" },
+    { OPTION_UNLOADSDL,                "false",    global_options::option_type::BOOLEAN,  "Close SDL when launching a game, MUST be true for RPI", "Enable Unload SDL on Game Launch" },
+    { OPTION_MINIMIZEONFOCUSLOSS,      "false",    global_options::option_type::BOOLEAN,  "Minimize RetroFE when focus is lost", "Enable Minimize on Focus Loss" },
     { OPTION_AVDECTHREADTYPE,          "2",        global_options::option_type::INTEGER,  "Type of threading in the case of software decoding (1=frame, 2=slice)", "AV Decoder Thread Type" },
 
     { nullptr,                         nullptr,    global_options::option_type::HEADER,   "CUSTOMIZATION OPTIONS", "Customization Options" },
@@ -131,17 +131,17 @@ const global_options::options_entry global_options::s_option_entries[] =
     { OPTION_SETTINGSCOLLECTIONPLAYLIST,"Arcades:settings", global_options::option_type::STRING,   "Used by settings toggle to go to the playlist in collection:playlist format, defaults to settings.txt in the current collection", "Settings Collection Playlist" },
 
     { nullptr,                         nullptr,    global_options::option_type::HEADER,   "METADATA OPTIONS", "Metadata Options" },
-    { OPTION_METALOCK,                 "true",     global_options::option_type::BOOLEAN,  "Locks RetroFE from looking for XML changes and uses meta.db, faster loading when true", "Lock Metadata to Use meta.db" },
-    { OPTION_OVERWRITEXML,             "false",    global_options::option_type::BOOLEAN,  "Allows metadata XMLs to be overwritten by files in a collection", "Allow XML Overwrite by Collection Files" },
-    { OPTION_SHOWPARENTHESIS,          "true",     global_options::option_type::BOOLEAN,  "Show item information between ()", "Enable Show Item Info Between Parentheses" },
-    { OPTION_SHOWSQUAREBRACKETS,       "true",     global_options::option_type::BOOLEAN,  "Show item information between []", "Enable Show Item Info Between Square Brackets" },
+    { OPTION_METALOCK,                 "true",     global_options::option_type::BOOLEAN,  "Locks RetroFE from looking for XML changes and uses meta.db.<br><br> If unsure leave checked", "Enable Metadata Lock" },
+    { OPTION_OVERWRITEXML,             "false",    global_options::option_type::BOOLEAN,  "Allows metadata XMLs to be overwritten by files in a collection.<br><br> If unsure leave unchecked", "Allow XML Overwrite by Collection Files" },
+    { OPTION_SHOWPARENTHESIS,          "true",     global_options::option_type::BOOLEAN,  "Show item information between ().<br><br> If unsure leave checked", "Enable Show Item Info Between Parentheses" },
+    { OPTION_SHOWSQUAREBRACKETS,       "true",     global_options::option_type::BOOLEAN,  "Show item information between []<br><br> If unsure leave checked", "Enable Show Item Info Between Square Brackets" },
 
     { nullptr,                         nullptr,    global_options::option_type::HEADER,   "WINDOWS ONLY OPTIONS", "Windows Only Options" },
-    { OPTION_LEDBLINKYDIRECTORY,       "",         global_options::option_type::PATH,     "Path to LEDBlinky installation", "LED Binky Directory Path" },
+    { OPTION_LEDBLINKYDIRECTORY,       "",         global_options::option_type::PATH,     "Path to LEDBlinky.exe", "LED Blinky Directory Path" },
 
     { nullptr,                        nullptr,     global_options::option_type::HEADER,   "MEDIA SEARCH PATH OPTIONS", "Media Search Path Options" },
-    { OPTION_BASEMEDIAPATH,            "",         global_options::option_type::PATH,     "Path to media if stored outside the build", "Base Media Path" },
-    { OPTION_BASEITEMPATH,             "",         global_options::option_type::PATH,     "Path to items if stored outside the build", "Base Item Path" },
+    { OPTION_BASEMEDIAPATH,            "",         global_options::option_type::PATH,     "Override path to media if stored outside directory", "Base Media Path" },
+    { OPTION_BASEITEMPATH,             "",         global_options::option_type::PATH,     "Override path to items if stored outside directory", "Base Item Path" },
 
     { nullptr }
 };
