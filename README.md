@@ -72,8 +72,32 @@ Compile RetroFE
 
 ### Install libraries
 Install necessary dependencies:
-	
-	sudo apt-get install git g++ cmake dos2unix zlib1g-dev libsdl2-2.0 libsdl2-mixer-2.0 libsdl2-image-2.0 libsdl2-ttf-2.0 libsdl2-dev libsdl2-mixer-dev libsdl2-image-dev libsdl2-ttf-dev libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-good1.0-dev gstreamer1.0-libav zlib1g-dev libglib2.0-0 libglib2.0-dev sqlite3
+
+ #### Debian
+```bash
+sudo apt-get install git g++ cmake dos2unix zlib1g-dev
+libsdl2-2.0 libsdl2-mixer-2.0 libsdl2-image-2.0 libsdl2-ttf-2.0
+libsdl2-dev libsdl2-mixer-dev libsdl2-image-dev libsdl2-ttf-dev
+libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-good1.0-dev gstreamer1.0-libav
+zlib1g-dev libglib2.0-0 libglib2.0-dev sqlite3
+```
+
+#### Fedora
+```bash
+sudo dnf install git gcc-c++ cmake dos2unix zlib-devel
+SDL2 SDL2_mixer SDL2_image SDL2_ttf
+SDL2-devel SDL2_mixer-devel SDL2_image-devel SDL2_ttf-devel
+gstreamer1 gstreamer1-plugins-base gstreamer1-plugins-good gstreamer1-libav
+libglib2 glib2-devel sqlite
+```
+
+#### Arch
+```bash
+sudo pacman -S git gcc cmake dos2unix zlib
+sdl2 sdl2_mixer sdl2_image sdl2_ttf
+gstreamer gst-plugins-base gst-plugins-good gst-libav
+glib2 sqlite
+```
 
 ### Download and compile the source code
 Download the source code
@@ -118,9 +142,9 @@ Open the Xcodeproj in `RetroFE/xcode` and build target
 
 A launchable test environment can be created with the following commands 
 
-	python Scripts\Package.py --os=windows/linux/mac --build=full
+	python Scripts/Package.py --os=windows/linux/mac --build=full
 
-Copy your live RetroFE system to any folder of your choosing. Files can be found in `Artifacts/windows/RetroFE`
+Copy your live RetroFE system to any folder of your choosing. Files can be found in `Artifacts/{os}/RetroFE`
 
 ### Set $RETROFE_PATH via Environment variable 
 
