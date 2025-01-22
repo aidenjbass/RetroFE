@@ -78,7 +78,7 @@ sudo apt-get install git g++ cmake dos2unix zlib1g-dev
 libsdl2-2.0 libsdl2-mixer-2.0 libsdl2-image-2.0 libsdl2-ttf-2.0
 libsdl2-dev libsdl2-mixer-dev libsdl2-image-dev libsdl2-ttf-dev
 libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstreamer-plugins-good1.0-dev gstreamer1.0-libav
-zlib1g-dev libglib2.0-0 libglib2.0-dev sqlite3
+libglib2.0-0 libglib2.0-dev sqlite3
 ```
 
 #### Fedora
@@ -141,7 +141,8 @@ Open the Xcodeproj in `RetroFE/xcode` and build target
 ```bash
 brew install git gcc cmake dos2unix zlib
 sdl2 sdl2_mixer sdl2_image sdl2_ttf
-gstreamer glib sqlite3
+gstreamer
+glib sqlite3
 ```
 
 ### Download and compile the source code
