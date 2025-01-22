@@ -1,4 +1,4 @@
-name: RetroFE Steam Deck Build
+name: RetroFE Steam Deck Build (AppImage)
 
 on:
   push:
@@ -18,46 +18,57 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v3
 
-    # Set up Arch Linux Docker container
-    - name: Build inside Arch Linux
-      uses: addnab/docker-run-action@v3
-      with:
-        image: archlinux:latest
-        options: --rm -v ${{ github.workspace }}:/workspace
-        run: |
-          # Switch to workspace
-          cd /workspace
+    # Install dependencies for building AppImage
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          cmake \
+          dos2unix \
+          git \
+          sdl2 \
+          sdl2-image \
+          sdl2-mixer \
+          sdl2-ttf \
+          gstreamer \
+          libgstreamer-plugins-base1.0-dev \
+          libgstreamer-plugins-good1.0-dev \
+          libgstreamer-plugins-good1.0 \
+          libz-dev \
+          sqlite3 \
+          wget \
+          libglib2.0-dev \
+          libc6-dev \
+          libssl-dev \
+          libfuse-dev \
+          python3 \
+          patchelf \
+          squashfs-tools
 
-          # Update and install dependencies
-          pacman -Syu --noconfirm
-          pacman -S --noconfirm \
-            base-devel \
-            cmake \
-            dos2unix \
-            git \
-            sdl2 \
-            sdl2_image \
-            sdl2_mixer \
-            sdl2_ttf \
-            gstreamer \
-            gst-plugins-base \
-            gst-plugins-good \
-            gst-libav \
-            zlib \
-            sqlite
+    # Download and install linuxdeploy
+    - name: Install linuxdeploy
+      run: |
+        wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
+        chmod +x linuxdeploy-x86_64.AppImage
+        mv linuxdeploy-x86_64.AppImage /usr/local/bin/linuxdeploy
 
-          # Configure the build
-          cmake RetroFE/Source -BRetroFE/Build
+    # Build the project using CMake
+    - name: Build with CMake
+      run: |
+        cmake RetroFE/Source -BRetroFE/Build
+        cmake --build RetroFE/Build
 
-          # Build the project
-          cmake --build RetroFE/Build
+    # Package the build as an AppImage
+    - name: Create AppImage
+      run: |
+        # Set up the AppDir (AppImage directory structure)
+        mkdir -p AppDir/usr/bin
+        cp -r RetroFE/Build/* AppDir/usr/bin/
 
-          # Package the build
-          mkdir -p RetroFE/Release
-          cp -r RetroFE/Build/* RetroFE/Release/
-          tar -czf RetroFE-SteamDeck.tar.gz -C RetroFE/Release .
+        # Run linuxdeploy to create the AppImage
+        /usr/local/bin/linuxdeploy --appdir AppDir --output appimage
 
-    # Upload the build to GitHub Releases
+    # Upload the AppImage to GitHub Releases
     - name: Create Release
       id: create_release
       uses: actions/create-release@v1
@@ -69,12 +80,12 @@ jobs:
         draft: false
         prerelease: false
 
-    - name: Upload Release Asset
+    - name: Upload AppImage Asset
       uses: actions/upload-release-asset@v1
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: RetroFE-SteamDeck.tar.gz
-        asset_name: RetroFE-SteamDeck.tar.gz
-        asset_content_type: application/gzip
+        asset_path: RetroFE-SteamDeck.AppImage
+        asset_name: RetroFE-SteamDeck.AppImage
+        asset_content_type: application/octet-stream
