@@ -1,4 +1,4 @@
-name: RetroFE Build Linux
+name: RetroFE Build
 
 on:
   push:
