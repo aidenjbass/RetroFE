@@ -23,27 +23,27 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install -y \
+          git \
+          g++ \
           cmake \
           dos2unix \
-          git \
-          sdl2 \
-          sdl2-image \
-          sdl2-mixer \
-          sdl2-ttf \
-          gstreamer \
+          zlib1g-dev \
+          libsdl2-2.0 \
+          libsdl2-mixer-2.0 \
+          libsdl2-image-2.0 \
+          libsdl2-ttf-2.0 \
+          libsdl2-dev \
+          libsdl2-mixer-dev \
+          libsdl2-image-dev \
+          libsdl2-ttf-dev \
+          libgstreamer1.0-dev \
           libgstreamer-plugins-base1.0-dev \
           libgstreamer-plugins-good1.0-dev \
-          libgstreamer-plugins-good1.0 \
-          libz-dev \
-          sqlite3 \
-          wget \
+          gstreamer1.0-libav \
+          zlib1g-dev \
+          libglib2.0-0 \
           libglib2.0-dev \
-          libc6-dev \
-          libssl-dev \
-          libfuse-dev \
-          python3 \
-          patchelf \
-          squashfs-tools
+          sqlite3
 
     # Download and install linuxdeploy
     - name: Install linuxdeploy
@@ -66,7 +66,7 @@ jobs:
         cp -r RetroFE/Build/* AppDir/usr/bin/
 
         # Run linuxdeploy to create the AppImage
-        /usr/local/bin/linuxdeploy --appdir AppDir --output appimage
+        /usr/local/bin/linuxdeploy --appdir AppDir --output appimage --output-file RetroFE-SteamDeck.AppImage
 
     # Upload the AppImage to GitHub Releases
     - name: Create Release
