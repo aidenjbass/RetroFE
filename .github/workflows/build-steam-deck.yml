@@ -1,4 +1,4 @@
-name: RetroFE Steam Deck Build (AppImage)
+name: RetroFE AppImage Build
 
 on:
   push:
@@ -10,17 +10,14 @@ on:
   workflow_dispatch: # Allow manual trigger
 
 jobs:
-  build:
+  build-appimage:
+
     runs-on: ubuntu-latest
 
     steps:
-    # Checkout the repository
-    - name: Checkout code
-      uses: actions/checkout@v3
-
-    # Install dependencies for building AppImage
-    - name: Install dependencies
-      run: |
+      - uses: actions/checkout@v2
+      - name: install dependencies
+        run: |
         sudo apt-get update
         sudo apt-get install -y \
           git \
@@ -43,49 +40,19 @@ jobs:
           zlib1g-dev \
           libglib2.0-0 \
           libglib2.0-dev \
-          sqlite3
-
-    # Download and install linuxdeploy
-    - name: Install linuxdeploy
-      run: |
-        wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-x86_64.AppImage
-        chmod +x linuxdeploy-x86_64.AppImage
-        mv linuxdeploy-x86_64.AppImage /usr/local/bin/linuxdeploy
-
-    # Build the project using CMake
-    - name: Build with CMake
-      run: |
-        cmake RetroFE/Source -BRetroFE/Build
-        cmake --build RetroFE/Build
-
-    # Package the build as an AppImage
-    - name: Create AppImage
-      run: |
-        # Set up the AppDir (AppImage directory structure)
-        mkdir -p AppDir/usr/bin
-        cp -r RetroFE/Build/* AppDir/usr/bin/
-
-        # Run linuxdeploy to create the AppImage
-        /usr/local/bin/linuxdeploy --appdir AppDir --output appimage --output-file RetroFE-SteamDeck.AppImage
-
-    # Upload the AppImage to GitHub Releases
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        tag_name: ${{ github.ref_name }}
-        release_name: RetroFE Steam Deck Build - ${{ github.ref_name }}
-        draft: false
-        prerelease: false
-
-    - name: Upload AppImage Asset
-      uses: actions/upload-release-asset@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      with:
-        upload_url: ${{ steps.create_release.outputs.upload_url }}
-        asset_path: RetroFE-SteamDeck.AppImage
-        asset_name: RetroFE-SteamDeck.AppImage
-        asset_content_type: application/octet-stream
+          sqlite3      
+      - name: Configure
+        run: |
+          cmake RetroFE/Source -BRetroFE/Build -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/usr
+      - name: Build and Install
+        run: |
+          cmake --build RetroFE/Build --target install -- -j$(nproc) -- DESTDIR=$(pwd)/AppDir
+      - name: Build AppImage
+        uses: AppImageCrafters/build-appimage-action@master
+        env:
+          UPDATE_INFO: gh-releases-zsync|aidenjbass|RetroFE|latest|*.AppImage.zsync`
+        with:
+          recipe: AppImageBuilder.yml
+      - uses: actions/upload-artifact@v2
+        with:
+          name: AppImage
