@@ -13,13 +13,24 @@ list(APPEND CMAKE_MODULE_PATH "${RETROFE_DIR}/CMake")
 # Find Git executable
 find_package(Git REQUIRED)
 
-# Get the Git hash
+# Get the Git version
 execute_process(
     COMMAND ${GIT_EXECUTABLE} rev-list --count HEAD
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     OUTPUT_VARIABLE GIT_COMMIT_NO
     OUTPUT_STRIP_TRAILING_WHITESPACE
 )
+
+# Get the Git hash
+execute_process(
+    COMMAND ${GIT_EXECUTABLE} rev-parse --short HEAD
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    OUTPUT_VARIABLE GIT_SHORT_HASH
+    OUTPUT_STRIP_TRAILING_WHITESPACE
+)
+
+# Pass the Git hash as a preprocessor definition to the compiler
+add_compile_definitions(GIT_SHORT_HASH="${GIT_SHORT_HASH}")
 
 ##############################################################
 # Setup some variables to help find external libraries
