@@ -71,7 +71,6 @@ Compile RetroFE
 #   Building for Linux #
 
 ### Install libraries
-Install necessary dependencies:
 
  #### Debian
 ```bash
@@ -135,6 +134,29 @@ Download the source code
 	git clone https://github.com/CoinOPS-Official/RetroFE.git
 
 Open the Xcodeproj in `RetroFE/xcode` and build target
+
+## Single Architecture Binaries
+### Install libraries
+
+```bash
+brew install git gcc cmake dos2unix zlib
+sdl2 sdl2_mixer sdl2_image sdl2_ttf
+gstreamer glib sqlite3
+```
+
+### Download and compile the source code
+Download the source code
+
+	git clone https://github.com/CoinOPS-Official/RetroFE.git
+
+Generate your gcc make files
+
+	cd retrofe
+	cmake RetroFE/Source -BRetroFE/Build
+
+Compile RetroFE
+
+	cmake --build RetroFE/Build
 
 #   Optional #
 
