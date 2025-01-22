@@ -1,0 +1,76 @@
+name: RetroFE Steam Deck Build
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch: # Allow manual trigger
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    # Checkout the repository
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    # Install dependencies for SteamOS (Arch Linux)
+    - name: Install dependencies
+      run: |
+        sudo pacman -Sy --noconfirm
+        sudo pacman -S --noconfirm \
+          base-devel \
+          cmake \
+          dos2unix \
+          git \
+          sdl2 \
+          sdl2_image \
+          sdl2_mixer \
+          sdl2_ttf \
+          gstreamer \
+          gst-plugins-base \
+          gst-plugins-good \
+          gst-libav \
+          zlib \
+          sqlite
+
+    # Configure the build
+    - name: Configure CMake
+      run: cmake RetroFE/Source -BRetroFE/Build
+
+    # Build the project
+    - name: Build
+      run: cmake --build RetroFE/Build
+
+    # Package the build
+    - name: Package Build
+      run: |
+        mkdir -p RetroFE/Release
+        cp -r RetroFE/Build/* RetroFE/Release/
+        tar -czf RetroFE-SteamDeck.tar.gz -C RetroFE/Release .
+
+    # Upload the build to GitHub Releases
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ github.ref_name }}
+        release_name: RetroFE Steam Deck Build - ${{ github.ref_name }}
+        draft: false
+        prerelease: false
+
+    - name: Upload Release Asset
+      uses: actions/upload-release-asset@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        upload_url: ${{ steps.create_release.outputs.upload_url }}
+        asset_path: RetroFE-SteamDeck.tar.gz
+        asset_name: RetroFE-SteamDeck.tar.gz
+        asset_content_type: application/gzip
