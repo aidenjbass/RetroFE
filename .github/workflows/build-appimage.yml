@@ -21,7 +21,7 @@ jobs:
         run: |
           # Install build dependencies
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake curl wget git pkg-config python3-pip libudev-dev autoconf automake libtool ninja-build bison flex libglib2.0-dev zlib1g-dev libglib2.0-0 zlib1g
+          sudo apt-get install -y build-essential cmake curl wget git pkg-config python3-pip libudev-dev autoconf automake libtool ninja-build bison flex libglib2.0-dev zlib1g-dev libglib2.0-0 zlib1g meson
           
           # Upgrade Meson to a compatible version
           pip3 install --upgrade meson
@@ -38,7 +38,9 @@ jobs:
               -Dges=disabled \
               -Dpython=disabled \
               -Dtests=disabled \
-              -Dexamples=disabled
+              -Dexamples=disabled \
+              -Dbad=disabled \
+              -Dugly=disabled
 
           # Compile and install
           meson compile -C builddir
