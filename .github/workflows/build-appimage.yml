@@ -21,22 +21,10 @@ jobs:
         run: |
           # Install build dependencies
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake curl wget git pkg-config python3-pip libudev-dev autoconf automake libtool ninja-build bison flex libglib2.0 libglib2.0-dev
+          sudo apt-get install -y build-essential cmake curl wget git pkg-config python3-pip libudev-dev autoconf automake libtool ninja-build bison flex libglib2.0-dev zlib1g-dev libglib2.0-0 zlib1g
           
           # Upgrade Meson to a compatible version
           pip3 install --upgrade meson
-
-      - name: Install zlib
-        run: |
-          if [ ! -d "$HOME/deps/zlib" ]; then
-            curl -LO https://zlib.net/current/zlib.tar.gz
-            tar -xzvf zlib.tar.gz
-            cd zlib-*
-            ./configure --prefix=$HOME/deps
-            make -j$(nproc)
-            make install
-            cd ..
-          fi
 
       - name: Clone and Build GStreamer
         run: |
