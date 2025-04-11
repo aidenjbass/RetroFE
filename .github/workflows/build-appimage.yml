@@ -74,9 +74,9 @@ jobs:
           curl -LO https://gstreamer.freedesktop.org/src/gstreamer/gstreamer-1.26.0.tar.xz
           tar -xvf gstreamer-1.26.0.tar.xz
           cd gstreamer-1.26.0
-          ./configure --prefix=$HOME/deps --disable-static --enable-shared
-          make -j$(nproc)
-          make install
+          meson setup builddir --prefix=$HOME/deps --buildtype=release
+          ninja -C builddir
+          ninja -C builddir install
           cd ..
 
           # Install libusb
