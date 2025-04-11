@@ -52,25 +52,19 @@ jobs:
 
       - name: Clone and Build GStreamer
         run: |
+          # Clone the GStreamer mono repository
           git clone https://gitlab.freedesktop.org/gstreamer/gstreamer.git --branch 1.26.0
           cd gstreamer
-          meson setup builddir
-          meson compile -C builddir
-          sudo meson install -C builddir
-          cd ..
 
-      - name: Clone and Build GStreamer Plugins
-        run: |
-          git clone https://gitlab.freedesktop.org/gstreamer/gst-plugins-base.git --branch 1.26.0
-          cd gst-plugins-base
-          meson setup builddir
-          meson compile -C builddir
-          sudo meson install -C builddir
-          cd ..
+          # Configure Meson to build only the required components
+          meson setup builddir \
+            -Dintrospection=disabled \  # Disable GObject Introspection if not needed
+            -Dges=disabled \            # Disable GStreamer Editing Services
+            -Dpython=disabled \         # Disable Python bindings
+            -Dgst-plugins-bad=disabled \ # Disable the gst-plugins-bad module
+            -Dgst-plugins-ugly=disabled \ # Disable the gst-plugins-ugly module
 
-          git clone https://gitlab.freedesktop.org/gstreamer/gst-plugins-good.git --branch 1.26.0
-          cd gst-plugins-good
-          meson setup builddir
+          # Compile and install
           meson compile -C builddir
           sudo meson install -C builddir
           cd ..
