@@ -64,7 +64,7 @@ jobs:
           # Install SDL2_ttf
           curl -LO https://github.com/libsdl-org/SDL_ttf/releases/download/release-2.24.0/SDL2_ttf-2.24.0.tar.gz
           tar -xzvf SDL2_ttf-2.24.0.tar.gz
-          cd SDL2_ttf-2.24.0.tar.gz
+          cd SDL2_ttf-2.24.0
           ./configure --prefix=$HOME/deps
           make -j$(nproc)
           make install
@@ -73,7 +73,7 @@ jobs:
           # Install GStreamer
           curl -LO https://gstreamer.freedesktop.org/src/gstreamer/gstreamer-1.26.0.tar.xz
           tar -xvf gstreamer-1.26.0.tar.xz
-          cd gstreamer-1.26.0.tar.xz
+          cd gstreamer-1.26.0
           ./configure --prefix=$HOME/deps --disable-static --enable-shared
           make -j$(nproc)
           make install
