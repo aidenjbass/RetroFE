@@ -37,11 +37,8 @@ jobs:
               -Dintrospection=disabled \
               -Dges=disabled \
               -Dpython=disabled \
-              -Dgst-plugins-bad=disabled \
-              -Dgst-plugins-ugly=disabled \
               -Dtests=disabled \
-              -Dexamples=disabled \
-              -Ddocumentation=disabled
+              -Dexamples=disabled
 
           # Compile and install
           meson compile -C builddir
