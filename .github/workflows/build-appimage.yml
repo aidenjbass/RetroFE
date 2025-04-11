@@ -8,9 +8,8 @@ jobs:
     strategy:
       matrix:
         config:
-          - { os: ubuntu-24.04, arch: x86_64 }
-          - { os: ubuntu-24.04-arm, arch: arm64 }
-          # - { os: ubuntu-22.04-arm, arch: arm64 } # Raspberry Pi OS Target, SDL2 suite needs to be built for raspios
+          - { os: ubuntu-22.04, arch: x86_64 }
+          - { os: ubuntu-22.04-arm, arch: arm64 }
     runs-on: ${{ matrix.config.os }}
     name: Build ${{ matrix.config.os }}
 
@@ -18,50 +17,118 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
 
-      - name: Cache apt packages
-        uses: awalsh128/cache-apt-pkgs-action@latest
-        with:
-          packages: |
-            cmake 
-            dos2unix 
-            zlib1g-dev
-            libsdl2-2.0 
-            libsdl2-mixer-2.0
-            libsdl2-image-2.0 
-            libsdl2-ttf-2.0
-            libsdl2-dev 
-            libsdl2-mixer-dev 
-            libsdl2-image-dev 
-            libsdl2-ttf-dev
-            libgstreamer1.0 
-            libgstreamer1.0-dev 
-            libgstreamer-plugins-base1.0-dev
-            gstreamer1.0-plugins-base 
-            gstreamer1.0-plugins-good
-            gstreamer1.0-libav
-            libglib2.0-0 
-            libglib2.0-dev 
-            sqlite3 
-            libminizip-dev 
-            libwebp-dev 
-            libusb-1.0-0
-            libusb-1.0-0-dev
-            libevdev-dev
-          version: ${{ matrix.config.os }}
-
-      - name: Install dependencies
+      - name: Set up dependencies from source
         run: |
+          # Install build dependencies
           sudo apt-get update
-          sudo apt-get install -y cmake dos2unix zlib1g-dev libunwind-dev \
-                                  libsdl2-2.0 libsdl2-mixer-2.0 libsdl2-image-2.0 libsdl2-ttf-2.0 \
-                                  libsdl2-dev libsdl2-mixer-dev libsdl2-image-dev libsdl2-ttf-dev \
-                                  libgstreamer1.0 libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev \
-                                  gstreamer1.0-plugins-base gstreamer1.0-plugins-good gstreamer1.0-libav \
-                                  libglib2.0-0 libglib2.0-dev sqlite3 libminizip-dev libwebp-dev libusb-1.0-0 libusb-1.0-0-dev libevdev-dev 
-                                  
+          sudo apt-get install -y build-essential cmake curl wget git pkg-config
+
+      - name: Install dependencies from source
+        run: |
+          # Install zlib
+          curl -LO http://zlib.net/zlib-1.2.11.tar.gz
+          tar -xzvf zlib-1.2.11.tar.gz
+          cd zlib-1.2.11
+          ./configure --prefix=$HOME/deps
+          make -j$(nproc)
+          make install
+          cd ..
+
+          # Install SDL2
+          curl -LO https://github.com/libsdl-org/SDL/releases/download/release-2.28.5/SDL2-2.28.5.tar.gz
+          tar -xzvf SDL2-2.28.5.tar.gz
+          cd SDL2-2.28.5
+          ./configure --prefix=$HOME/deps
+          make -j$(nproc)
+          make install
+          cd ..
+
+          # Install SDL2_mixer
+          curl -LO https://github.com/libsdl-org/SDL_mixer/releases/download/release-2.6.2/SDL2_mixer-2.6.2.tar.gz
+          tar -xzvf SDL2_mixer-2.6.2.tar.gz
+          cd SDL2_mixer-2.6.2
+          ./configure --prefix=$HOME/deps
+          make -j$(nproc)
+          make install
+          cd ..
+
+          # Install SDL2_image
+          curl -LO https://github.com/libsdl-org/SDL_image/releases/download/release-2.6.2/SDL2_image-2.6.2.tar.gz
+          tar -xzvf SDL2_image-2.6.2.tar.gz
+          cd SDL2_image-2.6.2
+          ./configure --prefix=$HOME/deps
+          make -j$(nproc)
+          make install
+          cd ..
+
+          # Install SDL2_ttf
+          curl -LO https://github.com/libsdl-org/SDL_ttf/releases/download/release-2.20.1/SDL2_ttf-2.20.1.tar.gz
+          tar -xzvf SDL2_ttf-2.20.1.tar.gz
+          cd SDL2_ttf-2.20.1
+          ./configure --prefix=$HOME/deps
+          make -j$(nproc)
+          make install
+          cd ..
+
+          # Install GStreamer
+          curl -LO https://gstreamer.freedesktop.org/src/gstreamer/gstreamer-1.20.5.tar.xz
+          tar -xvf gstreamer-1.20.5.tar.xz
+          cd gstreamer-1.20.5
+          ./configure --prefix=$HOME/deps --disable-static --enable-shared
+          make -j$(nproc)
+          make install
+          cd ..
+
+          # Install libusb
+          curl -LO https://github.com/libusb/libusb/releases/download/v1.0.24/libusb-1.0.24.tar.bz2
+          tar -xvf libusb-1.0.24.tar.bz2
+          cd libusb-1.0.24
+          ./configure --prefix=$HOME/deps
+          make -j$(nproc)
+          make install
+          cd ..
+
+          # Install libevdev
+          curl -LO https://github.com/evdev/libevdev/releases/download/v1.12.0/libevdev-1.12.0.tar.xz
+          tar -xvf libevdev-1.12.0.tar.xz
+          cd libevdev-1.12.0
+          ./configure --prefix=$HOME/deps
+          make -j$(nproc)
+          make install
+          cd ..
+
+          # Install libminizip
+          curl -LO https://github.com/nmoinvaz/minizip/releases/download/v1.2.11/minizip-1.2.11.tar.gz
+          tar -xvf minizip-1.2.11.tar.gz
+          cd minizip-1.2.11
+          cmake .
+          make -j$(nproc)
+          make install
+          cd ..
+
+          # Install libglib
+          curl -LO https://download.gnome.org/sources/glib/2.72/glib-2.72.1.tar.xz
+          tar -xvf glib-2.72.1.tar.xz
+          cd glib-2.72.1
+          ./configure --prefix=$HOME/deps
+          make -j$(nproc)
+          make install
+          cd ..
+
+          # Install sqlite3
+          curl -LO https://sqlite.org/2023/sqlite-autoconf-3410200.tar.gz
+          tar -xvf sqlite-autoconf-3410200.tar.gz
+          cd sqlite-autoconf-3410200
+          ./configure --prefix=$HOME/deps
+          make -j$(nproc)
+          make install
+          cd ..
 
       - name: Configure CMake
-        run: cmake RetroFE/Source -BRetroFE/Build
+        env:
+          PKG_CONFIG_PATH: $HOME/deps/lib/pkgconfig
+          LD_LIBRARY_PATH: $HOME/deps/lib
+        run: cmake RetroFE/Source -BRetroFE/Build -DCMAKE_PREFIX_PATH=$HOME/deps
 
       - name: Build
         run: cmake --build RetroFE/Build
@@ -75,7 +142,7 @@ jobs:
             wget https://github.com/linuxdeploy/linuxdeploy/releases/download/continuous/linuxdeploy-${{ matrix.config.arch }}.AppImage
             chmod +x linuxdeploy-${{ matrix.config.arch }}.AppImage
           fi
-          
+
       - name: Install linuxdeploy-plugin-gstreamer
         run: |
           wget https://raw.githubusercontent.com/linuxdeploy/linuxdeploy-plugin-gstreamer/refs/heads/master/linuxdeploy-plugin-gstreamer.sh
@@ -91,29 +158,10 @@ jobs:
             --desktop-file Package/Environment/Linux/retrofe.desktop \
             --icon-file Package/Environment/Common/RetroFE.png
           if [ "${{ matrix.config.arch }}" == "arm64" ]; then
-            if [ "${{ matrix.config.os }}" == "ubuntu-24.04-arm" ]; then
-              mv RetroFE-aarch64.AppImage RetroFE-arm64.AppImage
-            elif [ "${{ matrix.config.os }}" == "ubuntu-22.04-arm" ]; then
-              mv RetroFE-aarch64.AppImage RetroFE-raspi.AppImage
-            fi
+            mv RetroFE-aarch64.AppImage RetroFE-arm64.AppImage
           fi
-    
-      - name: Upload ARM64 AppImage
-        if: ${{ matrix.config.arch == 'arm64' && matrix.config.os == 'ubuntu-24.04-arm' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: RetroFE-arm64.AppImage
-          path: RetroFE-arm64.AppImage
-      
-      - name: Upload Raspi AppImage
-        if: ${{ matrix.config.arch == 'arm64' && matrix.config.os == 'ubuntu-22.04-arm' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: RetroFE-raspi.AppImage
-          path: RetroFE-raspi.AppImage
-      
-      - name: Upload Other Arch AppImage
-        if: ${{ matrix.config.arch != 'arm64' }}
+          
+      - name: Upload ${{ matrix.config.arch }} AppImage
         uses: actions/upload-artifact@v4
         with:
           name: RetroFE-${{ matrix.config.arch }}.AppImage
