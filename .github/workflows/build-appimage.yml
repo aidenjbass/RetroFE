@@ -21,7 +21,7 @@ jobs:
         run: |
           # Install build dependencies
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake curl wget git pkg-config python3-pip libudev-dev
+          sudo apt-get install -y build-essential cmake curl wget git pkg-config python3-pip libudev-dev minizip
           
           # Upgrade Meson to a compatible version
           pip3 install --upgrade meson
@@ -92,27 +92,27 @@ jobs:
           cd ..
 
           # Install libevdev
-          curl -LO https://github.com/evdev/libevdev/releases/download/v1.12.0/libevdev-1.12.0.tar.xz
-          tar -xvf libevdev-1.12.0.tar.xz
-          cd libevdev-1.12.0
+          curl -LO https://www.freedesktop.org/software/libevdev/libevdev-1.13.4.tar.xz
+          tar -xvf libevdev-1.13.4.tar.xz
+          cd libevdev-1.13.4
           ./configure --prefix=$HOME/deps
           make -j$(nproc)
           make install
           cd ..
 
-          # Install libminizip
-          curl -LO https://github.com/nmoinvaz/minizip/releases/download/v1.2.11/minizip-1.2.11.tar.gz
-          tar -xvf minizip-1.2.11.tar.gz
-          cd minizip-1.2.11
-          cmake .
-          make -j$(nproc)
-          make install
-          cd ..
+          # # Install libminizip
+          # curl -LO https://github.com/zlib-ng/minizip-ng/releases/download/4.0.8/minizip-ng-linux.tar.gz
+          # tar -xvf minizip-1.2.11.tar.gz
+          # cd minizip-1.2.11
+          # cmake .
+          # make -j$(nproc)
+          # make install
+          # cd ..
 
           # Install libglib
-          curl -LO https://download.gnome.org/sources/glib/2.72/glib-2.72.1.tar.xz
-          tar -xvf glib-2.72.1.tar.xz
-          cd glib-2.72.1
+          curl -LO https://download.gnome.org/sources/glib/2.84/glib-2.84.1.tar.xz
+          tar -xvf glib-2.84.1.tar.xz
+          cd glib-2.84.1
           ./configure --prefix=$HOME/deps
           make -j$(nproc)
           make install
