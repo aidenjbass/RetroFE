@@ -82,6 +82,24 @@ jobs:
           ninja -C builddir install
           cd ..
 
+          # Install Gstreamer Base Plugins
+          curl -LO https://gstreamer.freedesktop.org/src/gst-plugins-base/gst-plugins-base-1.26.0.tar.xz
+          tar -xvf gst-plugins-base-1.26.0.tar.xz
+          cd gst-plugins-base-1.26.0
+          meson setup builddir --prefix=$HOME/deps --buildtype=release
+          ninja -C builddir
+          ninja -C builddir install
+          cd ..
+
+          # Install Gstreamer Good Plugins
+          curl -LO https://gstreamer.freedesktop.org/src/gst-plugins-base/gst-plugins-good-1.26.0.tar.xz
+          tar -xvf gst-plugins-good-1.26.0.tar.xz
+          cd gst-plugins-good-1.26.0
+          meson setup builddir --prefix=$HOME/deps --buildtype=release
+          ninja -C builddir
+          ninja -C builddir install
+          cd ..
+
           # Install libusb
           curl -LO https://github.com/libusb/libusb/releases/download/v1.0.24/libusb-1.0.24.tar.bz2
           tar -xvf libusb-1.0.24.tar.bz2
