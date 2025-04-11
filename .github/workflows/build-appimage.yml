@@ -26,136 +26,286 @@ jobs:
           # Upgrade Meson to a compatible version
           pip3 install --upgrade meson
 
-      - name: Install dependencies from source
+      - name: Cache zlib
+        uses: actions/cache@v3
+        with:
+          path: $HOME/deps/zlib
+          key: zlib-${{ runner.os }}-${{ hashFiles('zlib.tar.gz') }}
+          restore-keys: |
+            zlib-${{ runner.os }}-
+
+      - name: Install zlib
         run: |
-          # Install zlib
-          curl -LO https://zlib.net/current/zlib.tar.gz
-          tar -xzvf zlib.tar.gz
-          cd zlib-*
-          ./configure --prefix=$HOME/deps
-          make -j$(nproc)
-          make install
-          cd ..
+          if [ ! -d "$HOME/deps/zlib" ]; then
+            curl -LO https://zlib.net/current/zlib.tar.gz
+            tar -xzvf zlib.tar.gz
+            cd zlib-*
+            ./configure --prefix=$HOME/deps
+            make -j$(nproc)
+            make install
+            cd ..
+          fi
 
-          # Install SDL2
-          curl -LO https://github.com/libsdl-org/SDL/releases/download/release-2.32.2/SDL2-2.32.2.tar.gz
-          tar -xzvf SDL2-2.32.2.tar.gz
-          cd SDL2-2.32.2
-          ./configure --prefix=$HOME/deps
-          make -j$(nproc)
-          make install
-          cd ..
+      - name: Cache SDL2
+        uses: actions/cache@v3
+        with:
+          path: $HOME/deps/SDL2
+          key: sdl2-${{ runner.os }}-${{ hashFiles('SDL2-2.32.2.tar.gz') }}
+          restore-keys: |
+            sdl2-${{ runner.os }}-
 
-          # Install SDL2_mixer
-          curl -LO https://github.com/libsdl-org/SDL_mixer/releases/download/release-2.8.1/SDL2_mixer-2.8.1.tar.gz
-          tar -xzvf SDL2_mixer-2.8.1.tar.gz
-          cd SDL2_mixer-2.8.1
-          ./configure --prefix=$HOME/deps
-          make -j$(nproc)
-          make install
-          cd ..
+      - name: Install SDL2
+        run: |
+          if [ ! -d "$HOME/deps/SDL2" ]; then
+            curl -LO https://github.com/libsdl-org/SDL/releases/download/release-2.32.2/SDL2-2.32.2.tar.gz
+            tar -xzvf SDL2-2.32.2.tar.gz
+            cd SDL2-2.32.2
+            ./configure --prefix=$HOME/deps
+            make -j$(nproc)
+            make install
+            cd ..
+          fi
 
-          # Install SDL2_image
-          curl -LO https://github.com/libsdl-org/SDL_image/releases/download/release-2.8.8/SDL2_image-2.8.8.tar.gz
-          tar -xzvf SDL2_image-2.8.8.tar.gz
-          cd SDL2_image-2.8.8
-          ./configure --prefix=$HOME/deps
-          make -j$(nproc)
-          make install
-          cd ..
+      - name: Cache SDL2_mixer
+        uses: actions/cache@v3
+        with:
+          path: $HOME/deps/SDL2_mixer
+          key: sdl2_mixer-${{ runner.os }}-${{ hashFiles('SDL2_mixer-2.8.1.tar.gz') }}
+          restore-keys: |
+            sdl2_mixer-${{ runner.os }}-
 
-          # Install SDL2_ttf
-          curl -LO https://github.com/libsdl-org/SDL_ttf/releases/download/release-2.24.0/SDL2_ttf-2.24.0.tar.gz
-          tar -xzvf SDL2_ttf-2.24.0.tar.gz
-          cd SDL2_ttf-2.24.0
-          ./configure --prefix=$HOME/deps
-          make -j$(nproc)
-          make install
-          cd ..
+      - name: Install SDL2_mixer
+        run: |
+          if [ ! -d "$HOME/deps/SDL2_mixer" ]; then
+            curl -LO https://github.com/libsdl-org/SDL_mixer/releases/download/release-2.8.1/SDL2_mixer-2.8.1.tar.gz
+            tar -xzvf SDL2_mixer-2.8.1.tar.gz
+            cd SDL2_mixer-2.8.1
+            ./configure --prefix=$HOME/deps
+            make -j$(nproc)
+            make install
+            cd ..
+          fi
 
-          # Install GStreamer
-          curl -LO https://gstreamer.freedesktop.org/src/gstreamer/gstreamer-1.26.0.tar.xz
-          tar -xvf gstreamer-1.26.0.tar.xz
-          cd gstreamer-1.26.0
-          meson setup builddir --prefix=$HOME/deps --buildtype=release
-          ninja -C builddir
-          ninja -C builddir install
-          cd ..
+      - name: Cache SDL2_image
+        uses: actions/cache@v3
+        with:
+          path: $HOME/deps/SDL2_image
+          key: sdl2_image-${{ runner.os }}-${{ hashFiles('SDL2_image-2.8.8.tar.gz') }}
+          restore-keys: |
+            sdl2_image-${{ runner.os }}-
 
-          # Install Gstreamer Base Plugins
-          curl -LO https://gstreamer.freedesktop.org/src/gst-plugins-base/gst-plugins-base-1.26.0.tar.xz
-          tar -xvf gst-plugins-base-1.26.0.tar.xz
-          cd gst-plugins-base-1.26.0
-          meson setup builddir --prefix=$HOME/deps --buildtype=release
-          ninja -C builddir
-          ninja -C builddir install
-          cd ..
+      - name: Install SDL2_image
+        run: |
+          if [ ! -d "$HOME/deps/SDL2_image" ]; then
+            curl -LO https://github.com/libsdl-org/SDL_image/releases/download/release-2.8.8/SDL2_image-2.8.8.tar.gz
+            tar -xzvf SDL2_image-2.8.8.tar.gz
+            cd SDL2_image-2.8.8
+            ./configure --prefix=$HOME/deps
+            make -j$(nproc)
+            make install
+            cd ..
+          fi
 
-          # Install Gstreamer Good Plugins
-          curl -LO https://gstreamer.freedesktop.org/src/gst-plugins-base/gst-plugins-good-1.26.0.tar.xz
-          tar -xvf gst-plugins-good-1.26.0.tar.xz
-          cd gst-plugins-good-1.26.0
-          meson setup builddir --prefix=$HOME/deps --buildtype=release
-          ninja -C builddir
-          ninja -C builddir install
-          cd ..
+      - name: Cache SDL2_ttf
+        uses: actions/cache@v3
+        with:
+          path: $HOME/deps/SDL2_ttf
+          key: sdl2_ttf-${{ runner.os }}-${{ hashFiles('SDL2_ttf-2.24.0.tar.gz') }}
+          restore-keys: |
+            sdl2_ttf-${{ runner.os }}-
 
-          # Install libusb
-          curl -LO https://github.com/libusb/libusb/releases/download/v1.0.24/libusb-1.0.24.tar.bz2
-          tar -xvf libusb-1.0.24.tar.bz2
-          cd libusb-1.0.24
-          ./configure --prefix=$HOME/deps
-          make -j$(nproc)
-          make install
-          cd ..
+      - name: Install SDL2_ttf
+        run: |
+          if [ ! -d "$HOME/deps/SDL2_ttf" ]; then
+            curl -LO https://github.com/libsdl-org/SDL_ttf/releases/download/release-2.24.0/SDL2_ttf-2.24.0.tar.gz
+            tar -xzvf SDL2_ttf-2.24.0.tar.gz
+            cd SDL2_ttf-2.24.0
+            ./configure --prefix=$HOME/deps
+            make -j$(nproc)
+            make install
+            cd ..
+          fi
 
-          # Install libevdev
-          curl -LO https://www.freedesktop.org/software/libevdev/libevdev-1.13.4.tar.xz
-          tar -xvf libevdev-1.13.4.tar.xz
-          cd libevdev-1.13.4
-          ./configure --prefix=$HOME/deps
-          make -j$(nproc)
-          make install
-          cd ..
+      - name: Cache GStreamer
+        uses: actions/cache@v3
+        with:
+          path: $HOME/deps/gstreamer
+          key: gstreamer-${{ runner.os }}-${{ hashFiles('gstreamer-1.26.0.tar.xz') }}
+          restore-keys: |
+            gstreamer-${{ runner.os }}-
 
-          # Install libminizip
-          curl -LO https://github.com/zlib-ng/minizip-ng/archive/refs/tags/4.0.9.tar.gz
-          tar -xvf 4.0.9.tar.gz
-          cd minizip-ng-4.0.9
-          cmake -S . -D MZ_BUILD_TESTS=ON -DCMAKE_INSTALL_PREFIX=$HOME/deps
-          make -j$(nproc)
-          make install
-          cd ..
+      - name: Install GStreamer
+        run: |
+          if [ ! -d "$HOME/deps/gstreamer" ]; then
+            curl -LO https://gstreamer.freedesktop.org/src/gstreamer/gstreamer-1.26.0.tar.xz
+            tar -xvf gstreamer-1.26.0.tar.xz
+            cd gstreamer-1.26.0
+            meson setup builddir --prefix=$HOME/deps --buildtype=release
+            ninja -C builddir
+            ninja -C builddir install
+            cd ..
+          fi
 
-          # Install libglib
-          curl -LO https://download.gnome.org/sources/glib/2.84/glib-2.84.1.tar.xz
-          tar -xvf glib-2.84.1.tar.xz
-          cd glib-2.84.1
-          # Setup environment
-          mkdir build
-          meson setup build --prefix=$HOME/deps
-          meson compile -C build
-          meson install -C build
-          cd ..
+      - name: Cache GStreamer Plugins Base
+        uses: actions/cache@v3
+        with:
+          path: $HOME/deps/gst-plugins-base
+          key: gst-plugins-base-${{ runner.os }}-${{ hashFiles('gst-plugins-base-1.26.0.tar.xz') }}
+          restore-keys: |
+            gst-plugins-base-${{ runner.os }}-
 
-          # Install sqlite3
-          curl -LO https://sqlite.org/2023/sqlite-autoconf-3410200.tar.gz
-          tar -xvf sqlite-autoconf-3410200.tar.gz
-          cd sqlite-autoconf-3410200
-          ./configure --prefix=$HOME/deps
-          make -j$(nproc)
-          make install
-          cd ..
+      - name: Install GStreamer Plugins Base
+        run: |
+          if [ ! -d "$HOME/deps/gst-plugins-base" ]; then
+            curl -LO https://gstreamer.freedesktop.org/src/gst-plugins-base/gst-plugins-base-1.26.0.tar.xz
+            tar -xvf gst-plugins-base-1.26.0.tar.xz
+            cd gst-plugins-base-1.26.0
+            meson setup builddir --prefix=$HOME/deps --buildtype=release
+            ninja -C builddir
+            ninja -C builddir install
+            cd ..
+          fi
 
-          # Install libwebp
-          curl -LO https://github.com/webmproject/libwebp/archive/refs/tags/v1.5.0.tar.gz
-          tar -xvf v1.5.0.tar.gz
-          cd libwebp-1.5.0
-          ./autogen.sh
-          ./configure --prefix=$HOME/deps
-          make -j$(nproc)
-          make install
-          cd ..
+      - name: Cache GStreamer Plugins Good
+        uses: actions/cache@v3
+        with:
+          path: $HOME/deps/gst-plugins-good
+          key: gst-plugins-good-${{ runner.os }}-${{ hashFiles('gst-plugins-good-1.26.0.tar.xz') }}
+          restore-keys: |
+            gst-plugins-good-${{ runner.os }}-
+
+      - name: Install GStreamer Plugins Good
+        run: |
+          if [ ! -d "$HOME/deps/gst-plugins-good" ]; then
+            curl -LO https://gstreamer.freedesktop.org/src/gst-plugins-good/gst-plugins-good-1.26.0.tar.xz
+            tar -xvf gst-plugins-good-1.26.0.tar.xz
+            cd gst-plugins-good-1.26.0
+            meson setup builddir --prefix=$HOME/deps --buildtype=release
+            ninja -C builddir
+            ninja -C builddir install
+            cd ..
+          fi
+
+      - name: Cache libusb
+        uses: actions/cache@v3
+        with:
+          path: $HOME/deps/libusb
+          key: libusb-${{ runner.os }}-${{ hashFiles('libusb-1.0.24.tar.bz2') }}
+          restore-keys: |
+            libusb-${{ runner.os }}-
+
+      - name: Install libusb
+        run: |
+          if [ ! -d "$HOME/deps/libusb" ]; then
+            curl -LO https://github.com/libusb/libusb/releases/download/v1.0.24/libusb-1.0.24.tar.bz2
+            tar -xvf libusb-1.0.24.tar.bz2
+            cd libusb-1.0.24
+            ./configure --prefix=$HOME/deps
+            make -j$(nproc)
+            make install
+            cd ..
+          fi
+
+      - name: Cache libevdev
+        uses: actions/cache@v3
+        with:
+          path: $HOME/deps/libevdev
+          key: libevdev-${{ runner.os }}-${{ hashFiles('libevdev-1.13.4.tar.xz') }}
+          restore-keys: |
+            libevdev-${{ runner.os }}-
+
+      - name: Install libevdev
+        run: |
+          if [ ! -d "$HOME/deps/libevdev" ]; then
+            curl -LO https://www.freedesktop.org/software/libevdev/libevdev-1.13.4.tar.xz
+            tar -xvf libevdev-1.13.4.tar.xz
+            cd libevdev-1.13.4
+            ./configure --prefix=$HOME/deps
+            make -j$(nproc)
+            make install
+            cd ..
+          fi
+
+      - name: Cache libminizip
+        uses: actions/cache@v3
+        with:
+          path: $HOME/deps/minizip-ng
+          key: minizip-ng-${{ runner.os }}-${{ hashFiles('4.0.9.tar.gz') }}
+          restore-keys: |
+            minizip-ng-${{ runner.os }}-
+
+      - name: Install libminizip
+        run: |
+          if [ ! -d "$HOME/deps/minizip-ng" ]; then
+            curl -LO https://github.com/zlib-ng/minizip-ng/archive/refs/tags/4.0.9.tar.gz
+            tar -xvf 4.0.9.tar.gz
+            cd minizip-ng-4.0.9
+            cmake -S . -D MZ_BUILD_TESTS=ON -DCMAKE_INSTALL_PREFIX=$HOME/deps
+            make -j$(nproc)
+            make install
+            cd ..
+          fi
+
+      - name: Cache glib
+        uses: actions/cache@v3
+        with:
+          path: $HOME/deps/glib
+          key: glib-${{ runner.os }}-${{ hashFiles('glib-2.84.1.tar.xz') }}
+          restore-keys: |
+            glib-${{ runner.os }}-
+
+      - name: Install glib
+        run: |
+          if [ ! -d "$HOME/deps/glib" ]; then
+            curl -LO https://ftp.gnome.org/pub/gnome/sources/glib/2.84/glib-2.84.1.tar.xz
+            tar -xvf glib-2.84.1.tar.xz
+            cd glib-2.84.1
+            meson setup builddir --prefix=$HOME/deps --buildtype=release
+            ninja -C builddir
+            ninja -C builddir install
+            cd ..
+          fi
+
+      - name: Cache sqlite3
+        uses: actions/cache@v3
+        with:
+          path: $HOME/deps/sqlite3
+          key: sqlite3-${{ runner.os }}-${{ hashFiles('sqlite-autoconf-3410200.tar.gz') }}
+          restore-keys: |
+            sqlite3-${{ runner.os }}-
+
+      - name: Install sqlite3
+        run: |
+          if [ ! -d "$HOME/deps/sqlite3" ]; then
+            curl -LO https://sqlite.org/2023/sqlite-autoconf-3410200.tar.gz
+            tar -xvf sqlite-autoconf-3410200.tar.gz
+            cd sqlite-autoconf-3410200
+            ./configure --prefix=$HOME/deps
+            make -j$(nproc)
+            make install
+            cd ..
+          fi
+
+      - name: Cache libwebp
+        uses: actions/cache@v3
+        with:
+          path: $HOME/deps/libwebp
+          key: libwebp-${{ runner.os }}-${{ hashFiles('libwebp-1.5.0.tar.gz') }}
+          restore-keys: |
+            libwebp-${{ runner.os }}-
+
+      - name: Install libwebp
+        run: |
+          if [ ! -d "$HOME/deps/libwebp" ]; then
+            curl -LO https://github.com/webmproject/libwebp/archive/refs/tags/v1.5.0.tar.gz
+            tar -xvf v1.5.0.tar.gz
+            cd libwebp-1.5.0
+            ./autogen.sh
+            ./configure --prefix=$HOME/deps
+            make -j$(nproc)
+            make install
+            cd ..
+          fi
 
       - name: Configure CMake
         env:
@@ -172,7 +322,6 @@ jobs:
             -DCMAKE_INSTALL_RPATH=$HOME/deps/lib \
             -DCMAKE_BUILD_RPATH=$HOME/deps/lib \
             -DCMAKE_SKIP_RPATH=OFF
-
 
       - name: Build
         run: cmake --build RetroFE/Build
@@ -204,7 +353,7 @@ jobs:
           if [ "${{ matrix.config.arch }}" == "arm64" ]; then
             mv RetroFE-aarch64.AppImage RetroFE-arm64.AppImage
           fi
-          
+
       - name: Upload ${{ matrix.config.arch }} AppImage
         uses: actions/upload-artifact@v4
         with:
