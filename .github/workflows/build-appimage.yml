@@ -133,7 +133,18 @@ jobs:
         env:
           PKG_CONFIG_PATH: $HOME/deps/lib/pkgconfig
           LD_LIBRARY_PATH: $HOME/deps/lib
-        run: cmake RetroFE/Source -BRetroFE/Build -DCMAKE_PREFIX_PATH=$HOME/deps
+          CMAKE_PREFIX_PATH: $HOME/deps
+          C_INCLUDE_PATH: $HOME/deps/include
+          CPLUS_INCLUDE_PATH: $HOME/deps/include
+        run: |
+          cmake RetroFE/Source -BRetroFE/Build \
+            -DCMAKE_PREFIX_PATH=$HOME/deps \
+            -DCMAKE_LIBRARY_PATH=$HOME/deps/lib \
+            -DCMAKE_INCLUDE_PATH=$HOME/deps/include \
+            -DCMAKE_INSTALL_RPATH=$HOME/deps/lib \
+            -DCMAKE_BUILD_RPATH=$HOME/deps/lib \
+            -DCMAKE_SKIP_RPATH=OFF
+
 
       - name: Build
         run: cmake --build RetroFE/Build
