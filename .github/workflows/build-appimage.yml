@@ -21,18 +21,10 @@ jobs:
         run: |
           # Install build dependencies
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake curl wget git pkg-config python3-pip libudev-dev autoconf automake libtool
+          sudo apt-get install -y build-essential cmake curl wget git pkg-config python3-pip libudev-dev autoconf automake libtool ninja-build bison flex
           
           # Upgrade Meson to a compatible version
           pip3 install --upgrade meson
-
-      - name: Cache zlib
-        uses: actions/cache@v3
-        with:
-          path: $HOME/deps/zlib
-          key: zlib-${{ runner.os }}-${{ hashFiles('zlib.tar.gz') }}
-          restore-keys: |
-            zlib-${{ runner.os }}-
 
       - name: Install zlib
         run: |
@@ -45,6 +37,48 @@ jobs:
             make install
             cd ..
           fi
+
+      - name: Install glib
+        run: |
+          if [ ! -d "$HOME/deps/glib" ]; then
+            curl -LO https://ftp.gnome.org/pub/gnome/sources/glib/2.84/glib-2.84.1.tar.xz
+            tar -xvf glib-2.84.1.tar.xz
+            cd glib-2.84.1
+            meson setup builddir --prefix=$HOME/deps --buildtype=release
+            ninja -C builddir
+            ninja -C builddir install
+            cd ..
+          fi
+
+      - name: Clone and Build GStreamer
+        run: |
+          git clone https://gitlab.freedesktop.org/gstreamer/gstreamer.git --branch 1.26.0
+          cd gstreamer
+          meson setup builddir
+          meson compile -C builddir
+          sudo meson install -C builddir
+          cd ..
+
+      - name: Clone and Build GStreamer Plugins
+        run: |
+          git clone https://gitlab.freedesktop.org/gstreamer/gst-plugins-base.git --branch 1.26.0
+          cd gst-plugins-base
+          meson setup builddir
+          meson compile -C builddir
+          sudo meson install -C builddir
+          cd ..
+
+          git clone https://gitlab.freedesktop.org/gstreamer/gst-plugins-good.git --branch 1.26.0
+          cd gst-plugins-good
+          meson setup builddir
+          meson compile -C builddir
+          sudo meson install -C builddir
+          cd ..
+
+      - name: Verify Installation
+        run: |
+          gst-launch-1.0 --version
+          gst-inspect-1.0
 
       - name: Cache SDL2
         uses: actions/cache@v3
@@ -126,66 +160,6 @@ jobs:
             cd ..
           fi
 
-      - name: Cache GStreamer
-        uses: actions/cache@v3
-        with:
-          path: $HOME/deps/gstreamer
-          key: gstreamer-${{ runner.os }}-${{ hashFiles('gstreamer-1.26.0.tar.xz') }}
-          restore-keys: |
-            gstreamer-${{ runner.os }}-
-
-      - name: Install GStreamer
-        run: |
-          if [ ! -d "$HOME/deps/gstreamer" ]; then
-            curl -LO https://gstreamer.freedesktop.org/src/gstreamer/gstreamer-1.26.0.tar.xz
-            tar -xvf gstreamer-1.26.0.tar.xz
-            cd gstreamer-1.26.0
-            meson setup builddir --prefix=$HOME/deps --buildtype=release
-            ninja -C builddir
-            ninja -C builddir install
-            cd ..
-          fi
-
-      - name: Cache GStreamer Plugins Base
-        uses: actions/cache@v3
-        with:
-          path: $HOME/deps/gst-plugins-base
-          key: gst-plugins-base-${{ runner.os }}-${{ hashFiles('gst-plugins-base-1.26.0.tar.xz') }}
-          restore-keys: |
-            gst-plugins-base-${{ runner.os }}-
-
-      - name: Install GStreamer Plugins Base
-        run: |
-          if [ ! -d "$HOME/deps/gst-plugins-base" ]; then
-            curl -LO https://gstreamer.freedesktop.org/src/gst-plugins-base/gst-plugins-base-1.26.0.tar.xz
-            tar -xvf gst-plugins-base-1.26.0.tar.xz
-            cd gst-plugins-base-1.26.0
-            meson setup builddir --prefix=$HOME/deps --buildtype=release
-            ninja -C builddir
-            ninja -C builddir install
-            cd ..
-          fi
-
-      - name: Cache GStreamer Plugins Good
-        uses: actions/cache@v3
-        with:
-          path: $HOME/deps/gst-plugins-good
-          key: gst-plugins-good-${{ runner.os }}-${{ hashFiles('gst-plugins-good-1.26.0.tar.xz') }}
-          restore-keys: |
-            gst-plugins-good-${{ runner.os }}-
-
-      - name: Install GStreamer Plugins Good
-        run: |
-          if [ ! -d "$HOME/deps/gst-plugins-good" ]; then
-            curl -LO https://gstreamer.freedesktop.org/src/gst-plugins-good/gst-plugins-good-1.26.0.tar.xz
-            tar -xvf gst-plugins-good-1.26.0.tar.xz
-            cd gst-plugins-good-1.26.0
-            meson setup builddir --prefix=$HOME/deps --buildtype=release
-            ninja -C builddir
-            ninja -C builddir install
-            cd ..
-          fi
-
       - name: Cache libusb
         uses: actions/cache@v3
         with:
@@ -243,26 +217,6 @@ jobs:
             cmake -S . -D MZ_BUILD_TESTS=ON -DCMAKE_INSTALL_PREFIX=$HOME/deps
             make -j$(nproc)
             make install
-            cd ..
-          fi
-
-      - name: Cache glib
-        uses: actions/cache@v3
-        with:
-          path: $HOME/deps/glib
-          key: glib-${{ runner.os }}-${{ hashFiles('glib-2.84.1.tar.xz') }}
-          restore-keys: |
-            glib-${{ runner.os }}-
-
-      - name: Install glib
-        run: |
-          if [ ! -d "$HOME/deps/glib" ]; then
-            curl -LO https://ftp.gnome.org/pub/gnome/sources/glib/2.84/glib-2.84.1.tar.xz
-            tar -xvf glib-2.84.1.tar.xz
-            cd glib-2.84.1
-            meson setup builddir --prefix=$HOME/deps --buildtype=release
-            ninja -C builddir
-            ninja -C builddir install
             cd ..
           fi
 
