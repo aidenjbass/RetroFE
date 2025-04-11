@@ -21,7 +21,7 @@ jobs:
         run: |
           # Install build dependencies
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake curl wget git pkg-config python3-pip minizip libudev-dev
+          sudo apt-get install -y build-essential cmake curl wget git pkg-config python3-pip libudev-dev autoconf automake libtool
           
           # Upgrade Meson to a compatible version
           pip3 install --upgrade meson
@@ -100,14 +100,14 @@ jobs:
           make install
           cd ..
 
-          # # Install libminizip
-          # curl -LO https://github.com/zlib-ng/minizip-ng/releases/download/4.0.8/minizip-ng-linux.tar.gz
-          # tar -xvf minizip-1.2.11.tar.gz
-          # cd minizip-1.2.11
-          # cmake .
-          # make -j$(nproc)
-          # make install
-          # cd ..
+          # Install libminizip
+          curl -LO https://github.com/zlib-ng/minizip-ng/archive/refs/tags/4.0.9.tar.gz
+          tar -xvf 4.0.9.tar.gz
+          cd minizip-ng-4.0.9
+          cmake -S . -D MZ_BUILD_TESTS=ON
+          make -j$(nproc)
+          make install
+          cd ..
 
           # Install libglib
           curl -LO https://download.gnome.org/sources/glib/2.84/glib-2.84.1.tar.xz
@@ -124,6 +124,16 @@ jobs:
           curl -LO https://sqlite.org/2023/sqlite-autoconf-3410200.tar.gz
           tar -xvf sqlite-autoconf-3410200.tar.gz
           cd sqlite-autoconf-3410200
+          ./configure --prefix=$HOME/deps
+          make -j$(nproc)
+          make install
+          cd ..
+
+          # Install libwebp
+          curl -LO https://github.com/webmproject/libwebp/archive/refs/tags/v1.5.0.tar.gz
+          tar -xvf v1.5.0.tar.gz
+          cd libwebp-1.5.0
+          ./autogen.sh
           ./configure --prefix=$HOME/deps
           make -j$(nproc)
           make install
