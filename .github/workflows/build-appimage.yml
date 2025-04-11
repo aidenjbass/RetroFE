@@ -28,9 +28,6 @@ jobs:
           pip3 install --upgrade meson
 
       - name: Clone and Build GStreamer
-        env:
-          CFLAGS: "-Winline --param max-inline-insns-single=600"
-          CXXFLAGS: "-Winline --param max-inline-insns-single=600"
         run: |
           # Clone the GStreamer mono repository
           git clone https://gitlab.freedesktop.org/gstreamer/gstreamer.git --branch 1.26.0
@@ -38,9 +35,6 @@ jobs:
 
           # Configure Meson to build only the required components
           meson setup builddir \
-              -Dintrospection=disabled \
-              -Dges=disabled \
-              -Dpython=disabled \
               -Dtests=disabled \
               -Dexamples=disabled \
               -Dbad=disabled \
