@@ -21,7 +21,7 @@ jobs:
         run: |
           # Install build dependencies
           sudo apt-get update
-          sudo apt-get install -y build-essential cmake curl wget git pkg-config python3-pip libudev-dev autoconf automake libtool ninja-build bison flex
+          sudo apt-get install -y build-essential cmake curl wget git pkg-config python3-pip libudev-dev autoconf automake libtool ninja-build bison flex libglib2.0 libglib2.0-dev
           
           # Upgrade Meson to a compatible version
           pip3 install --upgrade meson
@@ -38,18 +38,6 @@ jobs:
             cd ..
           fi
 
-      - name: Install glib
-        run: |
-          if [ ! -d "$HOME/deps/glib" ]; then
-            curl -LO https://ftp.gnome.org/pub/gnome/sources/glib/2.84/glib-2.84.1.tar.xz
-            tar -xvf glib-2.84.1.tar.xz
-            cd glib-2.84.1
-            meson setup builddir --prefix=$HOME/deps --buildtype=release
-            ninja -C builddir
-            ninja -C builddir install
-            cd ..
-          fi
-
       - name: Clone and Build GStreamer
         run: |
           # Clone the GStreamer mono repository
@@ -63,6 +51,9 @@ jobs:
             -Dpython=disabled \         # Disable Python bindings
             -Dgst-plugins-bad=disabled \ # Disable the gst-plugins-bad module
             -Dgst-plugins-ugly=disabled \ # Disable the gst-plugins-ugly module
+            -Dtests=disabled \ # Disables building of test programs
+            -Dexamples=disabled \ # Disables building of example programs
+            -Ddocumentation=disabled # Disables building of documentation
 
           # Compile and install
           meson compile -C builddir
