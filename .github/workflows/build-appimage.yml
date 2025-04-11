@@ -34,14 +34,14 @@ jobs:
 
           # Configure Meson to build only the required components
           meson setup builddir \
-            -Dintrospection=disabled \  # Disable GObject Introspection if not needed
-            -Dges=disabled \            # Disable GStreamer Editing Services
-            -Dpython=disabled \         # Disable Python bindings
-            -Dgst-plugins-bad=disabled \ # Disable the gst-plugins-bad module
-            -Dgst-plugins-ugly=disabled \ # Disable the gst-plugins-ugly module
-            -Dtests=disabled \ # Disables building of test programs
-            -Dexamples=disabled \ # Disables building of example programs
-            -Ddocumentation=disabled # Disables building of documentation
+              -Dintrospection=disabled \
+              -Dges=disabled \
+              -Dpython=disabled \
+              -Dgst-plugins-bad=disabled \
+              -Dgst-plugins-ugly=disabled \
+              -Dtests=disabled \
+              -Dexamples=disabled \
+              -Ddocumentation=disabled
 
           # Compile and install
           meson compile -C builddir
