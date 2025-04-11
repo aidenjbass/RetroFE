@@ -113,9 +113,11 @@ jobs:
           curl -LO https://download.gnome.org/sources/glib/2.84/glib-2.84.1.tar.xz
           tar -xvf glib-2.84.1.tar.xz
           cd glib-2.84.1
-          ./configure --prefix=$HOME/deps
-          make -j$(nproc)
-          make install
+          # Setup environment
+          mkdir build
+          meson setup build --prefix=$HOME/deps
+          meson compile -C build
+          meson install -C build
           cd ..
 
           # Install sqlite3
