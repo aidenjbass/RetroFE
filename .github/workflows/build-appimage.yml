@@ -36,8 +36,8 @@ jobs:
 
           # Install SDL2
           curl -LO https://github.com/libsdl-org/SDL/releases/download/release-2.32.2/SDL2-2.32.2.tar.gz
-          tar -xzvf SDL2-*.tar.gz
-          cd SDL2-*
+          tar -xzvf SDL2-2.32.2.tar.gz
+          cd SDL2-2.32.2
           ./configure --prefix=$HOME/deps
           make -j$(nproc)
           make install
@@ -45,8 +45,8 @@ jobs:
 
           # Install SDL2_mixer
           curl -LO https://github.com/libsdl-org/SDL_mixer/releases/download/release-2.8.1/SDL2_mixer-2.8.1.tar.gz
-          tar -xzvf SDL2_mixer-*.tar.gz
-          cd SDL2_mixer-*
+          tar -xzvf SDL2_mixer-2.8.1.tar.gz
+          cd SDL2_mixer-2.8.1
           ./configure --prefix=$HOME/deps
           make -j$(nproc)
           make install
@@ -54,8 +54,8 @@ jobs:
 
           # Install SDL2_image
           curl -LO https://github.com/libsdl-org/SDL_image/releases/download/release-2.8.8/SDL2_image-2.8.8.tar.gz
-          tar -xzvf SDL2_image-*.tar.gz
-          cd SDL2_image-*
+          tar -xzvf SDL2_image-2.8.8.tar.gz
+          cd SDL2_image-2.8.8
           ./configure --prefix=$HOME/deps
           make -j$(nproc)
           make install
@@ -63,8 +63,8 @@ jobs:
 
           # Install SDL2_ttf
           curl -LO https://github.com/libsdl-org/SDL_ttf/releases/download/release-2.24.0/SDL2_ttf-2.24.0.tar.gz
-          tar -xzvf SDL2_ttf-*.tar.gz
-          cd SDL2_ttf-*
+          tar -xzvf SDL2_ttf-2.24.0.tar.gz
+          cd SDL2_ttf-2.24.0.tar.gz
           ./configure --prefix=$HOME/deps
           make -j$(nproc)
           make install
@@ -72,8 +72,8 @@ jobs:
 
           # Install GStreamer
           curl -LO https://gstreamer.freedesktop.org/src/gstreamer/gstreamer-1.26.0.tar.xz
-          tar -xvf gstreamer-*.tar.xz
-          cd gstreamer-*
+          tar -xvf gstreamer-1.26.0.tar.xz
+          cd gstreamer-1.26.0.tar.xz
           ./configure --prefix=$HOME/deps --disable-static --enable-shared
           make -j$(nproc)
           make install
